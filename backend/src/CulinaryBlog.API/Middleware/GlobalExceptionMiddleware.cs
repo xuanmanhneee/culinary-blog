@@ -1,13 +1,14 @@
+using System.Text.Json;
 using CulinaryBlog.Application.Common.Exceptions;
 using CulinaryBlog.Domain.Common.Exceptions;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace CulinaryBlog.API.Middleware;
 
 /// <summary>
-/// Bắt mọi exception chưa được xử lý trong pipeline và trả về RFC 7807
-/// (application/problem+json). Endpoint chỉ cần throw, không tự try/catch.
+/// Bắt mọi exception chưa được xử lý trong pipeline và trả về RFC 7807 (application/problem+json).
+/// Endpoint/service chỉ cần throw, không tự try/catch. Trường "type" chứa Application Error Code
+/// (SRS Phụ lục B) để frontend xử lý theo mã.
 /// </summary>
 public sealed class GlobalExceptionMiddleware
 {
@@ -46,49 +47,61 @@ public sealed class GlobalExceptionMiddleware
             }
 
             var problem = CreateProblemDetails(exception);
-            Log(exception, problem.Status!.Value);
+            var status = problem.Status!.Value;
+            Log(exception, status);
 
-            context.Response.Clear();
-            context.Response.StatusCode = problem.Status.Value;
+            // Không gọi Response.Clear(): giữ lại header đã set (CORS, correlation id...).
+            context.Response.StatusCode = status;
 
-            await problemDetailsService.WriteAsync(new ProblemDetailsContext
+            var written = await problemDetailsService.TryWriteAsync(new ProblemDetailsContext
             {
                 HttpContext = context,
                 ProblemDetails = problem,
                 Exception = exception
             });
+
+            if (!written)
+            {
+                await context.Response.WriteAsJsonAsync(
+                    problem, problem.GetType(), options: null, contentType: "application/problem+json");
+            }
         }
     }
 
     private ProblemDetails CreateProblemDetails(Exception exception) => exception switch
     {
-        ValidationException ex => new HttpValidationProblemDetails(
-            ex.Errors.ToDictionary(e => e.Key, e => e.Value))
+        ValidationException ex => new HttpValidationProblemDetails(ex.Errors)
         {
-            Status = StatusCodes.Status422UnprocessableEntity,
+            Status = StatusCodes.Status400BadRequest,
             Title = "One or more validation errors occurred.",
+            Type = ex.ErrorCode,
             Detail = ex.Message
         },
-        NotFoundException ex => Problem(StatusCodes.Status404NotFound, "Resource not found.", ex.Message),
-        ForbiddenException ex => Problem(StatusCodes.Status403Forbidden, "Forbidden.", ex.Message),
-        ConflictException ex => Problem(StatusCodes.Status409Conflict, "Conflict.", ex.Message),
-        DbUpdateConcurrencyException => Problem(
-            StatusCodes.Status409Conflict,
-            "Conflict.",
-            "The resource was modified by another request. Reload it and try again."),
-        DomainException ex => Problem(StatusCodes.Status422UnprocessableEntity, "Business rule violation.", ex.Message),
-        BadHttpRequestException ex => Problem(ex.StatusCode, "Bad request.", ex.Message),
+        UnauthorizedException ex => Problem(StatusCodes.Status401Unauthorized, "Unauthorized.", ex.ErrorCode, ex.Message),
+        ForbiddenException ex => Problem(StatusCodes.Status403Forbidden, "Forbidden.", ex.ErrorCode, ex.Message),
+        NotFoundException ex => Problem(StatusCodes.Status404NotFound, "Resource not found.", ex.ErrorCode, ex.Message),
+        ConflictException ex => Problem(StatusCodes.Status409Conflict, "Conflict.", ex.ErrorCode, ex.Message),
+        ConcurrencyConflictException ex => Problem(StatusCodes.Status422UnprocessableEntity, "Concurrency conflict.", ex.ErrorCode, ex.Message),
+
+        // Nhánh cụ thể phải đứng trước nhánh DomainException chung.
+        BusinessRuleViolationException ex => Problem(StatusCodes.Status400BadRequest, "Business rule violation.", ex.ErrorCode, ex.Message),
+        DomainException ex => Problem(StatusCodes.Status400BadRequest, "Business rule violation.", ex.ErrorCode, ex.Message),
+
+        BadHttpRequestException ex => Problem(ex.StatusCode, "Bad request.", null, ex.Message),
+
         // Không lộ chi tiết lỗi hệ thống ra ngoài môi trường Development.
         _ => Problem(
             StatusCodes.Status500InternalServerError,
             "An unexpected error occurred.",
+            null,
             _environment.IsDevelopment() ? exception.Message : null)
     };
 
-    private static ProblemDetails Problem(int status, string title, string? detail) => new()
+    private static ProblemDetails Problem(int status, string title, string? errorCode, string? detail) => new()
     {
         Status = status,
         Title = title,
+        Type = errorCode,
         Detail = detail
     };
 

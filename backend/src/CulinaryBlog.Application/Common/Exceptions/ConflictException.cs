@@ -1,12 +1,14 @@
 namespace CulinaryBlog.Application.Common.Exceptions;
 
 /// <summary>
-/// Xung đột với trạng thái hiện tại của tài nguyên (trùng slug, RowVersion lệch...). Map sang HTTP 409.
+/// Trùng lặp hoặc xung đột với trạng thái hiện tại (trùng tên/email/slug,
+/// xóa category còn recipe...). Map sang HTTP 409.
+/// Lỗi RowVersion lệch KHÔNG dùng lớp này, xem ConcurrencyConflictException.
 /// </summary>
-public sealed class ConflictException : Exception
+public sealed class ConflictException : AppException
 {
-    public ConflictException(string message)
-        : base(message)
+    public ConflictException(string errorCode, string message)
+        : base(errorCode, message)
     {
     }
 }

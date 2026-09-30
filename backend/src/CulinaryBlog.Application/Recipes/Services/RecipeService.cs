@@ -2,6 +2,7 @@ using CulinaryBlog.Application.Common.Exceptions;
 using CulinaryBlog.Application.Common.Models;
 using CulinaryBlog.Application.Recipes.Models;
 using CulinaryBlog.Domain.Common;
+using CulinaryBlog.Domain.Common.Exceptions;
 using CulinaryBlog.Domain.Modules.Recipes;
 
 namespace CulinaryBlog.Application.Recipes.Services;
@@ -55,7 +56,7 @@ public sealed class RecipeService : IRecipeService
         ValidateRequest(request);
 
         if (await _recipes.SlugExistsAsync(request.Slug.Trim(), cancellationToken))
-            throw new ConflictException($"Recipe slug '{request.Slug}' already exists.");
+            throw new ConflictException(ErrorCodes.RecipeSlugExists, "Slug đã tồn tại.");
 
         var recipe = Recipe.Create(
             request.Title.Trim(),
@@ -93,7 +94,7 @@ public sealed class RecipeService : IRecipeService
     public async Task PublishAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var recipe = await _recipes.GetByIdAsync(id, cancellationToken)
-            ?? throw new NotFoundException(nameof(Recipe), id);
+            ?? throw new NotFoundException(ErrorCodes.RecipeNotFound, $"Recipe '{id}' không tồn tại.");
 
         recipe.Publish();
         _recipes.Update(recipe);

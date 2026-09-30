@@ -1,6 +1,7 @@
 using CulinaryBlog.Application.Common.Exceptions;
 using CulinaryBlog.Application.Recipes.Models;
 using CulinaryBlog.Domain.Common;
+using CulinaryBlog.Domain.Common.Exceptions;
 using CulinaryBlog.Domain.Modules.Recipes;
 
 namespace CulinaryBlog.Application.Recipes.Services;
@@ -54,7 +55,7 @@ public sealed class RecipeIngredientService : IRecipeIngredientService
         // TODO(FR-RCP-009): kiểm tra Owner/Admin khi module Auth hoàn thành.
         var recipe = await GetRecipeAsync(recipeId, cancellationToken);
         var ingredient = recipe.FindIngredient(ingredientId)
-            ?? throw new NotFoundException(nameof(RecipeIngredient), ingredientId);
+            ?? throw new NotFoundException(ErrorCodes.IngredientNotFound, $"Ingredient '{ingredientId}' không tồn tại.");
 
         ingredient.Update(
             request.Name.Trim(),
@@ -76,14 +77,15 @@ public sealed class RecipeIngredientService : IRecipeIngredientService
         var recipe = await GetRecipeAsync(recipeId, cancellationToken);
 
         if (!recipe.RemoveIngredient(ingredientId))
-            throw new NotFoundException(nameof(RecipeIngredient), ingredientId);
+            // Ingredient
+            throw new NotFoundException( ErrorCodes.IngredientNotFound, $"Ingredient '{ingredientId}' không tồn tại.");
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
-    }
+    }   
 
     private async Task<Recipe> GetRecipeAsync(Guid recipeId, CancellationToken cancellationToken) =>
         await _recipes.GetByIdWithIngredientsAsync(recipeId, cancellationToken)
-            ?? throw new NotFoundException(nameof(Recipe), recipeId);
+            ?? throw new NotFoundException( ErrorCodes.RecipeNotFound, $"Recipe '{recipeId}' không tồn tại.");
 
     private static void Validate(string? name, decimal? quantity, string? unit, string? notes, int? orderIndex)
     {

@@ -1,5 +1,7 @@
 using CulinaryBlog.Application.Categories.Models;
+using CulinaryBlog.Application.Common.Exceptions;
 using CulinaryBlog.Domain.Common;
+using CulinaryBlog.Domain.Common.Exceptions;
 using CulinaryBlog.Domain.Modules.Categories;
 
 namespace CulinaryBlog.Application.Categories.Services;
@@ -8,6 +10,9 @@ public sealed class CategoryService : ICategoryService
 {
     private readonly ICategoryRepository _categories;
     private readonly IUnitOfWork _unitOfWork;
+    
+    private const int NameMaxLength = 100;
+    private const int SlugMaxLength = 120;
 
     public CategoryService(ICategoryRepository categories, IUnitOfWork unitOfWork)
     {
@@ -31,20 +36,45 @@ public sealed class CategoryService : ICategoryService
         CreateCategoryRequest request,
         CancellationToken cancellationToken = default)
     {
-        var name = Required(request.Name, nameof(request.Name));
-        var slug = Required(request.Slug, nameof(request.Slug));
+        Validate(request);
+
+        var name = request.Name.Trim();
+        var slug = request.Slug.Trim().ToLowerInvariant();
 
         if (await _categories.NameExistsAsync(name, cancellationToken))
-            throw new InvalidOperationException($"Category '{name}' already exists.");
+            throw new ConflictException(
+                ErrorCodes.CategoryNameExists, $"Tên danh mục '{name}' đã tồn tại.");
 
         if (await _categories.GetBySlugAsync(slug, cancellationToken) is not null)
-            throw new InvalidOperationException($"Category slug '{slug}' already exists.");
+            throw new ConflictException(
+                ErrorCodes.CategorySlugExists, $"Slug '{slug}' đã tồn tại.");
 
         var category = Category.Create(name, slug, request.Description?.Trim(), request.OrderIndex);
         await _categories.AddAsync(category, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return Map(category);
+    }
+
+    private static void Validate(CreateCategoryRequest request)
+    {
+        var errors = new Dictionary<string, string[]>();
+
+        if (string.IsNullOrWhiteSpace(request.Name))
+            errors["name"] = ["Tên danh mục là bắt buộc."];
+        else if (request.Name.Trim().Length > NameMaxLength)
+            errors["name"] = [$"Tên danh mục tối đa {NameMaxLength} ký tự."];
+
+        if (string.IsNullOrWhiteSpace(request.Slug))
+            errors["slug"] = ["Slug là bắt buộc."];
+        else if (request.Slug.Trim().Length > SlugMaxLength)
+            errors["slug"] = [$"Slug tối đa {SlugMaxLength} ký tự."];
+
+        if (request.OrderIndex < 0)
+            errors["orderIndex"] = ["Thứ tự hiển thị không được âm."];
+
+        if (errors.Count > 0)
+            throw new ValidationException(errors);
     }
 
     private static CategoryDto Map(Category category) => new(
@@ -54,9 +84,4 @@ public sealed class CategoryService : ICategoryService
         category.Description,
         category.ImageUrl,
         category.OrderIndex);
-
-    private static string Required(string? value, string parameterName) =>
-        string.IsNullOrWhiteSpace(value)
-            ? throw new ArgumentException("Value is required.", parameterName)
-            : value.Trim();
 }

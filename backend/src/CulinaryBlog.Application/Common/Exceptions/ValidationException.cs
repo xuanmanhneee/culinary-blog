@@ -1,16 +1,25 @@
+using CulinaryBlog.Domain.Common.Exceptions;
+
 namespace CulinaryBlog.Application.Common.Exceptions;
 
 /// <summary>
-/// Dữ liệu đầu vào không hợp lệ. Errors map tên field → danh sách lỗi,
-/// khớp với trường "errors" của RFC 7807 ValidationProblemDetails (HTTP 422).
+/// Một hoặc nhiều field không hợp lệ (SRS: VALIDATION_ERROR). Map sang HTTP 400,
+/// kèm object "errors": { "field": ["msg"] } trong Problem Details.
+/// Do ValidationBehavior ném ra sau khi chạy FluentValidation.
 /// </summary>
-public sealed class ValidationException : Exception
+public sealed class ValidationException : AppException
 {
-    public IReadOnlyDictionary<string, string[]> Errors { get; }
+    /// <summary>Key là tên field, value là danh sách thông điệp lỗi của field đó.</summary>
+    public IDictionary<string, string[]> Errors { get; }
 
-    public ValidationException(IReadOnlyDictionary<string, string[]> errors)
-        : base("One or more validation errors occurred.")
+    public ValidationException(IDictionary<string, string[]> errors)
+        : base(ErrorCodes.ValidationError, "One or more validation errors occurred.")
     {
         Errors = errors;
+    }
+
+    public ValidationException(string field, string message)
+        : this(new Dictionary<string, string[]> { [field] = new[] { message } })
+    {
     }
 }

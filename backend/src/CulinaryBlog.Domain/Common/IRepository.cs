@@ -12,12 +12,3 @@ public interface IRepository<T> where T : BaseEntity
     void Update(T entity);
     void Remove(T entity);
 }
-
-/// <summary>
-/// Gom các repository của từng module lại, đảm bảo transaction nhất quán
-/// khi 1 use case cần thao tác trên nhiều aggregate.
-/// </summary>
-public interface IUnitOfWork
-{
-    Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
-}

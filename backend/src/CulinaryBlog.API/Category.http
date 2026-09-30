@@ -1,0 +1,28 @@
+﻿@host = http://localhost:5000
+
+### 1. Danh sách (phải là 200, mảng rỗng nếu chưa có dữ liệu)
+GET {{host}}/api/v1/categories
+
+### 2. Slug không tồn tại -> 404, type = CATEGORY_NOT_FOUND
+GET {{host}}/api/v1/categories/khong-ton-tai
+
+### 3. Tạo mới lần đầu -> 201
+POST {{host}}/api/v1/categories
+Content-Type: application/json
+
+{ "name": "Món khai vị", "slug": "mon-khai-vi", "description": "Các món đầu bữa" }
+
+### 4. Tạo lại cùng tên -> 409, type = CATEGORY_NAME_EXISTS
+POST {{host}}/api/v1/categories
+Content-Type: application/json
+
+{ "name": "Món khai vị", "slug": "mon-khai-vi-2" }
+
+### 5. Tên rỗng -> 400, type = VALIDATION_ERROR kèm errors
+POST {{host}}/api/v1/categories
+Content-Type: application/json
+
+{ "name": "", "slug": "" }
+
+### 6. Lấy lại theo slug -> 200
+GET {{host}}/api/v1/categories/mon-khai-vi
