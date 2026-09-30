@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import RecipeJsonLd from "@/components/seo/RecipeJsonLd";
+import RecipeImageManager from "@/components/recipes/RecipeImageManager";
 import { getRecipeBySlug } from "@/lib/api/recipes";
 import type { RecipeDetailDto } from "@/lib/types/recipe";
 
@@ -90,6 +91,7 @@ export default async function RecipePage({ params }: RecipePageProps) {
         <h1>{recipe.title}</h1>
         <p>{recipe.description}</p>
       </article>
+      <RecipeImageManager recipeId={recipe.id} images={recipe.images} />
     </main>
   );
 }

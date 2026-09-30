@@ -5,6 +5,7 @@ using CulinaryBlog.Infrastructure.Persistence;
 using CulinaryBlog.Infrastructure.Persistence.Seed;
 using CulinaryBlog.Infrastructure.Storage;
 using Microsoft.EntityFrameworkCore;
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,6 +13,9 @@ var builder = WebApplication.CreateBuilder(args);
 // administrator permissions and can mask the original database exception.
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
+
+// Add OpenAPI/Swagger services
+builder.Services.AddOpenApi();
 
 builder.Services.AddApplicationServices();
 builder.Services.AddApplication();
@@ -33,8 +37,18 @@ if (args.Contains("--seed", StringComparer.OrdinalIgnoreCase))
     return;
 }
 
-app.MapGet("/", () => "Hello World!");
+// Bật OpenAPI & Scalar UI trong môi trường Development
+if (app.Environment.IsDevelopment())
+{
+    app.MapOpenApi();
+    app.MapScalarApiReference(options =>
+    {
+        options.WithTitle("Culinary Blog API")
+               .WithTheme(ScalarTheme.Moon);
+    });
+}
 
+// Map các Endpoints của ứng dụng
 app.MapRecipesEndpoints();
 
 app.Run();

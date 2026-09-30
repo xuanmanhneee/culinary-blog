@@ -1,4 +1,5 @@
 export interface RecipeImageDto {
+  id?: string;
   url?: string;
   originalUrl?: string;
   isPrimary?: boolean;
