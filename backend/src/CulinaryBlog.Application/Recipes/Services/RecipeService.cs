@@ -204,14 +204,33 @@ public sealed class RecipeService : IRecipeService
         return MapDetail(updated);
     }
 
-    public async Task PublishAsync(Guid id, CancellationToken cancellationToken = default)
+    public Task<RecipeDetailDto> PublishAsync(Guid id, CancellationToken cancellationToken = default) =>
+        ChangeStatusAsync(id, recipe => recipe.Publish(), cancellationToken);
+
+    public Task<RecipeDetailDto> UnpublishAsync(Guid id, CancellationToken cancellationToken = default) =>
+        ChangeStatusAsync(id, recipe => recipe.Unpublish(), cancellationToken);
+
+    public Task<RecipeDetailDto> ArchiveAsync(Guid id, CancellationToken cancellationToken = default) =>
+        ChangeStatusAsync(id, recipe => recipe.Archive(), cancellationToken);
+
+    /// <summary>
+    /// Load đủ Steps để domain kiểm tra rule publish, rồi áp dụng chuyển trạng thái.
+    /// Gọi lại khi đã ở trạng thái đích thì entity không đổi nên không ghi DB (idempotent, vẫn 200).
+    /// </summary>
+    private async Task<RecipeDetailDto> ChangeStatusAsync(
+        Guid id,
+        Action<Recipe> transition,
+        CancellationToken cancellationToken)
     {
-        var recipe = await _recipes.GetByIdAsync(id, cancellationToken)
+        // TODO(FR-RCP-005/006): resource-based authorization (Owner/Admin, 403) khi module Auth hoàn thành.
+        var recipe = await _recipes.GetByIdWithDetailsAsync(id, cancellationToken)
             ?? throw RecipeNotFound(id);
 
-        recipe.Publish();
-        _recipes.Update(recipe);
+        transition(recipe);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        // TODO(FR-RCP-005/006): EvictByTagAsync("recipes") và $"recipe:{slug}" khi bật Output Cache.
+        return MapDetail(recipe);
     }
 
     private static void ValidateQuery(RecipeQuery query)

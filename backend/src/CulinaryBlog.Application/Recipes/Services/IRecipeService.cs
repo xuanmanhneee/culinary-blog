@@ -29,5 +29,12 @@ public interface IRecipeService
         string? rowVersion,
         CancellationToken cancellationToken = default);
 
-    Task PublishAsync(Guid id, CancellationToken cancellationToken = default);
+    /// <summary>FR-RCP-005: Draft/Archived → Published. Cần ít nhất 1 bước; đã Published thì giữ nguyên.</summary>
+    Task<RecipeDetailDto> PublishAsync(Guid id, CancellationToken cancellationToken = default);
+
+    /// <summary>FR-RCP-005: → Draft (cũng dùng để khôi phục recipe Archived). Idempotent.</summary>
+    Task<RecipeDetailDto> UnpublishAsync(Guid id, CancellationToken cancellationToken = default);
+
+    /// <summary>FR-RCP-006: → Archived, ẩn khỏi danh sách công khai nhưng giữ dữ liệu. Idempotent.</summary>
+    Task<RecipeDetailDto> ArchiveAsync(Guid id, CancellationToken cancellationToken = default);
 }

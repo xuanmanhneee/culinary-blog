@@ -8,6 +8,8 @@ namespace CulinaryBlog.API.Endpoints;
 /// FR-RCP-002: GET /api/v1/recipes/{slug}
 /// FR-RCP-003: POST /api/v1/recipes
 /// FR-RCP-004: GET /api/v1/recipes/{id:guid} (trang edit, trả ETag), PUT /api/v1/recipes/{id:guid} (If-Match)
+/// FR-RCP-005: PATCH /api/v1/recipes/{id:guid}/publish | /unpublish
+/// FR-RCP-006: PATCH /api/v1/recipes/{id:guid}/archive
 /// </summary>
 public static class RecipeEndpoints
 {
@@ -23,8 +25,38 @@ public static class RecipeEndpoints
         // TODO(FR-RCP-003/004): RequireAuthorization (Author/Admin, Owner) khi module Auth hoàn thành.
         group.MapPost("/", CreateAsync);
         group.MapPut("/{id:guid}", UpdateAsync);
+        group.MapPatch("/{id:guid}/publish", PublishAsync);
+        group.MapPatch("/{id:guid}/unpublish", UnpublishAsync);
+        group.MapPatch("/{id:guid}/archive", ArchiveAsync);
 
         return app;
+    }
+
+    private static async Task<IResult> PublishAsync(
+        Guid id,
+        IRecipeService service,
+        HttpContext httpContext,
+        CancellationToken cancellationToken) =>
+        StatusChanged(httpContext, await service.PublishAsync(id, cancellationToken));
+
+    private static async Task<IResult> UnpublishAsync(
+        Guid id,
+        IRecipeService service,
+        HttpContext httpContext,
+        CancellationToken cancellationToken) =>
+        StatusChanged(httpContext, await service.UnpublishAsync(id, cancellationToken));
+
+    private static async Task<IResult> ArchiveAsync(
+        Guid id,
+        IRecipeService service,
+        HttpContext httpContext,
+        CancellationToken cancellationToken) =>
+        StatusChanged(httpContext, await service.ArchiveAsync(id, cancellationToken));
+
+    private static IResult StatusChanged(HttpContext httpContext, RecipeDetailDto recipe)
+    {
+        SetETag(httpContext, recipe);
+        return Results.Ok(recipe);
     }
 
     private static async Task<IResult> GetByIdAsync(

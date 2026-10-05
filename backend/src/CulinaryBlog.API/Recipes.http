@@ -131,3 +131,18 @@ Content-Type: application/json
 
 ### 12. Id không tồn tại – 404 RECIPE_NOT_FOUND
 GET {{baseUrl}}/api/v1/recipes/00000000-0000-0000-0000-000000000001
+
+### ============ FR-RCP-005 / 006 – Xuất bản, hủy xuất bản, lưu trữ ============
+### Gọi lại khi đã ở trạng thái đích vẫn trả 200 (idempotent). Response kèm ETag mới.
+
+### 13. Publish – 200 OK (Status = 1); recipe chưa có bước nào – 400 RECIPE_PUBLISH_INCOMPLETE
+PATCH {{baseUrl}}/api/v1/recipes/{{recipeId}}/publish
+
+### 14. Unpublish – 200 OK (Status = 0, Draft); cũng dùng để khôi phục recipe Archived
+PATCH {{baseUrl}}/api/v1/recipes/{{recipeId}}/unpublish
+
+### 15. Archive – 200 OK (Status = 2), không còn trong GET /api/v1/recipes
+PATCH {{baseUrl}}/api/v1/recipes/{{recipeId}}/archive
+
+### 16. Id không tồn tại – 404 RECIPE_NOT_FOUND
+PATCH {{baseUrl}}/api/v1/recipes/00000000-0000-0000-0000-000000000001/publish
