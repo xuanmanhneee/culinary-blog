@@ -1,0 +1,17 @@
+### FR-RCP-008 – Đặt ảnh chính / Xóa ảnh công thức
+### Upload ảnh (POST /api/v1/recipes/{id}/images) thuộc module File Storage (FR-FILE-001).
+### Chạy bằng extension "REST Client" (VS Code) hoặc Visual Studio / Rider.
+### recipeId / imageId: lấy từ "images" trong GET /api/v1/recipes/{slug}.
+
+@baseUrl = http://localhost:5000
+@recipeId = 00000000-0000-0000-0000-000000000000
+@imageId = 00000000-0000-0000-0000-000000000000
+
+### 1. Đặt ảnh chính – 200 OK, trả toàn bộ ảnh (ảnh chính đứng đầu, các ảnh khác isPrimary = false)
+PATCH {{baseUrl}}/api/v1/recipes/{{recipeId}}/images/{{imageId}}/primary
+
+### 2. Xóa ảnh – 204 No Content; nếu là ảnh chính thì ảnh đầu tiên còn lại thành ảnh chính
+DELETE {{baseUrl}}/api/v1/recipes/{{recipeId}}/images/{{imageId}}
+
+### 3. Ảnh không tồn tại – 404 IMAGE_NOT_FOUND
+DELETE {{baseUrl}}/api/v1/recipes/{{recipeId}}/images/00000000-0000-0000-0000-000000000001

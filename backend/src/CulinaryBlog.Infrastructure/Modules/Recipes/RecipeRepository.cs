@@ -82,6 +82,11 @@ public class RecipeRepository : IRecipeRepository
             .Include(r => r.Steps)
             .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
 
+    public async Task<Recipe?> GetByIdWithImagesAsync(Guid id, CancellationToken cancellationToken = default) =>
+        await _context.Recipes
+            .Include(r => r.Images)
+            .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
+
     public void AddStep(RecipeStep step) =>
         _context.Entry(step).State = EntityState.Added;
 

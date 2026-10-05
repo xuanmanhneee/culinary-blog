@@ -25,6 +25,8 @@ public static class ErrorCodes
     
     public const string RecipeSlugExists = "RECIPE_SLUG_EXISTS";
 
+    public const string ImageNotFound = "IMAGE_NOT_FOUND";
+
     public const string StepNotFound = "STEP_NOT_FOUND";
     public const string StepDescriptionRequired = "STEP_DESCRIPTION_REQUIRED";
     public const string StepDescriptionTooLong = "STEP_DESCRIPTION_TOO_LONG";

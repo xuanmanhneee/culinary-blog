@@ -170,6 +170,39 @@ public class Recipe : BaseEntity
         _images.Add(RecipeImage.Create(Id, originalUrl, isPrimary, orderIndex, altText));
     }
 
+    public RecipeImage? FindImage(Guid imageId) =>
+        _images.FirstOrDefault(i => i.Id == imageId);
+
+    /// <summary>Đặt ảnh chính (FR-RCP-008): ảnh được chọn IsPrimary = true, các ảnh khác = false.</summary>
+    public bool SetPrimaryImage(Guid imageId)
+    {
+        if (FindImage(imageId) is null) return false;
+
+        foreach (var image in _images)
+        {
+            image.SetPrimary(image.Id == imageId);
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Xóa ảnh (FR-RCP-008). Nếu ảnh bị xóa là ảnh chính và còn ảnh khác thì ảnh đầu tiên
+    /// còn lại (theo OrderIndex) trở thành ảnh chính.
+    /// </summary>
+    public bool RemoveImage(Guid imageId)
+    {
+        var image = FindImage(imageId);
+        if (image is null || !_images.Remove(image)) return false;
+
+        if (image.IsPrimary)
+        {
+            _images.OrderBy(i => i.OrderIndex).FirstOrDefault()?.SetPrimary(true);
+        }
+
+        return true;
+    }
+
     /// <summary>
     /// Xuất bản (FR-RCP-005). Phải có ít nhất 1 bước thực hiện. Đã Published thì không làm gì (idempotent).
     /// </summary>

@@ -32,6 +32,8 @@ public interface IRecipeRepository : IRepository<Recipe>
 
     Task<Recipe?> GetByIdWithStepsAsync(Guid id, CancellationToken cancellationToken = default);
 
+    Task<Recipe?> GetByIdWithImagesAsync(Guid id, CancellationToken cancellationToken = default);
+
     /// <summary>Đánh dấu bước mới là Added, cùng lý do với <see cref="AddIngredient"/>.</summary>
     void AddStep(RecipeStep step);
 
