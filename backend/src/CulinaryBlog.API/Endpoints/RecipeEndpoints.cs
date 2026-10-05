@@ -10,6 +10,7 @@ namespace CulinaryBlog.API.Endpoints;
 /// FR-RCP-004: GET /api/v1/recipes/{id:guid} (trang edit, trả ETag), PUT /api/v1/recipes/{id:guid} (If-Match)
 /// FR-RCP-005: PATCH /api/v1/recipes/{id:guid}/publish | /unpublish
 /// FR-RCP-006: PATCH /api/v1/recipes/{id:guid}/archive
+/// FR-RCP-007: DELETE /api/v1/recipes/{id:guid}
 /// </summary>
 public static class RecipeEndpoints
 {
@@ -28,8 +29,18 @@ public static class RecipeEndpoints
         group.MapPatch("/{id:guid}/publish", PublishAsync);
         group.MapPatch("/{id:guid}/unpublish", UnpublishAsync);
         group.MapPatch("/{id:guid}/archive", ArchiveAsync);
+        group.MapDelete("/{id:guid}", DeleteAsync);
 
         return app;
+    }
+
+    private static async Task<IResult> DeleteAsync(
+        Guid id,
+        IRecipeService service,
+        CancellationToken cancellationToken)
+    {
+        await service.DeleteAsync(id, cancellationToken);
+        return Results.NoContent();
     }
 
     private static async Task<IResult> PublishAsync(

@@ -146,3 +146,9 @@ PATCH {{baseUrl}}/api/v1/recipes/{{recipeId}}/archive
 
 ### 16. Id không tồn tại – 404 RECIPE_NOT_FOUND
 PATCH {{baseUrl}}/api/v1/recipes/00000000-0000-0000-0000-000000000001/publish
+
+### ===================== FR-RCP-007 – Xóa vĩnh viễn công thức =====================
+### Hard delete: Steps, Ingredients, Images bị xóa theo (cascade). KHÔNG hoàn tác được.
+
+### 17. Xóa – 204 No Content; gọi lại hoặc id không tồn tại – 404 RECIPE_NOT_FOUND
+DELETE {{baseUrl}}/api/v1/recipes/{{recipeId}}

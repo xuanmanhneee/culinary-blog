@@ -37,4 +37,7 @@ public interface IRecipeService
 
     /// <summary>FR-RCP-006: → Archived, ẩn khỏi danh sách công khai nhưng giữ dữ liệu. Idempotent.</summary>
     Task<RecipeDetailDto> ArchiveAsync(Guid id, CancellationToken cancellationToken = default);
+
+    /// <summary>FR-RCP-007: xóa vĩnh viễn recipe cùng Steps, Ingredients, Images (cascade).</summary>
+    Task DeleteAsync(Guid id, CancellationToken cancellationToken = default);
 }

@@ -213,6 +213,22 @@ public sealed class RecipeService : IRecipeService
     public Task<RecipeDetailDto> ArchiveAsync(Guid id, CancellationToken cancellationToken = default) =>
         ChangeStatusAsync(id, recipe => recipe.Archive(), cancellationToken);
 
+    public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        // TODO(FR-RCP-007): resource-based authorization (Owner/Admin, 403) khi module Auth hoàn thành.
+        var recipe = await _recipes.GetByIdWithDetailsAsync(id, cancellationToken)
+            ?? throw RecipeNotFound(id);
+
+        // TODO(FR-RCP-007): khi module File Storage được merge, lấy recipe.Images[].OriginalUrl trước
+        // khi xóa rồi BackgroundJob.Enqueue IFileStorageService.DeleteAsync cho từng URL (Hangfire retry 3 lần).
+
+        // Hard delete (không soft delete cho recipe); DB cascade xóa Steps, Ingredients, Images.
+        _recipes.Remove(recipe);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        // TODO(FR-RCP-007): EvictByTagAsync("recipes") và $"recipe:{slug}" khi bật Output Cache.
+    }
+
     /// <summary>
     /// Load đủ Steps để domain kiểm tra rule publish, rồi áp dụng chuyển trạng thái.
     /// Gọi lại khi đã ở trạng thái đích thì entity không đổi nên không ghi DB (idempotent, vẫn 200).
