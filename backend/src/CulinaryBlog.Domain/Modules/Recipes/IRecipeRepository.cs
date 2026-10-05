@@ -6,6 +6,8 @@ public interface IRecipeRepository : IRepository<Recipe>
 {
     Task<Recipe?> GetBySlugWithDetailsAsync(string slug, CancellationToken cancellationToken = default);
 
+    Task<Recipe?> GetByIdWithDetailsAsync(Guid id, CancellationToken cancellationToken = default);
+
     /// <summary>
     /// FR-RCP-001: danh sách phân trang kèm Category, Author và ảnh chính.
     /// sort: createdAt | title | cookTime, tiền tố "-" là giảm dần; giá trị khác dùng "-createdAt".

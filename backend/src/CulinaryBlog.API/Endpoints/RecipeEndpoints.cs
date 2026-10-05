@@ -7,6 +7,7 @@ namespace CulinaryBlog.API.Endpoints;
 /// FR-RCP-001: GET /api/v1/recipes
 /// FR-RCP-002: GET /api/v1/recipes/{slug}
 /// FR-RCP-003: POST /api/v1/recipes
+/// FR-RCP-004: GET /api/v1/recipes/{id:guid} (trang edit, trả ETag), PUT /api/v1/recipes/{id:guid} (If-Match)
 /// </summary>
 public static class RecipeEndpoints
 {
@@ -16,12 +17,45 @@ public static class RecipeEndpoints
             .WithTags("Recipes");
 
         group.MapGet("/", GetPagedAsync);
+        // {id:guid} khai báo riêng để không bị route {slug} bắt mất.
+        group.MapGet("/{id:guid}", GetByIdAsync);
         group.MapGet("/{slug}", GetBySlugAsync);
-        // TODO(FR-RCP-003): RequireAuthorization (Author/Admin) khi module Auth hoàn thành.
+        // TODO(FR-RCP-003/004): RequireAuthorization (Author/Admin, Owner) khi module Auth hoàn thành.
         group.MapPost("/", CreateAsync);
+        group.MapPut("/{id:guid}", UpdateAsync);
 
         return app;
     }
+
+    private static async Task<IResult> GetByIdAsync(
+        Guid id,
+        IRecipeService service,
+        HttpContext httpContext,
+        CancellationToken cancellationToken)
+    {
+        var recipe = await service.GetByIdAsync(id, cancellationToken);
+        SetETag(httpContext, recipe);
+        return Results.Ok(recipe);
+    }
+
+    private static async Task<IResult> UpdateAsync(
+        Guid id,
+        UpdateRecipeRequest request,
+        IRecipeService service,
+        HttpContext httpContext,
+        CancellationToken cancellationToken)
+    {
+        // If-Match (ETag pattern) ưu tiên hơn rowVersion trong body.
+        var ifMatch = httpContext.Request.Headers.IfMatch.ToString();
+        var rowVersion = string.IsNullOrWhiteSpace(ifMatch) ? request.RowVersion : ifMatch;
+
+        var recipe = await service.UpdateAsync(id, request, rowVersion, cancellationToken);
+        SetETag(httpContext, recipe);
+        return Results.Ok(recipe);
+    }
+
+    private static void SetETag(HttpContext httpContext, RecipeDetailDto recipe) =>
+        httpContext.Response.Headers.ETag = $"\"{recipe.RowVersion}\"";
 
     private static async Task<IResult> GetPagedAsync(
         [AsParameters] RecipeQuery query,

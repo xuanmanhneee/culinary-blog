@@ -24,6 +24,7 @@ public sealed record RecipeListItemDto(
 /// <summary>
 /// FR-RCP-002: chi tiết công thức kèm category, author, ảnh, dinh dưỡng, nguyên liệu và các bước.
 /// Category/Author là null khi navigation chưa được load (ví dụ response của CreateAsync).
+/// RowVersion (base64) là concurrency token, client gửi lại qua If-Match khi cập nhật (FR-RCP-004).
 /// </summary>
 public sealed record RecipeDetailDto(
     Guid Id,
@@ -42,7 +43,8 @@ public sealed record RecipeDetailDto(
     IReadOnlyList<RecipeImageDto> Images,
     RecipeNutritionDto Nutrition,
     IReadOnlyList<RecipeIngredientDto> Ingredients,
-    IReadOnlyList<RecipeStepDto> Steps);
+    IReadOnlyList<RecipeStepDto> Steps,
+    string RowVersion);
 
 public sealed record RecipeCategoryDto(Guid Id, string Name, string Slug);
 

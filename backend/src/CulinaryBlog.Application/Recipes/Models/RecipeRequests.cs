@@ -33,6 +33,22 @@ public sealed record CreateRecipeRequest(
     IReadOnlyList<CreateIngredientRequest>? Ingredients = null,
     IReadOnlyList<CreateStepRequest>? Steps = null);
 
+/// <summary>
+/// FR-RCP-004: body của PUT /api/v1/recipes/{id}. Nutrition null = giữ nguyên.
+/// RowVersion lấy từ header If-Match; RowVersion trong body chỉ dùng khi không có header.
+/// </summary>
+public sealed record UpdateRecipeRequest(
+    string Title,
+    string Description,
+    Guid CategoryId,
+    int PrepTimeMinutes,
+    int CookTimeMinutes,
+    int Servings,
+    RecipeDifficulty Difficulty,
+    string? Instructions = null,
+    NutritionRequest? Nutrition = null,
+    string? RowVersion = null);
+
 public sealed record NutritionRequest(
     decimal? Calories = null,
     decimal? Protein = null,

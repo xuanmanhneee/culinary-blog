@@ -61,8 +61,11 @@ public class RecipeConfiguration : IEntityTypeConfiguration<Recipe>
         builder.Property(r => r.CreatedAt).IsRequired();
         builder.Property(r => r.IsDeleted).HasDefaultValue(false);
         builder.HasIndex(r => r.IsDeleted).HasDatabaseName("IDX_Recipe_IsDeleted");
+        // PostgreSQL không tự sinh rowversion như SQL Server: cột bytea giữ nguyên giá trị khi UPDATE.
+        // Recipe cần optimistic concurrency thật (FR-RCP-004) nên token do ứng dụng sinh
+        // (AuditInterceptor đổi giá trị mỗi lần Added/Modified) và EF so sánh trong WHERE.
         builder.Property(r => r.RowVersion)
-            .IsRowVersion()
+            .IsConcurrencyToken()
             .HasDefaultValueSql("decode('', 'hex')");
 
         builder.HasQueryFilter(r => !r.IsDeleted);

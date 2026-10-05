@@ -75,3 +75,59 @@ Content-Type: application/json
   "ingredients": [{ "name": "", "quantity": -1 }],
   "steps": [{ "description": "" }]
 }
+
+### ===================== FR-RCP-004 – Cập nhật công thức =====================
+### Lấy id + ETag từ request 8, dán ETag (kể cả dấu ngoặc kép) vào @etag.
+@recipeId = 00000000-0000-0000-0000-000000000000
+@etag = "paste-etag-here"
+
+### 8. Xem theo id cho trang edit – 200 OK, header ETag = rowVersion
+GET {{baseUrl}}/api/v1/recipes/{{recipeId}}
+
+### 9. Cập nhật với If-Match – 200 OK, ETag mới (Draft: slug đổi theo title; Published: giữ slug)
+PUT {{baseUrl}}/api/v1/recipes/{{recipeId}}
+Content-Type: application/json
+If-Match: {{etag}}
+
+{
+  "title": "Canh Chua Cá Lóc Đồng Tháp",
+  "description": "Canh chua chuẩn vị miền Tây.",
+  "categoryId": "{{categoryId}}",
+  "prepTimeMinutes": 15,
+  "cookTimeMinutes": 25,
+  "servings": 6,
+  "difficulty": 2,
+  "nutrition": { "calories": 250 }
+}
+
+### 10. Gửi lại request 9 với ETag cũ – 422 RECIPE_CONCURRENCY_CONFLICT
+PUT {{baseUrl}}/api/v1/recipes/{{recipeId}}
+Content-Type: application/json
+If-Match: {{etag}}
+
+{
+  "title": "Canh Chua Cá Lóc Đồng Tháp",
+  "description": "Ghi đè bản cũ.",
+  "categoryId": "{{categoryId}}",
+  "prepTimeMinutes": 15,
+  "cookTimeMinutes": 25,
+  "servings": 8,
+  "difficulty": 2
+}
+
+### 11. Thiếu If-Match và rowVersion – 400 VALIDATION_ERROR
+PUT {{baseUrl}}/api/v1/recipes/{{recipeId}}
+Content-Type: application/json
+
+{
+  "title": "Canh Chua Cá Lóc Đồng Tháp",
+  "description": "Không gửi token.",
+  "categoryId": "{{categoryId}}",
+  "prepTimeMinutes": 15,
+  "cookTimeMinutes": 25,
+  "servings": 4,
+  "difficulty": 2
+}
+
+### 12. Id không tồn tại – 404 RECIPE_NOT_FOUND
+GET {{baseUrl}}/api/v1/recipes/00000000-0000-0000-0000-000000000001

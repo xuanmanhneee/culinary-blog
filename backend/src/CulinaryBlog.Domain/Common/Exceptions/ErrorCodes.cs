@@ -3,6 +3,7 @@ namespace CulinaryBlog.Domain.Common.Exceptions;
 public static class ErrorCodes
 {
     public const string ValidationError = "VALIDATION_ERROR";
+    public const string ConcurrencyConflict = "CONCURRENCY_CONFLICT";
 
     public const string RecipeNotFound = "RECIPE_NOT_FOUND";
     public const string RecipeForbidden = "RECIPE_FORBIDDEN";

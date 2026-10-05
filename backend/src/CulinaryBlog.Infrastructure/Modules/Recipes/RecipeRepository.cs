@@ -14,13 +14,18 @@ public class RecipeRepository : IRecipeRepository
         await _context.Recipes.FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
 
     public async Task<Recipe?> GetBySlugWithDetailsAsync(string slug, CancellationToken cancellationToken = default) =>
-        await _context.Recipes
+        await WithDetails().FirstOrDefaultAsync(r => r.Slug == slug, cancellationToken);
+
+    public async Task<Recipe?> GetByIdWithDetailsAsync(Guid id, CancellationToken cancellationToken = default) =>
+        await WithDetails().FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
+
+    private IQueryable<Recipe> WithDetails() =>
+        _context.Recipes
             .Include(r => r.Steps)
             .Include(r => r.Ingredients)
             .Include(r => r.Images)
             .Include(r => r.Category)
-            .Include(r => r.Author)
-            .FirstOrDefaultAsync(r => r.Slug == slug, cancellationToken);
+            .Include(r => r.Author);
 
     public async Task<(IReadOnlyList<Recipe> Items, int TotalCount)> GetPagedAsync(
         int page,
