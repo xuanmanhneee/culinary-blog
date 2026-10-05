@@ -1,4 +1,5 @@
 using CulinaryBlog.Domain.Common;
+using CulinaryBlog.Domain.Common.Exceptions;
 using CulinaryBlog.Domain.Modules.Categories;
 using CulinaryBlog.Domain.Modules.Identity;
 
@@ -76,12 +77,63 @@ public class Recipe : BaseEntity
         return recipe;
     }
 
+    /// <summary>
+    /// Cập nhật thông tin cơ bản (FR-RCP-004). Slug do tầng Application sinh và kiểm tra trùng.
+    /// </summary>
+    public void Update(
+        string title,
+        string slug,
+        string description,
+        string instructions,
+        Guid categoryId,
+        int prepTime,
+        int cookTime,
+        int servings,
+        RecipeDifficulty difficulty)
+    {
+        Title = title;
+        Slug = slug;
+        Description = description;
+        Instructions = instructions;
+        CategoryId = categoryId;
+        PrepTime = prepTime;
+        CookTime = cookTime;
+        Servings = servings;
+        Difficulty = difficulty;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
     public void SetNutrition(RecipeNutrition nutrition) => Nutrition = nutrition;
 
-    public void AddStep(string title, string description, int? timerMinutes = null)
+    /// <summary>
+    /// Thêm bước vào cuối danh sách: StepNumber = max + 1 (hoặc 1 nếu chưa có bước nào).
+    /// </summary>
+    public RecipeStep AddStep(string title, string description, int? timerMinutes = null, string? imageUrl = null)
     {
-        var stepNumber = _steps.Count + 1;
-        _steps.Add(RecipeStep.Create(Id, stepNumber, title, description, timerMinutes));
+        var stepNumber = _steps.Count == 0 ? 1 : _steps.Max(s => s.StepNumber) + 1;
+        var step = RecipeStep.Create(Id, stepNumber, title, description, timerMinutes, imageUrl);
+        _steps.Add(step);
+        return step;
+    }
+
+    public RecipeStep? FindStep(Guid stepId) =>
+        _steps.FirstOrDefault(s => s.Id == stepId);
+
+    /// <summary>
+    /// Xóa bước rồi đánh số lại các bước còn lại để StepNumber liên tục 1, 2, 3... (FR-RCP-010).
+    /// </summary>
+    public bool RemoveStep(Guid stepId)
+    {
+        var step = FindStep(stepId);
+        if (step is null || !_steps.Remove(step)) return false;
+
+        var number = 1;
+        foreach (var remaining in _steps.OrderBy(s => s.StepNumber))
+        {
+            remaining.Renumber(number++);
+        }
+
+        return true;
     }
 
     /// <summary>
@@ -115,10 +167,43 @@ public class Recipe : BaseEntity
         _images.Add(RecipeImage.Create(Id, originalUrl, isPrimary, orderIndex, altText));
     }
 
+    /// <summary>
+    /// Xuất bản (FR-RCP-005). Phải có ít nhất 1 bước thực hiện. Đã Published thì không làm gì (idempotent).
+    /// </summary>
     public void Publish()
     {
+        if (Status == RecipeStatus.Published) return;
+
+        if (_steps.Count == 0)
+            throw new BusinessRuleViolationException(
+                ErrorCodes.RecipePublishIncomplete,
+                "Recipe must have at least one step before publishing.");
+
         Status = RecipeStatus.Published;
         PublishedAt = DateTimeOffset.UtcNow;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    /// <summary>
+    /// Hủy xuất bản (FR-RCP-005): đưa về Draft. Cũng dùng để khôi phục recipe đã Archived.
+    /// Đã là Draft thì không làm gì (idempotent).
+    /// </summary>
+    public void Unpublish()
+    {
+        if (Status == RecipeStatus.Draft) return;
+
+        Status = RecipeStatus.Draft;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    /// <summary>
+    /// Lưu trữ (FR-RCP-006): ẩn khỏi danh sách công khai nhưng giữ dữ liệu. Idempotent.
+    /// </summary>
+    public void Archive()
+    {
+        if (Status == RecipeStatus.Archived) return;
+
+        Status = RecipeStatus.Archived;
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 }
