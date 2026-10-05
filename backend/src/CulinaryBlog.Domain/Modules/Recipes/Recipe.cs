@@ -107,11 +107,14 @@ public class Recipe : BaseEntity
 
     /// <summary>
     /// Thêm bước vào cuối danh sách: StepNumber = max + 1 (hoặc 1 nếu chưa có bước nào).
+    /// Không có title thì đặt mặc định "Bước {StepNumber}".
     /// </summary>
-    public RecipeStep AddStep(string title, string description, int? timerMinutes = null, string? imageUrl = null)
+    public RecipeStep AddStep(string? title, string description, int? timerMinutes = null, string? imageUrl = null)
     {
         var stepNumber = _steps.Count == 0 ? 1 : _steps.Max(s => s.StepNumber) + 1;
-        var step = RecipeStep.Create(Id, stepNumber, title, description, timerMinutes, imageUrl);
+        var step = RecipeStep.Create(
+            Id, stepNumber, string.IsNullOrWhiteSpace(title) ? $"Bước {stepNumber}" : title,
+            description, timerMinutes, imageUrl);
         _steps.Add(step);
         return step;
     }

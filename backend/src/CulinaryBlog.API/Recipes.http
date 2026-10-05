@@ -1,0 +1,77 @@
+### FR-RCP-001 / 003 – Danh sách & tạo công thức
+### Chạy bằng extension "REST Client" (VS Code) hoặc Visual Studio / Rider.
+### categoryId / authorId: lấy từ DB sau khi seed:
+###   SELECT "Id" FROM "Categories" LIMIT 1;  SELECT "Id" FROM "AspNetUsers" LIMIT 1;
+### difficulty: 1 = Easy, 2 = Medium, 3 = Hard, 4 = Expert.
+
+@baseUrl = http://localhost:5000
+@categoryId = 00000000-0000-0000-0000-000000000000
+@authorId = 00000000-0000-0000-0000-000000000000
+
+### 1. Danh sách mặc định – 200 OK (page=1, pageSize=12, sort=-createdAt, chỉ Published)
+GET {{baseUrl}}/api/v1/recipes
+
+### 2. Lọc + sắp xếp – 200 OK
+GET {{baseUrl}}/api/v1/recipes?page=1&pageSize=5&categoryId={{categoryId}}&difficulty=Easy&maxCookTime=30&sort=-cookTime
+
+### 3. Category không tồn tại – 200 OK, items rỗng
+GET {{baseUrl}}/api/v1/recipes?categoryId=00000000-0000-0000-0000-000000000001
+
+### 4. Tham số không hợp lệ – 400 VALIDATION_ERROR
+GET {{baseUrl}}/api/v1/recipes?page=0&pageSize=99&sort=abc
+
+### 5. Tạo công thức kèm nutrition, ingredients, steps – 201 Created (Status = Draft)
+POST {{baseUrl}}/api/v1/recipes
+Content-Type: application/json
+
+{
+  "title": "Canh Chua Cá Lóc Miền Tây",
+  "description": "Canh chua chuẩn vị miền Tây.",
+  "categoryId": "{{categoryId}}",
+  "authorId": "{{authorId}}",
+  "prepTimeMinutes": 15,
+  "cookTimeMinutes": 25,
+  "servings": 4,
+  "difficulty": 2,
+  "nutrition": { "calories": 220, "protein": 18.5 },
+  "ingredients": [
+    { "name": "Cá lóc", "quantity": 500, "unit": "gram" },
+    { "name": "Me chua", "quantity": 50, "unit": "gram", "notes": "dầm lấy nước" }
+  ],
+  "steps": [
+    { "description": "Sơ chế cá." },
+    { "title": "Nấu nước dùng", "description": "Đun sôi nước với me.", "timerMinutes": 10 }
+  ]
+}
+
+### 6. Gửi lại request 5 – 409 Conflict (RECIPE_SLUG_EXISTS)
+POST {{baseUrl}}/api/v1/recipes
+Content-Type: application/json
+
+{
+  "title": "Canh Chua Cá Lóc Miền Tây",
+  "description": "Trùng tiêu đề.",
+  "categoryId": "{{categoryId}}",
+  "authorId": "{{authorId}}",
+  "prepTimeMinutes": 15,
+  "cookTimeMinutes": 25,
+  "servings": 4,
+  "difficulty": 2
+}
+
+### 7. Dữ liệu không hợp lệ – 400 VALIDATION_ERROR (lỗi theo từng field)
+POST {{baseUrl}}/api/v1/recipes
+Content-Type: application/json
+
+{
+  "title": "abc",
+  "description": "",
+  "categoryId": "00000000-0000-0000-0000-000000000001",
+  "authorId": "{{authorId}}",
+  "prepTimeMinutes": 0,
+  "cookTimeMinutes": 5,
+  "servings": 1,
+  "difficulty": 9,
+  "ingredients": [{ "name": "", "quantity": -1 }],
+  "steps": [{ "description": "" }]
+}

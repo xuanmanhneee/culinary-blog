@@ -2,17 +2,24 @@ using CulinaryBlog.Domain.Modules.Recipes;
 
 namespace CulinaryBlog.Application.Recipes.Models;
 
+/// <summary>
+/// FR-RCP-001: một card trong danh sách công thức (RecipeSummaryDto trong SRS).
+/// </summary>
 public sealed record RecipeListItemDto(
     Guid Id,
     string Title,
     string Slug,
-    Guid CategoryId,
-    string AuthorId,
-    int PrepTime,
-    int CookTime,
+    string Description,
+    int PrepTimeMinutes,
+    int CookTimeMinutes,
     int Servings,
     RecipeDifficulty Difficulty,
-    RecipeStatus Status);
+    RecipeStatus Status,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? PublishedAt,
+    string? PrimaryImageUrl,
+    RecipeCategoryDto? Category,
+    RecipeAuthorDto? Author);
 
 /// <summary>
 /// FR-RCP-002: chi tiết công thức kèm category, author, ảnh, dinh dưỡng, nguyên liệu và các bước.
@@ -64,4 +71,5 @@ public sealed record RecipeStepDto(
     int StepNumber,
     string Title,
     string Description,
-    int? TimerMinutes);
+    int? TimerMinutes,
+    string? ImageUrl);
