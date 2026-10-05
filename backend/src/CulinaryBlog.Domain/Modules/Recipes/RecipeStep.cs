@@ -50,12 +50,19 @@ public class RecipeStep : BaseEntity
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 
+    /// <summary>Title hệ thống đặt khi client không gửi title.</summary>
+    internal static string DefaultTitle(int stepNumber) => $"Bước {stepNumber}";
+
     /// <summary>
     /// StepNumber do Recipe quản lý (tự tăng khi thêm, đánh lại khi xóa), không cho client set trực tiếp.
+    /// Title mặc định ("Bước n") được đổi theo số mới; title do người dùng đặt thì giữ nguyên.
     /// </summary>
     internal void Renumber(int stepNumber)
     {
         if (StepNumber == stepNumber) return;
+
+        if (Title == DefaultTitle(StepNumber))
+            Title = DefaultTitle(stepNumber);
 
         StepNumber = stepNumber;
         UpdatedAt = DateTimeOffset.UtcNow;

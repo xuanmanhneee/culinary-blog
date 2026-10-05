@@ -30,6 +30,11 @@ public interface IRecipeRepository : IRepository<Recipe>
     /// </summary>
     void AddIngredient(RecipeIngredient ingredient);
 
+    Task<Recipe?> GetByIdWithStepsAsync(Guid id, CancellationToken cancellationToken = default);
+
+    /// <summary>Đánh dấu bước mới là Added, cùng lý do với <see cref="AddIngredient"/>.</summary>
+    void AddStep(RecipeStep step);
+
     Task<bool> SlugExistsAsync(string slug, CancellationToken cancellationToken = default);
 
     /// <summary>

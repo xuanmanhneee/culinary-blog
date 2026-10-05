@@ -72,6 +72,8 @@ app.MapRecipeEndpoints();
 
 app.MapRecipeIngredientEndpoints();
 
+app.MapRecipeStepEndpoints();
+
 app.MapCategoriesEndpoints();
 
 app.UseHangfireDashboard("/hangfire");

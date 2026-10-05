@@ -1,0 +1,52 @@
+### FR-RCP-010 – Quản lý các bước thực hiện
+### Chạy bằng extension "REST Client" (VS Code) hoặc Visual Studio / Rider.
+### baseUrl lấy theo profile "http" trong Properties/launchSettings.json.
+### recipeId: lấy từ DB sau khi seed:  SELECT "Id" FROM "Recipes" LIMIT 1;
+### StepNumber do hệ thống quản lý: thêm thì nối vào cuối, xóa thì đánh số lại 1, 2, 3...
+
+@baseUrl = http://localhost:5000
+@recipeId = 00000000-0000-0000-0000-000000000000
+@stepId = 00000000-0000-0000-0000-000000000000
+
+### 1. Thêm bước, không có title – 201 Created, title mặc định "Bước n" (copy "id" vào @stepId)
+POST {{baseUrl}}/api/v1/recipes/{{recipeId}}/steps
+Content-Type: application/json
+
+{
+  "description": "Cho cá vào nồi, đun lửa vừa."
+}
+
+### 2. Thêm bước đầy đủ – 201 Created
+POST {{baseUrl}}/api/v1/recipes/{{recipeId}}/steps
+Content-Type: application/json
+
+{
+  "title": "Nêm nếm",
+  "description": "Nêm muối, đường, nước mắm cho vừa ăn.",
+  "timerMinutes": 2,
+  "imageUrl": "https://example.com/nem-nem.jpg"
+}
+
+### 3. Cập nhật bước – 200 OK (title bỏ trống thì giữ title cũ)
+PUT {{baseUrl}}/api/v1/recipes/{{recipeId}}/steps/{{stepId}}
+Content-Type: application/json
+
+{
+  "description": "Cho cá vào nồi, đun lửa nhỏ 5 phút.",
+  "timerMinutes": 5
+}
+
+### 4. Xóa bước – 204 No Content, các bước còn lại được đánh số lại
+DELETE {{baseUrl}}/api/v1/recipes/{{recipeId}}/steps/{{stepId}}
+
+### 5. Bước không tồn tại – 404 STEP_NOT_FOUND
+DELETE {{baseUrl}}/api/v1/recipes/{{recipeId}}/steps/00000000-0000-0000-0000-000000000001
+
+### 6. Dữ liệu không hợp lệ – 400 VALIDATION_ERROR
+POST {{baseUrl}}/api/v1/recipes/{{recipeId}}/steps
+Content-Type: application/json
+
+{
+  "description": "",
+  "timerMinutes": 0
+}

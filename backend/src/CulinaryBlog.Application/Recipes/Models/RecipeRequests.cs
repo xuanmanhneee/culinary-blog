@@ -79,3 +79,13 @@ public sealed record CreateStepRequest(
     string? Title = null,
     int? TimerMinutes = null,
     string? ImageUrl = null);
+
+/// <summary>
+/// FR-RCP-010: cập nhật nội dung bước. StepNumber không đổi qua endpoint này.
+/// Title bỏ trống thì giữ title hiện tại.
+/// </summary>
+public sealed record UpdateStepRequest(
+    string Description,
+    string? Title = null,
+    int? TimerMinutes = null,
+    string? ImageUrl = null);

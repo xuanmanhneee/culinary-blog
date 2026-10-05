@@ -113,7 +113,7 @@ public class Recipe : BaseEntity
     {
         var stepNumber = _steps.Count == 0 ? 1 : _steps.Max(s => s.StepNumber) + 1;
         var step = RecipeStep.Create(
-            Id, stepNumber, string.IsNullOrWhiteSpace(title) ? $"Bước {stepNumber}" : title,
+            Id, stepNumber, string.IsNullOrWhiteSpace(title) ? RecipeStep.DefaultTitle(stepNumber) : title,
             description, timerMinutes, imageUrl);
         _steps.Add(step);
         return step;

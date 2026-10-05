@@ -77,6 +77,14 @@ public class RecipeRepository : IRecipeRepository
     public void AddIngredient(RecipeIngredient ingredient) =>
         _context.Entry(ingredient).State = EntityState.Added;
 
+    public async Task<Recipe?> GetByIdWithStepsAsync(Guid id, CancellationToken cancellationToken = default) =>
+        await _context.Recipes
+            .Include(r => r.Steps)
+            .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
+
+    public void AddStep(RecipeStep step) =>
+        _context.Entry(step).State = EntityState.Added;
+
     public async Task<bool> SlugExistsAsync(string slug, CancellationToken cancellationToken = default) =>
         await _context.Recipes.AnyAsync(r => r.Slug == slug, cancellationToken);
 
