@@ -6,8 +6,10 @@ using Microsoft.Extensions.Logging;
 namespace CulinaryBlog.Infrastructure.Persistence.Seed;
 
 /// <summary>
-/// Sinh dữ liệu mẫu cho module Identity: 5 tác giả (Author) mẫu.
-/// Dùng UserManager để password được hash đúng chuẩn (PBKDF2), không insert thẳng qua DbContext.
+/// Seed cho module Identity.
+/// - SeedRolesAsync: cần chạy ở MỌI môi trường (register gán role "Author").
+/// - SeedAuthorsAsync: chỉ dữ liệu mẫu (author1 là Admin), chỉ nên chạy ở Development.
+/// Dùng UserManager để password được hash đúng chuẩn (PBKDF2).
 /// </summary>
 public class IdentitySeeder
 {
@@ -25,35 +27,42 @@ public class IdentitySeeder
         _logger = logger;
     }
 
-    public async Task<List<ApplicationUser>> SeedAuthorsAsync(int count = 6)
+    public async Task SeedRolesAsync()
     {
-        foreach (var role in new[] { "Admin", "Author" })
+        foreach (var role in Roles.All)
         {
             if (!await _roleManager.RoleExistsAsync(role))
             {
                 await _roleManager.CreateAsync(new IdentityRole(role));
             }
         }
+    }
+
+    /// <summary>
+    /// Idempotent: user đã tồn tại thì dùng lại, nên luôn trả về đủ danh sách cho RecipeSeeder.
+    /// </summary>
+    public async Task<List<ApplicationUser>> SeedAuthorsAsync(int count = 5)
+    {
+        await SeedRolesAsync();
 
         var faker = new Faker("vi");
         var authors = new List<ApplicationUser>();
 
         for (var i = 0; i < count; i++)
         {
-            var fullName = faker.Name.FullName();
             var userName = $"author{i + 1}";
             var email = $"author{i + 1}@culinaryblog.local";
 
-            var user = new ApplicationUser
+            var existing = await _userManager.FindByEmailAsync(email);
+            if (existing is not null)
             {
-                UserName = userName,
-                Email = email,
-                EmailConfirmed = true,
-                DisplayName = fullName,
-                Bio = faker.Lorem.Sentence(12),
-                IsActive = true,
-                CreatedAt = DateTimeOffset.UtcNow
-            };
+                authors.Add(existing);
+                continue;
+            }
+
+            var user = ApplicationUser.Create(faker.Name.FullName(), email, userName);
+            user.EmailConfirmed = true;
+            user.Bio = faker.Lorem.Sentence(12);
 
             var result = await _userManager.CreateAsync(user, "Author@123");
             if (!result.Succeeded)
@@ -63,13 +72,11 @@ public class IdentitySeeder
                 continue;
             }
 
-            var role = i == 0 ? "Admin" : "Author"; // user đầu tiên làm Admin
-            await _userManager.AddToRoleAsync(user, role);
-
+            await _userManager.AddToRoleAsync(user, i == 0 ? Roles.Admin : Roles.Author);
             authors.Add(user);
         }
 
-        _logger.LogInformation("Identity seed: đã tạo {Count} author.", authors.Count);
+        _logger.LogInformation("Identity seed: {Count} author sẵn sàng.", authors.Count);
         return authors;
     }
 }
