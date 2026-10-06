@@ -62,6 +62,9 @@ public static class DependencyInjection
         services.AddScoped<CategorySeeder>();
         services.AddScoped<RecipeSeeder>();
 
+        var healthChecks = services.AddHealthChecks()
+            .AddDbContextCheck<CulinaryBlogDbContext>(name: "database", tags: new[] { "ready" });
+
         return services;
     }
 }

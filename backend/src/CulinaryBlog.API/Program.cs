@@ -89,6 +89,8 @@ app.MapRecipeImageEndpoints();
 
 app.MapCategoriesEndpoints();
 
+app.MapHealthEndpoints();
+
 app.UseHangfireDashboard("/hangfire");
 
 app.Lifetime.ApplicationStarted.Register(() =>
