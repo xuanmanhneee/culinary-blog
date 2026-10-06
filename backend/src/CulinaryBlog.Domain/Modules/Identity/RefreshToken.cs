@@ -10,24 +10,38 @@ public class RefreshToken
     public DateTimeOffset? RevokedAt { get; private set; }
     public string? ReplacedByTokenHash { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; } = DateTimeOffset.UtcNow;
+    public string? CreatedByIp { get; private set; }
 
     private RefreshToken() { }
 
-    public static RefreshToken Create(string userId, string tokenHash, DateTimeOffset expiresAt)
+    public static RefreshToken Create(
+        string userId,
+        string tokenHash,
+        DateTimeOffset expiresAt,
+        string? createdByIp = null)
     {
         return new RefreshToken
         {
             UserId = userId,
             TokenHash = tokenHash,
-            ExpiresAt = expiresAt
+            ExpiresAt = expiresAt,
+            CreatedByIp = createdByIp
         };
     }
 
+    /// <summary>
+    /// Thu hồi token. replacedByTokenHash chỉ có giá trị khi token bị thay thế do rotation
+    /// (khác với logout, nơi không có token thay thế).
+    /// </summary>
     public void Revoke(string? replacedByTokenHash = null)
     {
+        if (IsRevoked) return; // không ghi đè thời điểm revoke gốc
+
         RevokedAt = DateTimeOffset.UtcNow;
         ReplacedByTokenHash = replacedByTokenHash;
     }
 
-    public bool IsActive => RevokedAt is null && ExpiresAt > DateTimeOffset.UtcNow;
+    public bool IsRevoked => RevokedAt is not null;
+    public bool IsExpired => ExpiresAt <= DateTimeOffset.UtcNow;
+    public bool IsActive => !IsRevoked && !IsExpired;
 }

@@ -8,6 +8,7 @@ using CulinaryBlog.Infrastructure.Jobs;
 using Hangfire;
 using Hangfire.PostgreSql;
 using Microsoft.EntityFrameworkCore;
+using CulinaryBlog.API.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,6 +19,9 @@ builder.Logging.AddConsole();
 
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+
+builder.Services.AddJwtAuthentication(builder.Configuration);
+builder.Services.AddAuthRateLimiting();
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
@@ -66,7 +70,14 @@ app.UseMiddleware<GlobalExceptionMiddleware>();
 // Response lỗi không có body (vd. 404 do sai route, 405) cũng trả về ProblemDetails.
 app.UseStatusCodePages();
 
+app.UseRateLimiter();
+
+app.UseAuthentication();
+app.UseAuthorization();
+
 app.MapGet("/", () => "Hello World!");
+
+app.MapAuthEndpoints();
 
 app.MapRecipeEndpoints();
 

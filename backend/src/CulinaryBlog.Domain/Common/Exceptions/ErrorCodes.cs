@@ -2,6 +2,7 @@ namespace CulinaryBlog.Domain.Common.Exceptions;
 
 public static class ErrorCodes
 {
+    public const string AccountLocked = "ACCOUNT_LOCKED";
     public const string ValidationError = "VALIDATION_ERROR";
     public const string ConcurrencyConflict = "CONCURRENCY_CONFLICT";
 
