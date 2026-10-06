@@ -1,3 +1,5 @@
+using System.Linq.Expressions;
+using CulinaryBlog.Domain.Common;
 using CulinaryBlog.Domain.Modules.Categories;
 using CulinaryBlog.Domain.Modules.Identity;
 using CulinaryBlog.Domain.Modules.Recipes;
@@ -30,5 +32,15 @@ public class CulinaryBlogDbContext : IdentityDbContext<ApplicationUser>
         // Tự động load mọi IEntityTypeConfiguration<T> trong assembly Infrastructure
         // (mỗi module tự khai báo Configuration của mình, DbContext không cần biết chi tiết)
         builder.ApplyConfigurationsFromAssembly(typeof(CulinaryBlogDbContext).Assembly);
+        
+        foreach (var entityType in builder.Model.GetEntityTypes()
+                     .Where(t => typeof(BaseEntity).IsAssignableFrom(t.ClrType)))
+        {
+            var param = Expression.Parameter(entityType.ClrType, "e");
+            var isNotDeleted = Expression.Lambda(
+                Expression.Equal(Expression.Property(param, nameof(BaseEntity.IsDeleted)), Expression.Constant(false)),
+                param);
+            entityType.SetQueryFilter(isNotDeleted);
+        }
     }
 }

@@ -70,6 +70,14 @@ app.MapGet("/", () => "Hello World!");
 
 app.MapRecipeEndpoints();
 
+app.MapRecipeIngredientEndpoints();
+
+app.MapRecipeStepEndpoints();
+
+app.MapRecipeImageEndpoints();
+
+app.MapCategoriesEndpoints();
+
 app.UseHangfireDashboard("/hangfire");
 
 app.Lifetime.ApplicationStarted.Register(() =>
@@ -80,7 +88,7 @@ app.Lifetime.ApplicationStarted.Register(() =>
     cronExpression: "* * * * *");
 });
 
-app.MapRecipeIngredientEndpoints();
+
 
 
 app.Run();

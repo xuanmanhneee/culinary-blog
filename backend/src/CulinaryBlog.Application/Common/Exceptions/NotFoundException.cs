@@ -1,9 +1,12 @@
 namespace CulinaryBlog.Application.Common.Exceptions;
 
-public sealed class NotFoundException : Exception
+/// <summary>
+/// Tài nguyên không tồn tại hoặc đã bị soft-delete. Map sang HTTP 404.
+/// </summary>
+public sealed class NotFoundException : AppException
 {
-    public NotFoundException(string resource, object key)
-        : base($"{resource} with key '{key}' was not found.")
+    public NotFoundException(string errorCode, string message)
+        : base(errorCode, message)
     {
     }
 }

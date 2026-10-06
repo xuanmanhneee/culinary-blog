@@ -11,6 +11,8 @@ public static class DependencyInjection
         services.AddScoped<ICategoryService, CategoryService>();
         services.AddScoped<IRecipeService, RecipeService>();
         services.AddScoped<IRecipeIngredientService, RecipeIngredientService>();
+        services.AddScoped<IRecipeStepService, RecipeStepService>();
+        services.AddScoped<IRecipeImageService, RecipeImageService>();
         return services;
     }
 }

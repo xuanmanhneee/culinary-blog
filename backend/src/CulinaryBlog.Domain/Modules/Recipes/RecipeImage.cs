@@ -27,4 +27,13 @@ public class RecipeImage : BaseEntity
             AltText = altText
         };
     }
+
+    /// <summary>Recipe quản lý ảnh chính để luôn chỉ có tối đa một ảnh IsPrimary (FR-RCP-008).</summary>
+    internal void SetPrimary(bool isPrimary)
+    {
+        if (IsPrimary == isPrimary) return;
+
+        IsPrimary = isPrimary;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
 }

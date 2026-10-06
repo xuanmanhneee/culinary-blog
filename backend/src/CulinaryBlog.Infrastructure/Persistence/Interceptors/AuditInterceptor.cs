@@ -2,6 +2,7 @@ using CulinaryBlog.Domain.Common;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace CulinaryBlog.Infrastructure.Persistence.Interceptors;
 
@@ -42,11 +43,27 @@ public class AuditInterceptor : SaveChangesInterceptor
             {
                 case EntityState.Added:
                     entry.Entity.CreatedAt = DateTimeOffset.UtcNow;
+                    RenewConcurrencyToken(entry);
                     break;
                 case EntityState.Modified:
                     entry.Entity.UpdatedAt = DateTimeOffset.UtcNow;
+                    RenewConcurrencyToken(entry);
                     break;
             }
+        }
+    }
+
+    /// <summary>
+    /// Entity cấu hình RowVersion là IsConcurrencyToken (do ứng dụng quản lý, ví dụ Recipe) cần
+    /// giá trị mới mỗi lần lưu; WHERE vẫn dùng giá trị cũ nên request đọc bản cũ sẽ bị từ chối.
+    /// Entity còn dùng IsRowVersion (DB tự sinh) thì bỏ qua.
+    /// </summary>
+    private static void RenewConcurrencyToken(EntityEntry<BaseEntity> entry)
+    {
+        var rowVersion = entry.Property(e => e.RowVersion);
+        if (rowVersion.Metadata.IsConcurrencyToken && rowVersion.Metadata.ValueGenerated != ValueGenerated.OnAddOrUpdate)
+        {
+            rowVersion.CurrentValue = Guid.NewGuid().ToByteArray();
         }
     }
 }

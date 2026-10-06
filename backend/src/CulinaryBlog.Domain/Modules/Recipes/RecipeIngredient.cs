@@ -50,12 +50,12 @@ public class RecipeIngredient : BaseEntity
     private static void EnsureValid(string name, decimal? quantity, int orderIndex)
     {
         if (string.IsNullOrWhiteSpace(name))
-            throw new BusinessRuleViolationException("Ingredient name is required.");
+            throw new BusinessRuleViolationException(ErrorCodes.IngredientNameRequired, "Ingredient name is required.");
 
         if (quantity is <= 0)
-            throw new BusinessRuleViolationException("Ingredient quantity must be greater than zero.");
+            throw new BusinessRuleViolationException(ErrorCodes.IngredientQuantityInvalid, "Ingredient quantity must be greater than zero.");
 
         if (orderIndex < 0)
-            throw new BusinessRuleViolationException("Ingredient order index cannot be negative.");
+            throw new BusinessRuleViolationException(ErrorCodes.IngredientOrderIndexInvalid ,"Ingredient order index cannot be negative.");
     }
-}
+}   
