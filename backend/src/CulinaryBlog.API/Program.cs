@@ -94,7 +94,6 @@ if (app.Environment.IsDevelopment())
 }
 
 // Map các Endpoints của ứng dụng
-// app.MapRecipesEndpoints();
 app.MapGet("/", () => "Hello World!");
 
 app.MapAuthEndpoints();

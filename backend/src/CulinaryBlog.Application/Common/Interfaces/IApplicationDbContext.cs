@@ -1,6 +1,6 @@
 using System.Threading;
 using System.Threading.Tasks;
-using CulinaryBlog.Domain.Recipes.Entities;
+using CulinaryBlog.Domain.Modules.Recipes;
 using Microsoft.EntityFrameworkCore;
 
 namespace CulinaryBlog.Application.Common.Interfaces;

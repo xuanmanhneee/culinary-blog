@@ -12,9 +12,11 @@ public class SearchRecipesQueryValidator : AbstractValidator<SearchRecipesQuery>
             
         RuleFor(v => v.Page)
             .GreaterThanOrEqualTo(1).WithMessage("Page at least greater than or equal to 1.");
+        RuleFor(v => v.Page)
+            .Must((query, page) => (long)(page - 1) * query.PageSize <= int.MaxValue)
+            .WithMessage("The requested page is out of range.");
 
         RuleFor(v => v.PageSize)
-            .GreaterThanOrEqualTo(1).WithMessage("PageSize at least greater than or equal to 1.");
+            .InclusiveBetween(1, 50).WithMessage("PageSize must be between 1 and 50.");
     }
 }
-

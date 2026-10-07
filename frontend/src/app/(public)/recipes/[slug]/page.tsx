@@ -19,9 +19,7 @@ function limitText(value: string, maxLength: number): string {
 
 function getPrimaryImage(recipe: RecipeDetailDto): string | undefined {
   return recipe.images.find((image) => image.isPrimary)?.url
-    ?? recipe.images[0]?.url
-    ?? recipe.images.find((image) => image.isPrimary)?.originalUrl
-    ?? recipe.images[0]?.originalUrl;
+    ?? recipe.images[0]?.url;
 }
 
 export async function generateMetadata({
@@ -72,7 +70,7 @@ export async function generateMetadata({
       description,
       ...(primaryImageUrl ? { images: [primaryImageUrl] } : {}),
     },
-    robots: isPublished ? "index, follow" : "noindex",
+    robots: isPublished ? "index, follow" : { index: false, follow: true },
   };
 }
 

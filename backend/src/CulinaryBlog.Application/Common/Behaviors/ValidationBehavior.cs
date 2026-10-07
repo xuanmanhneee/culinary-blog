@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using CulinaryBlog.Application.Common.Exceptions;
 using FluentValidation;
 using MediatR;
 
@@ -32,9 +33,13 @@ public class ValidationBehavior<TRequest, TResponse> : IPipelineBehavior<TReques
                 .ToList();
 
             if (failures.Any())
-                throw new ValidationException(failures);
+            {
+                var errors = failures
+                    .GroupBy(failure => failure.PropertyName, failure => failure.ErrorMessage)
+                    .ToDictionary(group => group.Key, group => group.ToArray());
+                throw new CulinaryBlog.Application.Common.Exceptions.ValidationException(errors);
+            }
         }
         return await next();
     }
 }
-

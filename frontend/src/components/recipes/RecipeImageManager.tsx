@@ -10,10 +10,6 @@ interface RecipeImageManagerProps {
   images: RecipeImageDto[];
 }
 
-interface UploadedRecipeImage extends RecipeImageDto {
-  id: string;
-}
-
 const maxFileSize = 5 * 1024 * 1024;
 const acceptedImageTypes = new Set([
   "image/jpeg",
@@ -112,16 +108,24 @@ export default function RecipeImageManager({
         || responseBody === null
         || !("id" in responseBody)
         || typeof responseBody.id !== "string"
-        || !("originalUrl" in responseBody)
-        || typeof responseBody.originalUrl !== "string"
+        || !("url" in responseBody)
+        || typeof responseBody.url !== "string"
+        || !("altText" in responseBody)
+        || (responseBody.altText !== null && typeof responseBody.altText !== "string")
+        || !("isPrimary" in responseBody)
+        || typeof responseBody.isPrimary !== "boolean"
+        || !("orderIndex" in responseBody)
+        || typeof responseBody.orderIndex !== "number"
       ) {
         throw new Error("Máy chủ trả về dữ liệu ảnh không hợp lệ.");
       }
 
-      const uploadedImage: UploadedRecipeImage = {
+      const uploadedImage: RecipeImageDto = {
         id: responseBody.id,
-        originalUrl: responseBody.originalUrl,
-        isPrimary: "isPrimary" in responseBody && responseBody.isPrimary === true,
+        url: responseBody.url,
+        altText: responseBody.altText,
+        isPrimary: responseBody.isPrimary,
+        orderIndex: responseBody.orderIndex,
       };
       setImages((currentImages) => [...currentImages, uploadedImage]);
       setMessage("Tải ảnh lên thành công!");
@@ -164,19 +168,15 @@ export default function RecipeImageManager({
       {images.length > 0 ? (
         <ul className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
           {images.map((image, index) => {
-            const imageUrl = image.url ?? image.originalUrl;
-            if (!imageUrl) {
-              return null;
-            }
-
+            const imageUrl = image.url;
             return (
               <li
-                key={image.id ?? imageUrl}
+                key={image.id}
                 className="relative aspect-[4/3] overflow-hidden rounded-lg bg-zinc-100"
               >
                 <Image
                   src={imageUrl}
-                  alt={`Ảnh công thức ${index + 1}`}
+                  alt={image.altText ?? `Ảnh công thức ${index + 1}`}
                   fill
                   unoptimized
                   className="object-cover"

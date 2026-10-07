@@ -1,5 +1,11 @@
 using CulinaryBlog.Application.Recipes.Models;
+using CulinaryBlog.Application.Common.Exceptions;
+using CulinaryBlog.Application.Recipes.Commands.UploadRecipeImage;
+using CulinaryBlog.Application.Recipes.Queries.SearchRecipes;
 using CulinaryBlog.Application.Recipes.Services;
+using CulinaryBlog.Domain.Common.Exceptions;
+using MediatR;
+using Microsoft.AspNetCore.Mvc;
 
 namespace CulinaryBlog.API.Endpoints;
 
@@ -7,6 +13,8 @@ namespace CulinaryBlog.API.Endpoints;
 /// FR-RCP-001: GET /api/v1/recipes
 /// FR-RCP-002: GET /api/v1/recipes/{slug}
 /// FR-RCP-003: POST /api/v1/recipes
+/// FR-SEARCH-001: GET /api/v1/recipes/search?q={query}
+/// FR-FILE-001: POST /api/v1/recipes/{id}/images
 /// FR-RCP-004: GET /api/v1/recipes/{id:guid} (trang edit, trả ETag), PUT /api/v1/recipes/{id:guid} (If-Match)
 /// FR-RCP-005: PATCH /api/v1/recipes/{id:guid}/publish | /unpublish
 /// FR-RCP-006: PATCH /api/v1/recipes/{id:guid}/archive
@@ -20,6 +28,10 @@ public static class RecipeEndpoints
             .WithTags("Recipes");
 
         group.MapGet("/", GetPagedAsync);
+        group.MapGet("/search", SearchAsync);
+        group.MapPost("/{id:guid}/images", UploadImageAsync)
+            .Accepts<IFormFile>("multipart/form-data")
+            .DisableAntiforgery();
         // {id:guid} khai báo riêng để không bị route {slug} bắt mất.
         group.MapGet("/{id:guid}", GetByIdAsync);
         group.MapGet("/{slug}", GetBySlugAsync);
@@ -41,6 +53,29 @@ public static class RecipeEndpoints
     {
         await service.DeleteAsync(id, cancellationToken);
         return Results.NoContent();
+    }
+
+    private static async Task<IResult> SearchAsync(
+        [FromQuery(Name = "q")] string? q,
+        [FromQuery] int? page,
+        [FromQuery] int? pageSize,
+        ISender sender,
+        CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(
+            new SearchRecipesQuery(q ?? string.Empty, page ?? 1, pageSize ?? 10),
+            cancellationToken);
+        return Results.Ok(result);
+    }
+
+    private static async Task<IResult> UploadImageAsync(
+        Guid id,
+        [FromForm(Name = "file")] IFormFile file,
+        ISender sender,
+        CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new UploadRecipeImageCommand(id, file), cancellationToken);
+        return Results.Created($"/api/v1/recipes/{id}/images/{result.Id}", result);
     }
 
     private static async Task<IResult> PublishAsync(
@@ -114,9 +149,7 @@ public static class RecipeEndpoints
         var recipe = await service.GetBySlugAsync(slug, cancellationToken);
         if (recipe is null)
         {
-            return Results.Problem(
-                detail: $"Recipe with slug '{slug}' was not found.",
-                statusCode: StatusCodes.Status404NotFound);
+            throw new NotFoundException(ErrorCodes.RecipeNotFound, $"Recipe with slug '{slug}' was not found.");
         }
 
         // TODO(FR-RCP-002): Draft/Archived chỉ cho Owner/Admin xem (403) khi module Auth hoàn thành.

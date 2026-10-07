@@ -9,7 +9,7 @@ function toDuration(minutes: number): string {
 }
 
 function getImageUrl(image: RecipeDetailDto["images"][number]): string {
-  return image.url || image.originalUrl || "";
+  return image.url;
 }
 
 function formatIngredient(
@@ -30,29 +30,36 @@ export default function RecipeJsonLd({ data }: RecipeJsonLdProps) {
     name: data.title,
     description: data.description,
     image: data.images.map(getImageUrl).filter(Boolean),
-    author: {
-      "@type": "Person",
-      name: data.author.displayName,
-    },
-    datePublished: data.publishedAt,
+    ...(data.author
+      ? {
+          author: {
+            "@type": "Person",
+            name: data.author.displayName,
+          },
+        }
+      : {}),
+    ...(data.publishedAt ? { datePublished: data.publishedAt } : {}),
     prepTime: toDuration(data.prepTimeMinutes),
     cookTime: toDuration(data.cookTimeMinutes),
     totalTime: toDuration(data.prepTimeMinutes + data.cookTimeMinutes),
     recipeYield: `${data.servings} phần`,
-    recipeCategory: data.category.name,
+    ...(data.category ? { recipeCategory: data.category.name } : {}),
     recipeIngredient: data.ingredients.map(formatIngredient),
     recipeInstructions: data.steps.map((step) => ({
       "@type": "HowToStep",
+      name: step.title,
       text: step.description,
     })),
     ...(data.nutrition
       ? {
           nutrition: {
             "@type": "NutritionInformation",
-            calories: data.nutrition.calories,
-            proteinContent: data.nutrition.proteinContent,
-            carbohydrateContent: data.nutrition.carbohydrateContent,
-            fatContent: data.nutrition.fatContent,
+            ...(data.nutrition.calories === null ? {} : { calories: `${data.nutrition.calories} calories` }),
+            ...(data.nutrition.protein === null ? {} : { proteinContent: `${data.nutrition.protein} g` }),
+            ...(data.nutrition.carbohydrates === null ? {} : { carbohydrateContent: `${data.nutrition.carbohydrates} g` }),
+            ...(data.nutrition.fat === null ? {} : { fatContent: `${data.nutrition.fat} g` }),
+            ...(data.nutrition.fiber === null ? {} : { fiberContent: `${data.nutrition.fiber} g` }),
+            ...(data.nutrition.sodium === null ? {} : { sodiumContent: `${data.nutrition.sodium} mg` }),
           },
         }
       : {}),
