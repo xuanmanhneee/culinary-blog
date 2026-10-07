@@ -4,10 +4,12 @@ using CulinaryBlog.Application;
 using CulinaryBlog.Infrastructure;
 using CulinaryBlog.Infrastructure.Persistence;
 using CulinaryBlog.Infrastructure.Persistence.Seed;
+using CulinaryBlog.Infrastructure.Storage;
 using CulinaryBlog.Infrastructure.Jobs;
 using Hangfire;
 using Hangfire.PostgreSql;
 using Microsoft.EntityFrameworkCore;
+using Scalar.AspNetCore;
 using CulinaryBlog.API.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -17,8 +19,13 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 
+// Add OpenAPI/Swagger services
+builder.Services.AddOpenApi();
+
+builder.Services.AddApplicationServices();
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddMinioStorage(builder.Configuration);
 
 builder.Services.AddJwtAuthentication(builder.Configuration);
 builder.Services.AddAuthRateLimiting();
@@ -75,6 +82,19 @@ app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 
+// Bật OpenAPI & Scalar UI trong môi trường Development
+if (app.Environment.IsDevelopment())
+{
+    app.MapOpenApi();
+    app.MapScalarApiReference(options =>
+    {
+        options.WithTitle("Culinary Blog API")
+               .WithTheme(ScalarTheme.Moon);
+    });
+}
+
+// Map các Endpoints của ứng dụng
+// app.MapRecipesEndpoints();
 app.MapGet("/", () => "Hello World!");
 
 app.MapAuthEndpoints();

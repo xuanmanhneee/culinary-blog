@@ -1,0 +1,64 @@
+# Cấu Hình Hệ Thống Cho AI Agent - Culinary Blog Project
+
+## 1. TỔNG QUAN HỆ THỐNG VÀ BẮT CẦU GIỮA CÁC VAI TRÒ (SYSTEM CONTEXT)
+Dự án được chia thành 4 phần chính. Bạn chịu trách nhiệm chính ở PHẦN 3, nhưng phải tuân thủ giao tiếp chuẩn với 3 phần còn lại:
+
+- **Phần 1 (Auth & Category):** Quản lý Đăng ký/Đăng nhập (JWT, Google OAuth) và CRUD Category.
+  *Điểm phối hợp với P3:* Chỉ thực hiện Search/Filter trên các công thức có `Status == Published` ngoại trừ khi gọi kèm Authorization context.
+- **Phần 2 (Recipe Management):** Quản lý CRUD Recipe, Steps, Ingredients, Nutrition, Images metadata.
+  *Điểm phối hợp với P3:* Nhận tín hiệu trigger upload/xóa ảnh từ Recipe và cập nhật `SearchVector` khi Recipe được thay đổi thông tin.
+- **PHẦN 3 (NHIỆM VỤ CHÍNH - Search, File & SEO):**
+  * PostgreSQL Full-Text Search (tsvector/tsquery + unaccent extension).
+  * MinIO Object Storage integration (`IFileStorageService`) để lưu trữ/xóa ảnh.
+  * Redis Distributed Cache (Query Caching, Output Cache invalidation).
+  * Tối ưu SEO (JSON-LD Schema.org Recipe, Meta Tags, Open Graph, Dynamic Sitemap).
+- **Phần 4 (Architecture, Jobs & DevOps):** Khung Clean Architecture + CQRS MediatR, Hangfire Background Jobs, Observability (Serilog/OpenTelemetry), Docker.
+  *Điểm phối hợp với P3:* Sử dụng abstraction `IFileStorageService` từ Application layer; đăng ký Job resize ảnh và Sitemap vào Hangfire.
+
+---
+
+## 2. QUY TẮC PHÁT TRIỂN PHẦN 3 (SEARCH, FILE & SEO RULES)
+
+### A. Full-Text Search (PostgreSQL + EF Core)
+- BẮT BUỘC sử dụng PostgreSQL `tsvector` và `tsquery` kết hợp với extension `unaccent` để tìm kiếm tiếng Việt không dấu.
+- Mọi Query FTS phải sanitize input để ngăn ngừa SQL Injection / Malformed tsquery.
+- Trả về kết quả xếp hạng bằng `ts_rank()` tăng dần/giảm dần.
+- Bắt buộc áp dụng OFFSET-LIMIT Pagination chuẩn (`PagedResult<RecipeSummaryDto>`).
+
+### B. MinIO Object Storage (`IFileStorageService`)
+- Mọi thao tác lưu trữ file PHẢI thông qua interface `IFileStorageService` tại tầng `Application`. KHÔNG gọi trực tiếp MinIO SDK ở Controllers/Endpoints.
+- Kiểm tra Validation chặt chẽ trước khi lưu stream:
+  * Kích thước tối đa: **5MB**.
+  * Định dạng MIME được phép: `image/jpeg`, `image/png`, `image/webp`, `image/avif`.
+  * BẮT BUỘC kiểm tra Magic Bytes (không chỉ kiểm tra đuôi file extension).
+- Tạo tên file duy nhất dùng GUID dạng: `recipes/{recipeId}/{guid}.{ext}` để tránh Path Traversal.
+
+### C. Redis Cache & Output Caching
+- Sử dụng Redis cache cho kết quả Query/Search đa dạng và thiết lập TTL ngắn/vừa phải (1 - 15 phút).
+- Triển khai Eviction/Invalidation tag-based khi có sự kiện Create/Update/Delete Recipe (ví dụ Tag `recipes`).
+
+### D. Tối ưu SEO (Frontend & Backend Output)
+- Sinh JSON-LD Schema.org `@type: "Recipe"` đầy đủ các trường: `name`, `description`, `image`, `author`, `prepTime`, `cookTime`, `recipeIngredient`, `recipeInstructions`, `nutrition`.
+- Đảm bảo tất cả URL công thức thân thiện SEO theo dạng `/recipes/{slug}` (slug viết thường, không dấu, ngăn cách bằng dấu gạch ngang).
+- Hỗ trợ tạo động file `sitemap.xml` chứa danh sách các bài viết Published.
+
+---
+
+## 3. THIẾT KẾ MÃ NGUỒN VÀ KIẾN TRÚC (CODE STYLE & CLEAN ARCHITECTURE)
+
+- **Backend (.NET 10 Minimal APIs):**
+  * Tuân thủ Clean Architecture 4 tầng: `Domain` -> `Application` -> `Infrastructure` -> `API`.
+  * Áp dụng CQRS pattern với `MediatR` (Mỗi use case là 1 Command/Query riêng biệt cùng Handler).
+  * Validation bằng `FluentValidation` thông qua MediatR Pipeline Behavior.
+  * Trả lỗi chuẩn RFC 7807 (`ProblemDetails`).
+
+- **Frontend (Next.js 14+ App Router):**
+  * Sử dụng TypeScript strict mode và Tailwind CSS.
+  * Sử dụng Server Components cho SEO render (ISR/SSR) và TanStack Query cho Client-side state.
+
+---
+
+## 4. QUY TRÌNH HÀNH ĐỘNG CHO AI AGENT (WORKFLOW)
+1. Trước khi tạo/sửa code: Phân tích file hiện có trong thư mục để tránh trùng lặp cấu trúc.
+2. Viết code sạch, tự tạo file DTO/Command/Query/Handler/Validator đồng bộ đúng vị trí tầng tương ứng.
+3. Không tự ý sửa đổi code của Phần 1 & 2 trừ khi cần bổ sung Interface/Extension cho Phần 3.

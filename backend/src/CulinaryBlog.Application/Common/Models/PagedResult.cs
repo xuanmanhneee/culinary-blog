@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+
 namespace CulinaryBlog.Application.Common.Models;
 
 public class PagedResult<T>
