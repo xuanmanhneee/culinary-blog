@@ -1,5 +1,5 @@
 using System;
-using CulinaryBlog.Application.Common.Models;
+using CulinaryBlog.Application.Recipes.Models;
 using MediatR;
 using Microsoft.AspNetCore.Http;
 

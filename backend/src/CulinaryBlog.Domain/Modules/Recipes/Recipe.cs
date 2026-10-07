@@ -164,10 +164,12 @@ public class Recipe : BaseEntity
         return ingredient is not null && _ingredients.Remove(ingredient);
     }
 
-    public void AddImage(string originalUrl, bool isPrimary = false, string? altText = null)
+    public RecipeImage AddImage(string originalUrl, bool isPrimary = false, string? altText = null)
     {
         var orderIndex = _images.Count;
-        _images.Add(RecipeImage.Create(Id, originalUrl, isPrimary, orderIndex, altText));
+        var image = RecipeImage.Create(Id, originalUrl, isPrimary, orderIndex, altText);
+        _images.Add(image);
+        return image;
     }
 
     public RecipeImage? FindImage(Guid imageId) =>
