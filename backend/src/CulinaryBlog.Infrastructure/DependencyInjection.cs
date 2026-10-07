@@ -1,3 +1,4 @@
+using CulinaryBlog.Application.Auth.Abstractions;
 using CulinaryBlog.Domain.Common;
 using CulinaryBlog.Domain.Modules.Categories;
 using CulinaryBlog.Domain.Modules.Identity;
@@ -21,6 +22,9 @@ public static class DependencyInjection
     {
         var connectionString = configuration.GetConnectionString("DefaultConnection")
             ?? throw new InvalidOperationException("Thiếu ConnectionStrings:DefaultConnection trong appsettings.json.");
+
+        services.Configure<JwtOptions>(
+            configuration.GetSection("Jwt"));
 
         services.AddSingleton<AuditInterceptor>();
 
@@ -46,6 +50,8 @@ public static class DependencyInjection
         services.AddScoped<ICategoryRepository, CategoryRepository>();
         // Module Recipes
         services.AddScoped<IRecipeRepository, RecipeRepository>();
+        services.AddScoped<IJwtService, JwtService>();
+
         // Module Identity
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 
@@ -55,6 +61,9 @@ public static class DependencyInjection
         services.AddScoped<IdentitySeeder>();
         services.AddScoped<CategorySeeder>();
         services.AddScoped<RecipeSeeder>();
+
+        var healthChecks = services.AddHealthChecks()
+            .AddDbContextCheck<CulinaryBlogDbContext>(name: "database", tags: new[] { "ready" });
 
         return services;
     }

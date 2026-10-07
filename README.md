@@ -226,12 +226,30 @@ Hệ thống có 3 vai trò: **Guest**, **Author**, **Admin**, với 3 tầng ki
 | Họ và tên | Vai trò | MSSV | GitHub |
 |---|---|---|---|
 | _Phan Lê Xuân Mạnh_ | _Nhóm trưởng_ | _2312686_ | [@_xuanmanhneee_](https://github.com/xuanmanhneee) |
-| _Nguyễn Đình Thạch_ | _Thành viên_ | _2314506_ | [@__](https://github.com/) |
-| _Lý Ngọc Thảo Nguyên_ | _Thành viên_ | _2312700_ | [@__](https://github.com/) |
+| _Nguyễn Đình Thạch_ | _Thành viên_ | _2314506_ | [@_Thach Nguyen_](https://github.com/nguyendinhthach) |
+| _Lý Ngọc Thảo Nguyên_ | _Thành viên_ | _2312700_ | [@_LeonSK-hav_](https://github.com/LeonSK-hav) |
 | _Trần Tấn Khải_ | _Thành viên_ | _2312642_ | [@__](https://github.com/) |
 
 
+## 👷 Phân công công việc
+
+| Vai trò | Công nghệ chính | Việc chính | Người nhận |
+|---|---|---|---|
+| Auth & Category | JWT, OAuth, RBAC | Đăng ký/đăng nhập/Google OAuth, phân quyền, CRUD danh mục | Tấn Khải |
+| Recipe Management | CQRS/MediatR, EF Core | CRUD công thức, ảnh/nguyên liệu/các bước, form nhiều bước | Đình Thạch |
+| Search, File & SEO | Postgres FTS, MinIO, Redis, SEO | Tìm kiếm, lọc, upload/resize ảnh, tối ưu SEO | Thảo Nguyên |
+| Kiến trúc, Jobs & DevOps | Clean Architecture, Hangfire, OpenTelemetry, Docker | Dựng khung kiến trúc cho cả nhóm, background jobs, logging/tracing, CI/CD | Xuân Mạnh |
+
 ---
+
+## 📅 Tiến độ công việc
+
+| Tuần | Thành viên | Công việc | Trạng thái |
+|---|---|---|---|
+| 1 | Xuân Mạnh | Dựng cấu trúc thư mục Clean Architecture, khởi tạo solution/project, cấu hình `CulinaryBlogDbContext`, seed data mẫu bằng Bogus (50 recipe, 5 author) | ✅ Hoàn thành |
+| 1 | Thảo Nguyên | Xử lý upload file lên MinIO (`IFileStorageService`) | ✅ Hoàn thành |
+| 1 | Tấn Khải | Auth (đăng ký/đăng nhập, JWT) | 🔄 Đang thực hiện |
+| 1 | Đình Thạch | Recipe Management (CRUD công thức) | ✅ Hoàn thành |
 
 ## 📄 Giấy phép
 

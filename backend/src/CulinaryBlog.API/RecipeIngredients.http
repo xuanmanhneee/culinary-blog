@@ -1,0 +1,61 @@
+### FR-RCP-009 – Quản lý nguyên liệu công thức
+### Chạy bằng extension "REST Client" (VS Code) hoặc Visual Studio / Rider.
+### baseUrl lấy theo profile "http" trong Properties/launchSettings.json.
+### recipeId: lấy từ DB sau khi seed:  SELECT "Id" FROM "Recipes" LIMIT 1;
+
+@baseUrl = http://localhost:5000
+@recipeId = 00000000-0000-0000-0000-000000000000
+@ingredientId = 00000000-0000-0000-0000-000000000000
+
+### 1. Thêm nguyên liệu – 201 Created (copy "id" trong response vào @ingredientId)
+POST {{baseUrl}}/api/v1/recipes/{{recipeId}}/ingredients
+Content-Type: application/json
+
+{
+  "name": "Đường",
+  "quantity": 0.5,
+  "unit": "thìa cafe",
+  "notes": "đường cát trắng"
+}
+
+### 2. Thêm nguyên liệu "vừa đủ" (quantity = null) – 201 Created
+POST {{baseUrl}}/api/v1/recipes/{{recipeId}}/ingredients
+Content-Type: application/json
+
+{
+  "name": "Muối",
+  "quantity": null,
+  "unit": null
+}
+
+### 3. Cập nhật nguyên liệu – 200 OK
+PUT {{baseUrl}}/api/v1/recipes/{{recipeId}}/ingredients/{{ingredientId}}
+Content-Type: application/json
+
+{
+  "name": "Đường phèn",
+  "quantity": 1,
+  "unit": "thìa canh",
+  "notes": null,
+  "orderIndex": 0
+}
+
+### 4. Dữ liệu không hợp lệ – 422 Unprocessable Entity
+POST {{baseUrl}}/api/v1/recipes/{{recipeId}}/ingredients
+Content-Type: application/json
+
+{
+  "name": "",
+  "quantity": -1
+}
+
+### 5. Recipe không tồn tại – 404 Not Found
+POST {{baseUrl}}/api/v1/recipes/11111111-1111-1111-1111-111111111111/ingredients
+Content-Type: application/json
+
+{
+  "name": "Hành lá"
+}
+
+### 6. Xóa nguyên liệu – 204 No Content (gọi lần 2 → 404)
+DELETE {{baseUrl}}/api/v1/recipes/{{recipeId}}/ingredients/{{ingredientId}}

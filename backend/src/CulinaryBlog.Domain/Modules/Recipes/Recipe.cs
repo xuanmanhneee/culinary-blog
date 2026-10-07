@@ -1,4 +1,5 @@
 using CulinaryBlog.Domain.Common;
+using CulinaryBlog.Domain.Common.Exceptions;
 using CulinaryBlog.Domain.Modules.Categories;
 using CulinaryBlog.Domain.Modules.Identity;
 
@@ -76,18 +77,91 @@ public class Recipe : BaseEntity
         return recipe;
     }
 
-    public void SetNutrition(RecipeNutrition nutrition) => Nutrition = nutrition;
-
-    public void AddStep(string title, string description, int? timerMinutes = null)
+    /// <summary>
+    /// Cập nhật thông tin cơ bản (FR-RCP-004). Slug do tầng Application sinh và kiểm tra trùng.
+    /// </summary>
+    public void Update(
+        string title,
+        string slug,
+        string description,
+        string instructions,
+        Guid categoryId,
+        int prepTime,
+        int cookTime,
+        int servings,
+        RecipeDifficulty difficulty)
     {
-        var stepNumber = _steps.Count + 1;
-        _steps.Add(RecipeStep.Create(Id, stepNumber, title, description, timerMinutes));
+        Title = title;
+        Slug = slug;
+        Description = description;
+        Instructions = instructions;
+        CategoryId = categoryId;
+        PrepTime = prepTime;
+        CookTime = cookTime;
+        Servings = servings;
+        Difficulty = difficulty;
+        UpdatedAt = DateTimeOffset.UtcNow;
     }
 
-    public void AddIngredient(string name, decimal? quantity, string? unit, string? notes = null)
+    public void SetNutrition(RecipeNutrition nutrition) => Nutrition = nutrition;
+
+    /// <summary>
+    /// Thêm bước vào cuối danh sách: StepNumber = max + 1 (hoặc 1 nếu chưa có bước nào).
+    /// Không có title thì đặt mặc định "Bước {StepNumber}".
+    /// </summary>
+    public RecipeStep AddStep(string? title, string description, int? timerMinutes = null, string? imageUrl = null)
     {
-        var orderIndex = _ingredients.Count;
-        _ingredients.Add(RecipeIngredient.Create(Id, name, quantity, unit, orderIndex, notes));
+        var stepNumber = _steps.Count == 0 ? 1 : _steps.Max(s => s.StepNumber) + 1;
+        var step = RecipeStep.Create(
+            Id, stepNumber, string.IsNullOrWhiteSpace(title) ? RecipeStep.DefaultTitle(stepNumber) : title,
+            description, timerMinutes, imageUrl);
+        _steps.Add(step);
+        return step;
+    }
+
+    public RecipeStep? FindStep(Guid stepId) =>
+        _steps.FirstOrDefault(s => s.Id == stepId);
+
+    /// <summary>
+    /// Xóa bước rồi đánh số lại các bước còn lại để StepNumber liên tục 1, 2, 3... (FR-RCP-010).
+    /// </summary>
+    public bool RemoveStep(Guid stepId)
+    {
+        var step = FindStep(stepId);
+        if (step is null || !_steps.Remove(step)) return false;
+
+        var number = 1;
+        foreach (var remaining in _steps.OrderBy(s => s.StepNumber))
+        {
+            remaining.Renumber(number++);
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Thêm nguyên liệu. Không truyền orderIndex thì nguyên liệu được xếp cuối danh sách.
+    /// </summary>
+    public RecipeIngredient AddIngredient(
+        string name,
+        decimal? quantity,
+        string? unit,
+        string? notes = null,
+        int? orderIndex = null)
+    {
+        var ingredient = RecipeIngredient.Create(
+            Id, name, quantity, unit, orderIndex ?? _ingredients.Count, notes);
+        _ingredients.Add(ingredient);
+        return ingredient;
+    }
+
+    public RecipeIngredient? FindIngredient(Guid ingredientId) =>
+        _ingredients.FirstOrDefault(i => i.Id == ingredientId);
+
+    public bool RemoveIngredient(Guid ingredientId)
+    {
+        var ingredient = FindIngredient(ingredientId);
+        return ingredient is not null && _ingredients.Remove(ingredient);
     }
 
     public void AddImage(string originalUrl, bool isPrimary = false, string? altText = null)
@@ -96,10 +170,76 @@ public class Recipe : BaseEntity
         _images.Add(RecipeImage.Create(Id, originalUrl, isPrimary, orderIndex, altText));
     }
 
+    public RecipeImage? FindImage(Guid imageId) =>
+        _images.FirstOrDefault(i => i.Id == imageId);
+
+    /// <summary>Đặt ảnh chính (FR-RCP-008): ảnh được chọn IsPrimary = true, các ảnh khác = false.</summary>
+    public bool SetPrimaryImage(Guid imageId)
+    {
+        if (FindImage(imageId) is null) return false;
+
+        foreach (var image in _images)
+        {
+            image.SetPrimary(image.Id == imageId);
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Xóa ảnh (FR-RCP-008). Nếu ảnh bị xóa là ảnh chính và còn ảnh khác thì ảnh đầu tiên
+    /// còn lại (theo OrderIndex) trở thành ảnh chính.
+    /// </summary>
+    public bool RemoveImage(Guid imageId)
+    {
+        var image = FindImage(imageId);
+        if (image is null || !_images.Remove(image)) return false;
+
+        if (image.IsPrimary)
+        {
+            _images.OrderBy(i => i.OrderIndex).FirstOrDefault()?.SetPrimary(true);
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Xuất bản (FR-RCP-005). Phải có ít nhất 1 bước thực hiện. Đã Published thì không làm gì (idempotent).
+    /// </summary>
     public void Publish()
     {
+        if (Status == RecipeStatus.Published) return;
+
+        if (_steps.Count == 0)
+            throw new BusinessRuleViolationException(
+                ErrorCodes.RecipePublishIncomplete,
+                "Recipe must have at least one step before publishing.");
+
         Status = RecipeStatus.Published;
         PublishedAt = DateTimeOffset.UtcNow;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    /// <summary>
+    /// Hủy xuất bản (FR-RCP-005): đưa về Draft. Cũng dùng để khôi phục recipe đã Archived.
+    /// Đã là Draft thì không làm gì (idempotent).
+    /// </summary>
+    public void Unpublish()
+    {
+        if (Status == RecipeStatus.Draft) return;
+
+        Status = RecipeStatus.Draft;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    /// <summary>
+    /// Lưu trữ (FR-RCP-006): ẩn khỏi danh sách công khai nhưng giữ dữ liệu. Idempotent.
+    /// </summary>
+    public void Archive()
+    {
+        if (Status == RecipeStatus.Archived) return;
+
+        Status = RecipeStatus.Archived;
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 }

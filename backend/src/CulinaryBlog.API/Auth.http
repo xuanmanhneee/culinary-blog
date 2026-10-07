@@ -1,0 +1,97 @@
+@baseUrl = http://localhost:5000
+
+### 1. Register (201). Tự động đăng nhập, trả access + refresh token
+# @name register
+POST {{baseUrl}}/api/v1/auth/register
+Content-Type: application/json
+
+{
+  "fullName": "Nguyen Van A",
+  "email": "a@example.com",
+  "userName": "nguyenvana",
+  "password": "Password@123"
+}
+
+### 2. Register trùng email (409)
+POST {{baseUrl}}/api/v1/auth/register
+Content-Type: application/json
+
+{
+  "fullName": "Nguyen Van A",
+  "email": "a@example.com",
+  "userName": "another",
+  "password": "Password@123"
+}
+
+### 3. Register mật khẩu yếu (422)
+POST {{baseUrl}}/api/v1/auth/register
+Content-Type: application/json
+
+{
+  "fullName": "Weak Pass",
+  "email": "weak@example.com",
+  "userName": "weakpass",
+  "password": "abc"
+}
+
+### 4. Login (200)
+# @name login
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "a@example.com",
+  "password": "Password@123"
+}
+
+### 5. Login sai mật khẩu (401). Gọi 5 lần liên tiếp sẽ bị khóa (423)
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "a@example.com",
+  "password": "Wrong@123"
+}
+
+### 6. Me (200)
+GET {{baseUrl}}/api/v1/auth/me
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### 7. Update profile (200)
+PATCH {{baseUrl}}/api/v1/auth/me
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{
+  "fullName": "Nguyen Van A (updated)",
+  "avatarUrl": "https://example.com/avatar.png"
+}
+
+### 8. Refresh (200). Token cũ bị revoke, cấp cặp mới
+# @name refresh
+POST {{baseUrl}}/api/v1/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "{{login.response.body.refreshToken}}"
+}
+
+### 9. Refresh lại bằng token CŨ (401, ghi log SECURITY, revoke toàn bộ token của user)
+POST {{baseUrl}}/api/v1/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "{{login.response.body.refreshToken}}"
+}
+
+### 10. Logout (204). Dùng access token + refresh token mới nhất
+POST {{baseUrl}}/api/v1/auth/logout
+Authorization: Bearer {{refresh.response.body.accessToken}}
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refresh.response.body.refreshToken}}"
+}
+
+### 11. Me khi không có token (401)
+GET {{baseUrl}}/api/v1/auth/me

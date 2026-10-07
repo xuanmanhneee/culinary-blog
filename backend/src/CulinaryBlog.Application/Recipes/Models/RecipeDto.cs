@@ -2,35 +2,66 @@ using CulinaryBlog.Domain.Modules.Recipes;
 
 namespace CulinaryBlog.Application.Recipes.Models;
 
+/// <summary>
+/// FR-RCP-001: một card trong danh sách công thức (RecipeSummaryDto trong SRS).
+/// </summary>
 public sealed record RecipeListItemDto(
     Guid Id,
     string Title,
     string Slug,
-    Guid CategoryId,
-    string AuthorId,
-    int PrepTime,
-    int CookTime,
+    string Description,
+    int PrepTimeMinutes,
+    int CookTimeMinutes,
     int Servings,
     RecipeDifficulty Difficulty,
-    RecipeStatus Status);
+    RecipeStatus Status,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? PublishedAt,
+    string? PrimaryImageUrl,
+    RecipeCategoryDto? Category,
+    RecipeAuthorDto? Author);
 
+/// <summary>
+/// FR-RCP-002: chi tiết công thức kèm category, author, ảnh, dinh dưỡng, nguyên liệu và các bước.
+/// Category/Author là null khi navigation chưa được load (ví dụ response của CreateAsync).
+/// RowVersion (base64) là concurrency token, client gửi lại qua If-Match khi cập nhật (FR-RCP-004).
+/// </summary>
 public sealed record RecipeDetailDto(
     Guid Id,
     string Title,
     string Slug,
     string Description,
     string Instructions,
-    Guid CategoryId,
-    string AuthorId,
-    int PrepTime,
-    int CookTime,
+    int PrepTimeMinutes,
+    int CookTimeMinutes,
     int Servings,
     RecipeDifficulty Difficulty,
     RecipeStatus Status,
+    DateTimeOffset? PublishedAt,
+    RecipeCategoryDto? Category,
+    RecipeAuthorDto? Author,
+    IReadOnlyList<RecipeImageDto> Images,
+    RecipeNutritionDto Nutrition,
     IReadOnlyList<RecipeIngredientDto> Ingredients,
-    IReadOnlyList<RecipeStepDto> Steps);
+    IReadOnlyList<RecipeStepDto> Steps,
+    string RowVersion);
+
+public sealed record RecipeCategoryDto(Guid Id, string Name, string Slug);
+
+public sealed record RecipeAuthorDto(string Id, string DisplayName, string? AvatarUrl);
+
+public sealed record RecipeImageDto(Guid Id, string Url, string? AltText, bool IsPrimary, int OrderIndex);
+
+public sealed record RecipeNutritionDto(
+    decimal? Calories,
+    decimal? Protein,
+    decimal? Carbohydrates,
+    decimal? Fat,
+    decimal? Fiber,
+    decimal? Sodium);
 
 public sealed record RecipeIngredientDto(
+    Guid Id,
     string Name,
     decimal? Quantity,
     string? Unit,
@@ -38,7 +69,9 @@ public sealed record RecipeIngredientDto(
     int OrderIndex);
 
 public sealed record RecipeStepDto(
+    Guid Id,
     int StepNumber,
     string Title,
     string Description,
-    int? TimerMinutes);
+    int? TimerMinutes,
+    string? ImageUrl);

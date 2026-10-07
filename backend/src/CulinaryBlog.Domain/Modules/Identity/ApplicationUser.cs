@@ -20,4 +20,19 @@ public class ApplicationUser : IdentityUser
 
     private readonly List<RefreshToken> _refreshTokens = new();
     public IReadOnlyCollection<RefreshToken> RefreshTokens => _refreshTokens.AsReadOnly();
+
+    /// <summary>
+    /// Factory method theo SRS FR-AUTH-001. Mật khẩu được set qua UserManager.CreateAsync.
+    /// </summary>
+    public static ApplicationUser Create(string displayName, string email, string userName)
+    {
+        return new ApplicationUser
+        {
+            DisplayName = displayName,
+            Email = email,
+            UserName = userName,
+            IsActive = true,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+    }
 }

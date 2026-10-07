@@ -1,11 +1,16 @@
 using CulinaryBlog.API.Endpoints;
+using CulinaryBlog.API.Middleware;
 using CulinaryBlog.Application;
 using CulinaryBlog.Infrastructure;
 using CulinaryBlog.Infrastructure.Persistence;
 using CulinaryBlog.Infrastructure.Persistence.Seed;
 using CulinaryBlog.Infrastructure.Storage;
+using CulinaryBlog.Infrastructure.Jobs;
+using Hangfire;
+using Hangfire.PostgreSql;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
+using CulinaryBlog.API.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,7 +27,37 @@ builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddMinioStorage(builder.Configuration);
 
+builder.Services.AddJwtAuthentication(builder.Configuration);
+builder.Services.AddAuthRateLimiting();
+
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+
+// 1. Đăng ký "nền": nơi lưu queue (PostgreSQL) + cách serialize job
+builder.Services.AddHangfire(config => config
+    .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+    .UseSimpleAssemblyNameTypeSerializer()
+    .UseRecommendedSerializerSettings()
+    .UsePostgreSqlStorage(options => options.UseNpgsqlConnection(connectionString)));
+
+// 2. Đăng ký "worker": tiến trình poll queue và thực thi job
+builder.Services.AddHangfireServer();
+
+// 3. Đăng ký chính job class vào DI (để Hangfire resolve dependency của nó, ví dụ ILogger)
+builder.Services.AddScoped<PingJob>();
+
+// RFC 7807: mọi lỗi trả về application/problem+json kèm traceId và instance.
+builder.Services.AddProblemDetails(options =>
+{
+    options.CustomizeProblemDetails = context =>
+    {
+        context.ProblemDetails.Instance ??=
+            $"{context.HttpContext.Request.Method} {context.HttpContext.Request.Path}";
+    };
+});
+
 var app = builder.Build();
+
+
 
 // Apply schema migrations on startup, but seed only when explicitly requested.
 using (var scope = app.Services.CreateScope())
@@ -37,6 +72,16 @@ if (args.Contains("--seed", StringComparer.OrdinalIgnoreCase))
     return;
 }
 
+// Đặt đầu pipeline để bắt exception từ mọi middleware/endpoint phía sau.
+app.UseMiddleware<GlobalExceptionMiddleware>();
+// Response lỗi không có body (vd. 404 do sai route, 405) cũng trả về ProblemDetails.
+app.UseStatusCodePages();
+
+app.UseRateLimiter();
+
+app.UseAuthentication();
+app.UseAuthorization();
+
 // Bật OpenAPI & Scalar UI trong môi trường Development
 if (app.Environment.IsDevelopment())
 {
@@ -49,6 +94,34 @@ if (app.Environment.IsDevelopment())
 }
 
 // Map các Endpoints của ứng dụng
-app.MapRecipesEndpoints();
+// app.MapRecipesEndpoints();
+app.MapGet("/", () => "Hello World!");
+
+app.MapAuthEndpoints();
+
+app.MapRecipeEndpoints();
+
+app.MapRecipeIngredientEndpoints();
+
+app.MapRecipeStepEndpoints();
+
+app.MapRecipeImageEndpoints();
+
+app.MapCategoriesEndpoints();
+
+app.MapHealthEndpoints();
+
+app.UseHangfireDashboard("/hangfire");
+
+app.Lifetime.ApplicationStarted.Register(() =>
+{
+    RecurringJob.AddOrUpdate<PingJob>(
+    recurringJobId: "ping-every-minute",
+    methodCall: j => j.Execute("scheduled ping"),
+    cronExpression: "* * * * *");
+});
+
+
+
 
 app.Run();

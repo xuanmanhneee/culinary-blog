@@ -1,0 +1,13 @@
+### FR-RCP-002 – Xem chi tiết công thức
+### Chạy bằng extension "REST Client" (VS Code) hoặc Visual Studio / Rider.
+### baseUrl lấy theo profile "http" trong Properties/launchSettings.json.
+### slug: lấy từ DB sau khi seed:  SELECT "Slug" FROM "Recipes" LIMIT 1;
+
+@baseUrl = http://localhost:5000
+@slug = pho-bo-ha-noi
+
+### 1. Slug tồn tại – 200 OK (kèm category, author, images, nutrition, ingredients, steps)
+GET {{baseUrl}}/api/v1/recipes/{{slug}}
+
+### 2. Slug không tồn tại – 404 Not Found (RFC 7807)
+GET {{baseUrl}}/api/v1/recipes/khong-ton-tai
