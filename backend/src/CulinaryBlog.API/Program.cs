@@ -9,6 +9,7 @@ using Hangfire;
 using Hangfire.PostgreSql;
 using Microsoft.EntityFrameworkCore;
 using CulinaryBlog.API.Extensions;
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,6 +23,8 @@ builder.Services.AddInfrastructure(builder.Configuration);
 
 builder.Services.AddJwtAuthentication(builder.Configuration);
 builder.Services.AddAuthRateLimiting();
+
+builder.Services.AddOpenApi();
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
@@ -50,7 +53,8 @@ builder.Services.AddProblemDetails(options =>
 
 var app = builder.Build();
 
-
+app.MapOpenApi();
+app.MapScalarApiReference();
 
 // Apply schema migrations on startup, but seed only when explicitly requested.
 using (var scope = app.Services.CreateScope())
@@ -100,8 +104,5 @@ app.Lifetime.ApplicationStarted.Register(() =>
     methodCall: j => j.Execute("scheduled ping"),
     cronExpression: "* * * * *");
 });
-
-
-
 
 app.Run();
