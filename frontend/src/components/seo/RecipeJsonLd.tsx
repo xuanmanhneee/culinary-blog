@@ -9,7 +9,28 @@ function toDuration(minutes: number): string {
 }
 
 function getImageUrl(image: RecipeDetailDto["images"][number]): string {
-  return image.url || image.originalUrl || "";
+  return image.url;
+}
+
+/** schema.org NutritionInformation dùng chuỗi có đơn vị, ví dụ "18.5 g". */
+function withUnit(value: number | null, unit: string): string | undefined {
+  return value === null ? undefined : `${value} ${unit}`;
+}
+
+function getNutrition(nutrition: RecipeDetailDto["nutrition"]) {
+  const values = {
+    calories: withUnit(nutrition.calories, "calories"),
+    proteinContent: withUnit(nutrition.protein, "g"),
+    carbohydrateContent: withUnit(nutrition.carbohydrates, "g"),
+    fatContent: withUnit(nutrition.fat, "g"),
+    fiberContent: withUnit(nutrition.fiber, "g"),
+    sodiumContent: withUnit(nutrition.sodium, "mg"),
+  };
+
+  // Backend luôn trả object nutrition; chỉ xuất JSON-LD khi có ít nhất một giá trị.
+  return Object.values(values).some(Boolean)
+    ? { "@type": "NutritionInformation", ...values }
+    : undefined;
 }
 
 function formatIngredient(
@@ -30,32 +51,21 @@ export default function RecipeJsonLd({ data }: RecipeJsonLdProps) {
     name: data.title,
     description: data.description,
     image: data.images.map(getImageUrl).filter(Boolean),
-    author: {
-      "@type": "Person",
-      name: data.author.displayName,
-    },
-    datePublished: data.publishedAt,
+    ...(data.author
+      ? { author: { "@type": "Person", name: data.author.displayName } }
+      : {}),
+    datePublished: data.publishedAt ?? undefined,
     prepTime: toDuration(data.prepTimeMinutes),
     cookTime: toDuration(data.cookTimeMinutes),
     totalTime: toDuration(data.prepTimeMinutes + data.cookTimeMinutes),
     recipeYield: `${data.servings} phần`,
-    recipeCategory: data.category.name,
+    recipeCategory: data.category?.name,
     recipeIngredient: data.ingredients.map(formatIngredient),
     recipeInstructions: data.steps.map((step) => ({
       "@type": "HowToStep",
       text: step.description,
     })),
-    ...(data.nutrition
-      ? {
-          nutrition: {
-            "@type": "NutritionInformation",
-            calories: data.nutrition.calories,
-            proteinContent: data.nutrition.proteinContent,
-            carbohydrateContent: data.nutrition.carbohydrateContent,
-            fatContent: data.nutrition.fatContent,
-          },
-        }
-      : {}),
+    nutrition: getNutrition(data.nutrition),
   };
 
   const serializedData = JSON.stringify(recipeJsonLd)
