@@ -11,11 +11,14 @@ public interface IRecipeRepository : IRepository<Recipe>
     /// <summary>
     /// FR-RCP-001: danh sách phân trang kèm Category, Author và ảnh chính.
     /// sort: createdAt | title | cookTime, tiền tố "-" là giảm dần; giá trị khác dùng "-createdAt".
+    /// Hiển thị: includeAllStatuses = true (Admin) lấy mọi trạng thái; ngược lại chỉ Published,
+    /// cộng thêm recipe của ownerId (Author xem cả Draft/Archived của mình).
     /// </summary>
     Task<(IReadOnlyList<Recipe> Items, int TotalCount)> GetPagedAsync(
         int page,
         int pageSize,
-        RecipeStatus? status = null,
+        bool includeAllStatuses = false,
+        string? ownerId = null,
         Guid? categoryId = null,
         RecipeDifficulty? difficulty = null,
         int? maxCookTime = null,
@@ -38,10 +41,4 @@ public interface IRecipeRepository : IRepository<Recipe>
     void AddStep(RecipeStep step);
 
     Task<bool> SlugExistsAsync(string slug, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Tạm thời: tác giả đang lấy từ body nên phải kiểm tra tồn tại để không vỡ FK.
-    /// TODO(Auth): bỏ khi AuthorId lấy từ JWT.
-    /// </summary>
-    Task<bool> AuthorExistsAsync(string authorId, CancellationToken cancellationToken = default);
 }

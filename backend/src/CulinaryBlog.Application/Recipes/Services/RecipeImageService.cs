@@ -10,11 +10,16 @@ public sealed class RecipeImageService : IRecipeImageService
 {
     private readonly IRecipeRepository _recipes;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly RecipeAuthorizationHandler _authorization;
 
-    public RecipeImageService(IRecipeRepository recipes, IUnitOfWork unitOfWork)
+    public RecipeImageService(
+        IRecipeRepository recipes,
+        IUnitOfWork unitOfWork,
+        RecipeAuthorizationHandler authorization)
     {
         _recipes = recipes;
         _unitOfWork = unitOfWork;
+        _authorization = authorization;
     }
 
     public async Task<IReadOnlyList<RecipeImageDto>> SetPrimaryAsync(
@@ -22,7 +27,6 @@ public sealed class RecipeImageService : IRecipeImageService
         Guid imageId,
         CancellationToken cancellationToken = default)
     {
-        // TODO(FR-RCP-008): kiểm tra Owner/Admin khi module Auth hoàn thành.
         var recipe = await GetRecipeAsync(recipeId, cancellationToken);
 
         if (!recipe.SetPrimaryImage(imageId))
@@ -43,7 +47,6 @@ public sealed class RecipeImageService : IRecipeImageService
         Guid imageId,
         CancellationToken cancellationToken = default)
     {
-        // TODO(FR-RCP-008): kiểm tra Owner/Admin khi module Auth hoàn thành.
         var recipe = await GetRecipeAsync(recipeId, cancellationToken);
 
         // TODO(FR-RCP-008): lấy OriginalUrl của ảnh trước khi xóa rồi BackgroundJob.Enqueue
@@ -54,9 +57,15 @@ public sealed class RecipeImageService : IRecipeImageService
         await _unitOfWork.SaveChangesAsync(cancellationToken);
     }
 
-    private async Task<Recipe> GetRecipeAsync(Guid recipeId, CancellationToken cancellationToken) =>
-        await _recipes.GetByIdWithImagesAsync(recipeId, cancellationToken)
+    /// <summary>Load recipe rồi kiểm tra quyền: chỉ owner hoặc Admin được sửa (NFR-SEC-006).</summary>
+    private async Task<Recipe> GetRecipeAsync(Guid recipeId, CancellationToken cancellationToken)
+    {
+        var recipe = await _recipes.GetByIdWithImagesAsync(recipeId, cancellationToken)
             ?? throw new NotFoundException(ErrorCodes.RecipeNotFound, $"Recipe '{recipeId}' không tồn tại.");
+
+        _authorization.EnsureCanModify(recipe);
+        return recipe;
+    }
 
     private static NotFoundException ImageNotFound(Guid imageId) =>
         new(ErrorCodes.ImageNotFound, $"Image '{imageId}' không tồn tại.");

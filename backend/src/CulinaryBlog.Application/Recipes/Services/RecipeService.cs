@@ -6,6 +6,8 @@ using CulinaryBlog.Domain.Common;
 using CulinaryBlog.Domain.Common.Exceptions;
 using CulinaryBlog.Domain.Modules.Categories;
 using CulinaryBlog.Domain.Modules.Recipes;
+// Common.Models cũng có RecipeImageDto (response upload ảnh, FR-FILE-001); ở đây dùng DTO của recipe detail.
+using RecipeImageDto = CulinaryBlog.Application.Recipes.Models.RecipeImageDto;
 
 namespace CulinaryBlog.Application.Recipes.Services;
 
@@ -22,12 +24,18 @@ public sealed class RecipeService : IRecipeService
     private readonly IRecipeRepository _recipes;
     private readonly ICategoryRepository _categories;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly RecipeAuthorizationHandler _authorization;
 
-    public RecipeService(IRecipeRepository recipes, ICategoryRepository categories, IUnitOfWork unitOfWork)
+    public RecipeService(
+        IRecipeRepository recipes,
+        ICategoryRepository categories,
+        IUnitOfWork unitOfWork,
+        RecipeAuthorizationHandler authorization)
     {
         _recipes = recipes;
         _categories = categories;
         _unitOfWork = unitOfWork;
+        _authorization = authorization;
     }
 
     public async Task<PagedResult<RecipeListItemDto>> GetPagedAsync(
@@ -36,11 +44,12 @@ public sealed class RecipeService : IRecipeService
     {
         ValidateQuery(query);
 
-        // TODO(FR-RCP-001): khi có Auth, Author thấy thêm Draft/Archived của mình, Admin thấy tất cả.
+        // Guest: chỉ Published. Author: thêm Draft/Archived của mình. Admin: mọi trạng thái.
         var result = await _recipes.GetPagedAsync(
             query.Page,
             query.PageSize,
-            RecipeStatus.Published,
+            _authorization.IsAdmin,
+            _authorization.CurrentUserId,
             query.CategoryId,
             query.Difficulty,
             query.MaxCookTime,
@@ -59,16 +68,21 @@ public sealed class RecipeService : IRecipeService
         CancellationToken cancellationToken = default)
     {
         var recipe = await _recipes.GetBySlugWithDetailsAsync(slug.Trim(), cancellationToken);
-        return recipe is null ? null : MapDetail(recipe);
+        if (recipe is null) return null;
+
+        _authorization.EnsureCanView(recipe);
+        return MapDetail(recipe);
     }
 
     public async Task<RecipeDetailDto> GetByIdAsync(
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        // TODO(FR-RCP-004): chỉ Owner/Admin được mở trang edit khi module Auth hoàn thành.
         var recipe = await _recipes.GetByIdWithDetailsAsync(id, cancellationToken)
             ?? throw RecipeNotFound(id);
+
+        // Trang edit: chỉ owner hoặc Admin.
+        _authorization.EnsureCanModify(recipe);
         return MapDetail(recipe);
     }
 
@@ -78,15 +92,10 @@ public sealed class RecipeService : IRecipeService
     {
         ValidateCreate(request);
 
-        // TODO(FR-RCP-003): RequireAuthorization (Author/Admin), AuthorId lấy từ JWT.
-        var authorId = request.AuthorId!.Trim();
-        var errors = new Dictionary<string, string[]>();
+        // Tác giả là người đang đăng nhập (endpoint đã yêu cầu AuthorPolicy).
+        var authorId = _authorization.RequireUserId();
         if (await _categories.GetByIdAsync(request.CategoryId, cancellationToken) is null)
-            errors["categoryId"] = ["Category không hợp lệ."];
-        if (!await _recipes.AuthorExistsAsync(authorId, cancellationToken))
-            errors["authorId"] = ["Tác giả không tồn tại."];
-        if (errors.Count > 0)
-            throw new ValidationException(errors);
+            throw new ValidationException("categoryId", "Category không hợp lệ.");
 
         var title = request.Title.Trim();
         var slug = SlugHelper.Generate(title);
@@ -157,9 +166,11 @@ public sealed class RecipeService : IRecipeService
         if (errors.Count > 0)
             throw new ValidationException(errors);
 
-        // TODO(FR-RCP-004): resource-based authorization (Owner/Admin, 403) khi module Auth hoàn thành.
         var recipe = await _recipes.GetByIdWithDetailsAsync(id, cancellationToken)
             ?? throw RecipeNotFound(id);
+
+        // Kiểm tra quyền trước RowVersion để người không có quyền không dò được trạng thái dữ liệu.
+        _authorization.EnsureCanModify(recipe);
 
         // Client đọc bản cũ → từ chối ngay. Trường hợp bị sửa giữa lúc đọc và lúc lưu
         // do EF chặn (RowVersion nằm trong WHERE), UnitOfWork đổi thành cùng lỗi này.
@@ -215,9 +226,10 @@ public sealed class RecipeService : IRecipeService
 
     public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        // TODO(FR-RCP-007): resource-based authorization (Owner/Admin, 403) khi module Auth hoàn thành.
         var recipe = await _recipes.GetByIdWithDetailsAsync(id, cancellationToken)
             ?? throw RecipeNotFound(id);
+
+        _authorization.EnsureCanModify(recipe);
 
         // TODO(FR-RCP-007): khi module File Storage được merge, lấy recipe.Images[].OriginalUrl trước
         // khi xóa rồi BackgroundJob.Enqueue IFileStorageService.DeleteAsync cho từng URL (Hangfire retry 3 lần).
@@ -238,10 +250,10 @@ public sealed class RecipeService : IRecipeService
         Action<Recipe> transition,
         CancellationToken cancellationToken)
     {
-        // TODO(FR-RCP-005/006): resource-based authorization (Owner/Admin, 403) khi module Auth hoàn thành.
         var recipe = await _recipes.GetByIdWithDetailsAsync(id, cancellationToken)
             ?? throw RecipeNotFound(id);
 
+        _authorization.EnsureCanModify(recipe);
         transition(recipe);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
@@ -312,9 +324,6 @@ public sealed class RecipeService : IRecipeService
             errors, request.Title, request.Description, request.CategoryId,
             request.PrepTimeMinutes, request.CookTimeMinutes, request.Servings,
             request.Difficulty, request.Nutrition);
-
-        if (string.IsNullOrWhiteSpace(request.AuthorId))
-            errors["authorId"] = ["authorId là bắt buộc."];
 
         var ingredients = request.Ingredients ?? [];
         for (var i = 0; i < ingredients.Count; i++)

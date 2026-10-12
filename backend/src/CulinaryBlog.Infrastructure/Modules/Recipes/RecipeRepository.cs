@@ -30,7 +30,8 @@ public class RecipeRepository : IRecipeRepository
     public async Task<(IReadOnlyList<Recipe> Items, int TotalCount)> GetPagedAsync(
         int page,
         int pageSize,
-        RecipeStatus? status = null,
+        bool includeAllStatuses = false,
+        string? ownerId = null,
         Guid? categoryId = null,
         RecipeDifficulty? difficulty = null,
         int? maxCookTime = null,
@@ -39,7 +40,12 @@ public class RecipeRepository : IRecipeRepository
     {
         IQueryable<Recipe> query = _context.Recipes.AsNoTracking();
 
-        if (status.HasValue) query = query.Where(r => r.Status == status.Value);
+        if (!includeAllStatuses)
+        {
+            query = ownerId is null
+                ? query.Where(r => r.Status == RecipeStatus.Published)
+                : query.Where(r => r.Status == RecipeStatus.Published || r.AuthorId == ownerId);
+        }
         if (categoryId.HasValue) query = query.Where(r => r.CategoryId == categoryId.Value);
         if (difficulty.HasValue) query = query.Where(r => r.Difficulty == difficulty.Value);
         if (maxCookTime.HasValue) query = query.Where(r => r.CookTime <= maxCookTime.Value);
@@ -92,9 +98,6 @@ public class RecipeRepository : IRecipeRepository
 
     public async Task<bool> SlugExistsAsync(string slug, CancellationToken cancellationToken = default) =>
         await _context.Recipes.AnyAsync(r => r.Slug == slug, cancellationToken);
-
-    public async Task<bool> AuthorExistsAsync(string authorId, CancellationToken cancellationToken = default) =>
-        await _context.Users.AnyAsync(u => u.Id == authorId, cancellationToken);
 
     public async Task AddAsync(Recipe entity, CancellationToken cancellationToken = default) =>
         await _context.Recipes.AddAsync(entity, cancellationToken);

@@ -27,8 +27,6 @@ public sealed record CreateRecipeRequest(
     int Servings,
     RecipeDifficulty Difficulty,
     string? Instructions = null,
-    // TODO(FR-RCP-003): lấy từ JWT (ICurrentUserService) khi module Auth hoàn thành.
-    string? AuthorId = null,
     NutritionRequest? Nutrition = null,
     IReadOnlyList<CreateIngredientRequest>? Ingredients = null,
     IReadOnlyList<CreateStepRequest>? Steps = null);

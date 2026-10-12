@@ -8,8 +8,20 @@
 @recipeId = 00000000-0000-0000-0000-000000000000
 @stepId = 00000000-0000-0000-0000-000000000000
 
+### 0. Đăng nhập lấy access token (seed: author1 = Admin, author2..6 = Author, mật khẩu Author@123)
+###    Các request sửa dữ liệu chỉ thành công với chủ recipe hoặc Admin, người khác nhận 403 RECIPE_FORBIDDEN.
+# @name login
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "author2@culinaryblog.local",
+  "password": "Author@123"
+}
+
 ### 1. Thêm bước, không có title – 201 Created, title mặc định "Bước n" (copy "id" vào @stepId)
 POST {{baseUrl}}/api/v1/recipes/{{recipeId}}/steps
+Authorization: Bearer {{login.response.body.accessToken}}
 Content-Type: application/json
 
 {
@@ -18,6 +30,7 @@ Content-Type: application/json
 
 ### 2. Thêm bước đầy đủ – 201 Created
 POST {{baseUrl}}/api/v1/recipes/{{recipeId}}/steps
+Authorization: Bearer {{login.response.body.accessToken}}
 Content-Type: application/json
 
 {
@@ -29,6 +42,7 @@ Content-Type: application/json
 
 ### 3. Cập nhật bước – 200 OK (title bỏ trống thì giữ title cũ)
 PUT {{baseUrl}}/api/v1/recipes/{{recipeId}}/steps/{{stepId}}
+Authorization: Bearer {{login.response.body.accessToken}}
 Content-Type: application/json
 
 {
@@ -38,12 +52,15 @@ Content-Type: application/json
 
 ### 4. Xóa bước – 204 No Content, các bước còn lại được đánh số lại
 DELETE {{baseUrl}}/api/v1/recipes/{{recipeId}}/steps/{{stepId}}
+Authorization: Bearer {{login.response.body.accessToken}}
 
 ### 5. Bước không tồn tại – 404 STEP_NOT_FOUND
 DELETE {{baseUrl}}/api/v1/recipes/{{recipeId}}/steps/00000000-0000-0000-0000-000000000001
+Authorization: Bearer {{login.response.body.accessToken}}
 
 ### 6. Dữ liệu không hợp lệ – 400 VALIDATION_ERROR
 POST {{baseUrl}}/api/v1/recipes/{{recipeId}}/steps
+Authorization: Bearer {{login.response.body.accessToken}}
 Content-Type: application/json
 
 {
