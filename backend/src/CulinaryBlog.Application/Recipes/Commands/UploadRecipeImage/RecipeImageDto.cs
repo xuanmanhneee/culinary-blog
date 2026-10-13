@@ -1,6 +1,6 @@
 using System;
 
-namespace CulinaryBlog.Application.Common.Models;
+namespace CulinaryBlog.Application.Recipes.Commands.UploadRecipeImage;
 
 public sealed class RecipeImageDto
 {
