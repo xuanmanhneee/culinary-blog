@@ -25,6 +25,8 @@ public static class StorageDependencyInjection
         services.AddScoped<ICacheService, LoggingCacheService>();
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUserService, HttpCurrentUserService>();
+        services.AddHealthChecks()
+            .AddCheck<MinioHealthCheck>("minio", tags: ["ready"]);
         return services;
     }
 }

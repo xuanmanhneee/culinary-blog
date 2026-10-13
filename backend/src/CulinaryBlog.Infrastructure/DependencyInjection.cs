@@ -65,7 +65,11 @@ public static class DependencyInjection
         services.AddScoped<RecipeSeeder>();
 
         var healthChecks = services.AddHealthChecks()
-            .AddDbContextCheck<CulinaryBlogDbContext>(name: "database", tags: new[] { "ready" });
+            .AddDbContextCheck<CulinaryBlogDbContext>(name: "database", tags: new[] { "ready" })
+            .AddRedis(
+                configuration.GetConnectionString("Redis") ?? "localhost:6379",
+                name: "redis",
+                tags: ["ready"]);
 
         return services;
     }

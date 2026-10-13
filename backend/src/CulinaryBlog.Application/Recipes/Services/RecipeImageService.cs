@@ -1,4 +1,5 @@
 using CulinaryBlog.Application.Common.Exceptions;
+using CulinaryBlog.Application.Common.Interfaces;
 using CulinaryBlog.Application.Recipes.Models;
 using CulinaryBlog.Domain.Common;
 using CulinaryBlog.Domain.Common.Exceptions;
@@ -11,15 +12,18 @@ public sealed class RecipeImageService : IRecipeImageService
     private readonly IRecipeRepository _recipes;
     private readonly IUnitOfWork _unitOfWork;
     private readonly RecipeAuthorizationHandler _authorization;
+    private readonly IFileStorageService _fileStorage;
 
     public RecipeImageService(
         IRecipeRepository recipes,
         IUnitOfWork unitOfWork,
-        RecipeAuthorizationHandler authorization)
+        RecipeAuthorizationHandler authorization,
+        IFileStorageService fileStorage)
     {
         _recipes = recipes;
         _unitOfWork = unitOfWork;
         _authorization = authorization;
+        _fileStorage = fileStorage;
     }
 
     public async Task<IReadOnlyList<RecipeImageDto>> SetPrimaryAsync(
@@ -49,12 +53,14 @@ public sealed class RecipeImageService : IRecipeImageService
     {
         var recipe = await GetRecipeAsync(recipeId, cancellationToken);
 
-        // TODO(FR-RCP-008): lấy OriginalUrl của ảnh trước khi xóa rồi BackgroundJob.Enqueue
-        // IFileStorageService.DeleteAsync khi module File Storage có hàm xóa file.
-        if (!recipe.RemoveImage(imageId))
+        var image = recipe.FindImage(imageId);
+        if (image is null)
             throw ImageNotFound(imageId);
 
+        var objectUrl = image.OriginalUrl;
+        recipe.RemoveImage(imageId);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+        await _fileStorage.DeleteAsync(recipeId, objectUrl, cancellationToken);
     }
 
     /// <summary>Load recipe rồi kiểm tra quyền: chỉ owner hoặc Admin được sửa (NFR-SEC-006).</summary>

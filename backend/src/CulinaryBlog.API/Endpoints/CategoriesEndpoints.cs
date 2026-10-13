@@ -1,6 +1,7 @@
 ﻿using CulinaryBlog.Application.Categories.Models;
 using CulinaryBlog.Application.Categories.Services;
 using CulinaryBlog.Application.Common.Exceptions;
+using CulinaryBlog.API.Extensions;
 using CulinaryBlog.Domain.Common.Exceptions;
 
 namespace CulinaryBlog.API.Endpoints;
@@ -25,12 +26,13 @@ public static class CategoriesEndpoints
             return Results.Ok(category);
         });
 
-        // FR-CAT-003: tạo danh mục (Admin). TODO: .RequireAuthorization("Admin") khi có Auth.
+        // FR-CAT-003: chỉ Admin được tạo danh mục.
         group.MapPost("/", async (CreateCategoryRequest request, ICategoryService service, CancellationToken ct) =>
         {
             var created = await service.CreateAsync(request, ct);
             return Results.Created($"/api/v1/categories/{created.Slug}", created);
-        });
+        })
+        .RequireAuthorization(AuthServiceCollectionExtensions.AdminPolicy);
 
         return app;
     }

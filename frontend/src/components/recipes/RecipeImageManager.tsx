@@ -8,6 +8,9 @@ import type { RecipeImageDto } from "@/lib/types/recipe";
 interface RecipeImageManagerProps {
   recipeId: string;
   images: RecipeImageDto[];
+  accessToken?: string | null;
+  isOwner?: boolean;
+  isAdmin?: boolean;
 }
 
 const maxFileSize = 5 * 1024 * 1024;
@@ -50,6 +53,9 @@ function getErrorMessage(body: unknown, fallback: string): string {
 export default function RecipeImageManager({
   recipeId,
   images: initialImages,
+  accessToken,
+  isOwner = false,
+  isAdmin = false,
 }: RecipeImageManagerProps) {
   const [images, setImages] = useState<RecipeImageDto[]>(initialImages);
   const [isUploading, setIsUploading] = useState(false);
@@ -57,9 +63,10 @@ export default function RecipeImageManager({
   const [error, setError] = useState("");
   const [isDragging, setIsDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const canUpload = Boolean(accessToken) && (isOwner || isAdmin);
 
   async function uploadImage(file: File) {
-    if (isUploading) {
+    if (isUploading || !canUpload) {
       return;
     }
 
@@ -82,7 +89,11 @@ export default function RecipeImageManager({
 
       const response = await fetch(
         `${apiUrl}/api/v1/recipes/${encodeURIComponent(recipeId)}/images`,
-        { method: "POST", body: formData },
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${accessToken}` },
+          body: formData,
+        },
       );
       const responseText = await response.text();
       let responseBody: unknown;
@@ -202,7 +213,7 @@ export default function RecipeImageManager({
         <p className="mt-3 text-sm text-zinc-600">Công thức chưa có ảnh.</p>
       )}
 
-      <div
+      {canUpload && <div
         onDragOver={(event) => {
           event.preventDefault();
           setIsDragging(true);
@@ -243,7 +254,7 @@ export default function RecipeImageManager({
           )}
           {isUploading ? "Đang tải ảnh lên..." : "Chọn ảnh"}
         </label>
-      </div>
+      </div>}
 
       {isUploading && (
         <p role="status" className="mt-3 text-sm text-zinc-600">

@@ -5,6 +5,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="AspNetCore.HealthChecks.Redis" Version="9.0.0" />
     <PackageReference Include="AWSSDK.S3" Version="4.0.11" />
     <PackageReference Include="AWSSDK.Core" Version="4.0.3.3" />
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
