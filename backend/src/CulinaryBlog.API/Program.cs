@@ -20,7 +20,12 @@ builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 
 // Add OpenAPI/Swagger services
-builder.Services.AddOpenApi();
+builder.Services.AddOpenApi(options =>
+{
+    // JWT Bearer cho Scalar: khai báo scheme và đánh dấu endpoint cần đăng nhập.
+    options.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
+    options.AddOperationTransformer<BearerSecuritySchemeTransformer>();
+});
 
 builder.Services.AddApplicationServices();
 builder.Services.AddApplication();
