@@ -1,3 +1,5 @@
+using CulinaryBlog.API.Extensions;
+using CulinaryBlog.Application.Common.Models;
 using CulinaryBlog.Application.Recipes.Models;
 using CulinaryBlog.Application.Common.Exceptions;
 using CulinaryBlog.Application.Recipes.Commands.UploadRecipeImage;
@@ -27,21 +29,110 @@ public static class RecipeEndpoints
         var group = app.MapGroup("/api/v1/recipes")
             .WithTags("Recipes");
 
-        group.MapGet("/", GetPagedAsync);
-        group.MapGet("/search", SearchAsync);
-        group.MapPost("/{id:guid}/images", UploadImageAsync)
+        // Public: Guest xem được recipe Published; người đã đăng nhập (nếu gửi token)
+        // xem thêm Draft/Archived của mình, Admin xem tất cả.
+        group.MapGet("/", GetPagedAsync)
+            .WithName("GetRecipes")
+            .WithSummary("Danh sách công thức (phân trang, lọc, sắp xếp)")
+            .WithDescription(
+                "FR-RCP-001. Không gửi token: chỉ recipe Published. Gửi token: thêm Draft/Archived của chính mình; " +
+                "Admin thấy mọi trạng thái. sort: createdAt | title | cookTime, thêm \"-\" để giảm dần (mặc định -createdAt). " +
+                "pageSize 1–50 (mặc định 12). categoryId không tồn tại trả danh sách rỗng.")
+            .Produces<PagedResult<RecipeListItemDto>>()
+            .ProducesValidationProblem();
+
+        group.MapGet("/search", SearchAsync)
+            .WithName("SearchRecipes")
+            .WithSummary("Tìm kiếm công thức toàn văn")
+            .WithDescription("FR-SEARCH-001. Tìm theo từ khóa q (tối thiểu 2 ký tự), phân trang bằng page và pageSize (1–50).")
+            .Produces<PagedResult<RecipeSummaryDto>>()
+            .ProducesValidationProblem();
+
+        group.MapGet("/{slug}", GetBySlugAsync)
+            .WithName("GetRecipeBySlug")
+            .WithSummary("Chi tiết công thức theo slug")
+            .WithDescription(
+                "FR-RCP-002. Gồm category, author, ảnh (ảnh chính đứng đầu), dinh dưỡng, nguyên liệu, các bước. " +
+                "Recipe Draft/Archived chỉ owner hoặc Admin xem được (403 RECIPE_FORBIDDEN).")
+            .Produces<RecipeDetailDto>()
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesNotFoundProblem();
+
+        // Yêu cầu role Author/Admin (401 nếu chưa đăng nhập, 403 nếu thiếu role);
+        // quyền trên từng recipe (owner/Admin) do RecipeAuthorizationHandler kiểm tra.
+        var authorized = group.MapGroup(string.Empty)
+            .RequireAuthorization(AuthServiceCollectionExtensions.AuthorPolicy)
+            .ProducesAuthProblems();
+
+        authorized.MapPost("/{id:guid}/images", UploadImageAsync)
+            .WithName("UploadRecipeImage")
+            .WithSummary("Tải ảnh công thức lên")
+            .WithDescription("FR-FILE-001. Chỉ owner hoặc Admin. Gửi file qua multipart/form-data với field name 'file'.")
             .Accepts<IFormFile>("multipart/form-data")
+            .Produces<RecipeImageDto>(StatusCodes.Status201Created)
+            .ProducesValidationProblem()
+            .ProducesNotFoundProblem()
             .DisableAntiforgery();
+
         // {id:guid} khai báo riêng để không bị route {slug} bắt mất.
-        group.MapGet("/{id:guid}", GetByIdAsync);
-        group.MapGet("/{slug}", GetBySlugAsync);
-        // TODO(FR-RCP-003/004): RequireAuthorization (Author/Admin, Owner) khi module Auth hoàn thành.
-        group.MapPost("/", CreateAsync);
-        group.MapPut("/{id:guid}", UpdateAsync);
-        group.MapPatch("/{id:guid}/publish", PublishAsync);
-        group.MapPatch("/{id:guid}/unpublish", UnpublishAsync);
-        group.MapPatch("/{id:guid}/archive", ArchiveAsync);
-        group.MapDelete("/{id:guid}", DeleteAsync);
+        authorized.MapGet("/{id:guid}", GetByIdAsync)
+            .WithName("GetRecipeById")
+            .WithSummary("Chi tiết công thức theo id (trang chỉnh sửa)")
+            .WithDescription("FR-RCP-004. Chỉ owner hoặc Admin. Trả header ETag = rowVersion, gửi lại qua If-Match khi cập nhật.")
+            .Produces<RecipeDetailDto>()
+            .ProducesNotFoundProblem();
+
+        authorized.MapPost("/", CreateAsync)
+            .WithName("CreateRecipe")
+            .WithSummary("Tạo công thức")
+            .WithDescription(
+                "FR-RCP-003. Tác giả là người đang đăng nhập; recipe mới luôn ở trạng thái Draft, slug sinh từ title. " +
+                "Có thể gửi kèm nutrition, ingredients, steps. Trùng slug: 409 RECIPE_SLUG_EXISTS.")
+            .Produces<RecipeDetailDto>(StatusCodes.Status201Created)
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status409Conflict);
+
+        authorized.MapPut("/{id:guid}", UpdateAsync)
+            .WithName("UpdateRecipe")
+            .WithSummary("Cập nhật công thức (kiểm soát đồng thời bằng If-Match)")
+            .WithDescription(
+                "FR-RCP-004. Gửi rowVersion qua header If-Match (hoặc field rowVersion). Bản cũ: 422 RECIPE_CONCURRENCY_CONFLICT. " +
+                "Slug chỉ đổi theo title khi còn Draft (trùng: 409). Response kèm ETag mới.")
+            .Produces<RecipeDetailDto>()
+            .ProducesValidationProblem()
+            .ProducesNotFoundProblem()
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+
+        authorized.MapPatch("/{id:guid}/publish", PublishAsync)
+            .WithName("PublishRecipe")
+            .WithSummary("Xuất bản công thức")
+            .WithDescription(
+                "FR-RCP-005. Cần ít nhất 1 bước (400 RECIPE_PUBLISH_INCOMPLETE). Đã Published thì vẫn trả 200 (idempotent).")
+            .Produces<RecipeDetailDto>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesNotFoundProblem();
+
+        authorized.MapPatch("/{id:guid}/unpublish", UnpublishAsync)
+            .WithName("UnpublishRecipe")
+            .WithSummary("Hủy xuất bản (đưa về Draft)")
+            .WithDescription("FR-RCP-005. Cũng dùng để khôi phục recipe Archived. Idempotent.")
+            .Produces<RecipeDetailDto>()
+            .ProducesNotFoundProblem();
+
+        authorized.MapPatch("/{id:guid}/archive", ArchiveAsync)
+            .WithName("ArchiveRecipe")
+            .WithSummary("Lưu trữ công thức")
+            .WithDescription("FR-RCP-006. Ẩn khỏi danh sách công khai nhưng giữ dữ liệu. Idempotent.")
+            .Produces<RecipeDetailDto>()
+            .ProducesNotFoundProblem();
+
+        authorized.MapDelete("/{id:guid}", DeleteAsync)
+            .WithName("DeleteRecipe")
+            .WithSummary("Xóa vĩnh viễn công thức")
+            .WithDescription("FR-RCP-007. Hard delete; nguyên liệu, bước, ảnh bị xóa theo (cascade).")
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesNotFoundProblem();
 
         return app;
     }
@@ -152,7 +243,6 @@ public static class RecipeEndpoints
             throw new NotFoundException(ErrorCodes.RecipeNotFound, $"Recipe with slug '{slug}' was not found.");
         }
 
-        // TODO(FR-RCP-002): Draft/Archived chỉ cho Owner/Admin xem (403) khi module Auth hoàn thành.
         return Results.Ok(recipe);
     }
 

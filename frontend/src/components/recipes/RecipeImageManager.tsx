@@ -127,7 +127,10 @@ export default function RecipeImageManager({
         isPrimary: responseBody.isPrimary,
         orderIndex: responseBody.orderIndex,
       };
-      setImages((currentImages) => [...currentImages, uploadedImage]);
+      setImages((currentImages) => [
+        ...currentImages,
+        uploadedImage,
+      ]);
       setMessage("Tải ảnh lên thành công!");
     } catch (uploadError) {
       setError(
@@ -169,6 +172,10 @@ export default function RecipeImageManager({
         <ul className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
           {images.map((image, index) => {
             const imageUrl = image.url;
+            if (!imageUrl) {
+              return null;
+            }
+
             return (
               <li
                 key={image.id}

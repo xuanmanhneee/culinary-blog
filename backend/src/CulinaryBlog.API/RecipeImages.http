@@ -7,11 +7,25 @@
 @recipeId = 00000000-0000-0000-0000-000000000000
 @imageId = 00000000-0000-0000-0000-000000000000
 
+### 0. Đăng nhập lấy access token (seed: author1 = Admin, author2..6 = Author, mật khẩu Author@123)
+###    Các request sửa dữ liệu chỉ thành công với chủ recipe hoặc Admin, người khác nhận 403 RECIPE_FORBIDDEN.
+# @name login
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "author2@culinaryblog.local",
+  "password": "Author@123"
+}
+
 ### 1. Đặt ảnh chính – 200 OK, trả toàn bộ ảnh (ảnh chính đứng đầu, các ảnh khác isPrimary = false)
 PATCH {{baseUrl}}/api/v1/recipes/{{recipeId}}/images/{{imageId}}/primary
+Authorization: Bearer {{login.response.body.accessToken}}
 
 ### 2. Xóa ảnh – 204 No Content; nếu là ảnh chính thì ảnh đầu tiên còn lại thành ảnh chính
 DELETE {{baseUrl}}/api/v1/recipes/{{recipeId}}/images/{{imageId}}
+Authorization: Bearer {{login.response.body.accessToken}}
 
 ### 3. Ảnh không tồn tại – 404 IMAGE_NOT_FOUND
 DELETE {{baseUrl}}/api/v1/recipes/{{recipeId}}/images/00000000-0000-0000-0000-000000000001
+Authorization: Bearer {{login.response.body.accessToken}}

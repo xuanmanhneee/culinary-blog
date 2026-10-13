@@ -1,3 +1,4 @@
+using CulinaryBlog.API.Extensions;
 using CulinaryBlog.Application.Recipes.Models;
 using CulinaryBlog.Application.Recipes.Services;
 
@@ -10,13 +11,32 @@ public static class RecipeIngredientEndpoints
 {
     public static IEndpointRouteBuilder MapRecipeIngredientEndpoints(this IEndpointRouteBuilder app)
     {
-        // TODO(FR-RCP-009): RequireAuthorization (Owner/Admin) khi module Auth hoàn thành.
+        // Role Author/Admin tại endpoint; owner/Admin trên từng recipe do RecipeAuthorizationHandler kiểm tra.
         var group = app.MapGroup("/api/v1/recipes/{recipeId:guid}/ingredients")
-            .WithTags("Recipe Ingredients");
+            .WithTags("Recipe Ingredients")
+            .RequireAuthorization(AuthServiceCollectionExtensions.AuthorPolicy)
+            .ProducesAuthProblems()
+            .ProducesNotFoundProblem();
 
-        group.MapPost("/", AddAsync);
-        group.MapPut("/{ingredientId:guid}", UpdateAsync);
-        group.MapDelete("/{ingredientId:guid}", DeleteAsync);
+        group.MapPost("/", AddAsync)
+            .WithName("AddRecipeIngredient")
+            .WithSummary("Thêm nguyên liệu")
+            .WithDescription("FR-RCP-009. Chỉ owner hoặc Admin. Không gửi orderIndex thì xếp cuối danh sách.")
+            .Produces<RecipeIngredientDto>(StatusCodes.Status201Created)
+            .ProducesValidationProblem();
+
+        group.MapPut("/{ingredientId:guid}", UpdateAsync)
+            .WithName("UpdateRecipeIngredient")
+            .WithSummary("Cập nhật nguyên liệu")
+            .WithDescription("FR-RCP-009. Nguyên liệu không tồn tại: 404 INGREDIENT_NOT_FOUND.")
+            .Produces<RecipeIngredientDto>()
+            .ProducesValidationProblem();
+
+        group.MapDelete("/{ingredientId:guid}", DeleteAsync)
+            .WithName("DeleteRecipeIngredient")
+            .WithSummary("Xóa nguyên liệu")
+            .WithDescription("FR-RCP-009.")
+            .Produces(StatusCodes.Status204NoContent);
 
         return app;
     }

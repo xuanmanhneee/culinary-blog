@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import RecipeJsonLd from "@/components/seo/RecipeJsonLd";
 import RecipeImageManager from "@/components/recipes/RecipeImageManager";
 import { getRecipeBySlug } from "@/lib/api/recipes";
-import type { RecipeDetailDto } from "@/lib/types/recipe";
+import { RecipeStatus, type RecipeDetailDto } from "@/lib/types/recipe";
 
 interface RecipePageProps {
   params: Promise<{ slug: string }>;
@@ -18,8 +18,7 @@ function limitText(value: string, maxLength: number): string {
 }
 
 function getPrimaryImage(recipe: RecipeDetailDto): string | undefined {
-  return recipe.images.find((image) => image.isPrimary)?.url
-    ?? recipe.images[0]?.url;
+  return recipe.images.find((image) => image.isPrimary)?.url ?? recipe.images[0]?.url;
 }
 
 export async function generateMetadata({
@@ -40,8 +39,7 @@ export async function generateMetadata({
   const canonicalPath = `/recipes/${recipe.slug}`;
   const canonicalUrl = new URL(canonicalPath, siteUrl).toString();
   const primaryImageUrl = getPrimaryImage(recipe);
-  const isPublished = recipe.status === 1
-    || (typeof recipe.status === "string" && recipe.status.toLowerCase() === "published");
+  const isPublished = recipe.status === RecipeStatus.Published;
 
   return {
     title,

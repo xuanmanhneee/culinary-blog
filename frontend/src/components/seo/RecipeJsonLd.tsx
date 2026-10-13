@@ -12,6 +12,27 @@ function getImageUrl(image: RecipeDetailDto["images"][number]): string {
   return image.url;
 }
 
+/** schema.org NutritionInformation dùng chuỗi có đơn vị, ví dụ "18.5 g". */
+function withUnit(value: number | null, unit: string): string | undefined {
+  return value === null ? undefined : `${value} ${unit}`;
+}
+
+function getNutrition(nutrition: RecipeDetailDto["nutrition"]) {
+  const values = {
+    calories: withUnit(nutrition.calories, "calories"),
+    proteinContent: withUnit(nutrition.protein, "g"),
+    carbohydrateContent: withUnit(nutrition.carbohydrates, "g"),
+    fatContent: withUnit(nutrition.fat, "g"),
+    fiberContent: withUnit(nutrition.fiber, "g"),
+    sodiumContent: withUnit(nutrition.sodium, "mg"),
+  };
+
+  // Backend luôn trả object nutrition; chỉ xuất JSON-LD khi có ít nhất một giá trị.
+  return Object.values(values).some(Boolean)
+    ? { "@type": "NutritionInformation", ...values }
+    : undefined;
+}
+
 function formatIngredient(
   ingredient: RecipeDetailDto["ingredients"][number],
 ): string {
@@ -31,38 +52,21 @@ export default function RecipeJsonLd({ data }: RecipeJsonLdProps) {
     description: data.description,
     image: data.images.map(getImageUrl).filter(Boolean),
     ...(data.author
-      ? {
-          author: {
-            "@type": "Person",
-            name: data.author.displayName,
-          },
-        }
+      ? { author: { "@type": "Person", name: data.author.displayName } }
       : {}),
-    ...(data.publishedAt ? { datePublished: data.publishedAt } : {}),
+    datePublished: data.publishedAt ?? undefined,
     prepTime: toDuration(data.prepTimeMinutes),
     cookTime: toDuration(data.cookTimeMinutes),
     totalTime: toDuration(data.prepTimeMinutes + data.cookTimeMinutes),
     recipeYield: `${data.servings} phần`,
-    ...(data.category ? { recipeCategory: data.category.name } : {}),
+    recipeCategory: data.category?.name,
     recipeIngredient: data.ingredients.map(formatIngredient),
     recipeInstructions: data.steps.map((step) => ({
       "@type": "HowToStep",
       name: step.title,
       text: step.description,
     })),
-    ...(data.nutrition
-      ? {
-          nutrition: {
-            "@type": "NutritionInformation",
-            ...(data.nutrition.calories === null ? {} : { calories: `${data.nutrition.calories} calories` }),
-            ...(data.nutrition.protein === null ? {} : { proteinContent: `${data.nutrition.protein} g` }),
-            ...(data.nutrition.carbohydrates === null ? {} : { carbohydrateContent: `${data.nutrition.carbohydrates} g` }),
-            ...(data.nutrition.fat === null ? {} : { fatContent: `${data.nutrition.fat} g` }),
-            ...(data.nutrition.fiber === null ? {} : { fiberContent: `${data.nutrition.fiber} g` }),
-            ...(data.nutrition.sodium === null ? {} : { sodiumContent: `${data.nutrition.sodium} mg` }),
-          },
-        }
-      : {}),
+    nutrition: getNutrition(data.nutrition),
   };
 
   const serializedData = JSON.stringify(recipeJsonLd)
