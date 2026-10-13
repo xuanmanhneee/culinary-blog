@@ -1,8 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <PackageReference Include="Google.Apis.Auth" Version="1.77.0" />
     <ProjectReference Include="..\CulinaryBlog.Domain\CulinaryBlog.Domain.csproj" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0" />
   </ItemGroup>
 
   <ItemGroup>
