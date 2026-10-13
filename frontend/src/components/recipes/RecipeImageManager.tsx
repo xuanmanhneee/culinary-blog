@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useRef, useState } from "react";
 import type { ChangeEvent, DragEvent } from "react";
+import { API_V1 } from "@/lib/config/env";
 import type { RecipeImageDto, UploadedRecipeImageDto } from "@/lib/types/recipe";
 
 interface RecipeImageManagerProps {
@@ -17,9 +18,6 @@ const acceptedImageTypes = new Set([
   "image/webp",
   "image/avif",
 ]);
-
-const apiUrl =
-  process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "http://localhost:5000";
 
 function getErrorMessage(body: unknown, fallback: string): string {
   if (typeof body === "string" && body.trim()) {
@@ -81,7 +79,7 @@ export default function RecipeImageManager({
       formData.append("file", file);
 
       const response = await fetch(
-        `${apiUrl}/api/v1/recipes/${encodeURIComponent(recipeId)}/images`,
+        `${API_V1}/recipes/${encodeURIComponent(recipeId)}/images`,
         { method: "POST", body: formData },
       );
       const responseText = await response.text();
