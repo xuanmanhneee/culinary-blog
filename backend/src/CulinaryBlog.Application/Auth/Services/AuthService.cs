@@ -340,92 +340,94 @@ public class AuthService : IAuthService
     private static Exception Invalid(
         IDictionary<string, string[]> errors) =>
         new ValidationException(errors);
-}
 
-// ---------------------------------------------------------------- FR-AUTH-003 Google Login
-public async Task<AuthResponseDto> GoogleLoginAsync(
-    GoogleLoginRequest request, string? ipAddress, CancellationToken ct = default)
-{
-    if (string.IsNullOrWhiteSpace(request.IdToken))
+    // ---------------------------------------------------------------- FR-AUTH-003 Google Login
+    public async Task<AuthResponseDto> GoogleLoginAsync(
+        GoogleLoginRequest request, string? ipAddress, CancellationToken ct = default)
     {
-        throw new ValidationException(new Dictionary<string, string[]>
+        if (string.IsNullOrWhiteSpace(request.IdToken))
+        {
+            throw new ValidationException(new Dictionary<string, string[]>
         {
             { "idToken", ["Google ID Token không được để trống."] }
         });
-    }
-
-    GoogleJsonWebSignature.Payload payload;
-    try
-    {
-        var clientId = _configuration["Google:ClientId"];
-        var settings = new GoogleJsonWebSignature.ValidationSettings
-        {
-            Audience = string.IsNullOrEmpty(clientId) ? null : new[] { clientId }
-        };
-
-        // Validate Token trực tiếp với Google
-        payload = await GoogleJsonWebSignature.ValidateAsync(request.IdToken, settings);
-    }
-    catch (Exception ex)
-    {
-        _logger.LogWarning(ex, "Xác thực Google ID Token thất bại.");
-        throw new UnauthorizedException(
-            ErrorCodes.AuthInvalidCredentials,
-            "Google Token không hợp lệ hoặc đã hết hạn.");
-    }
-
-    // Kiểm tra xem User đã tồn tại trong DB chưa
-    var user = await _users.FindByEmailAsync(payload.Email);
-
-    if (user is null)
-    {
-        // Tạo UserName duy nhất từ Email
-        var baseUserName = payload.Email.Split('@')[0];
-        var userName = baseUserName;
-        var count = 1;
-        while (await _users.FindByNameAsync(userName) is not null)
-        {
-            userName = $"{baseUserName}{count++}";
         }
 
-        user = ApplicationUser.Create(
-            displayName: payload.Name ?? baseUserName,
-            email: payload.Email,
-            userName: userName
-        );
-
-        user.AvatarUrl = payload.Picture;
-        user.EmailConfirmed = payload.EmailVerified;
-
-        // Tạo User mới (không mật khẩu vì đăng nhập qua Google)
-        var createResult = await _users.CreateAsync(user);
-        if (!createResult.Succeeded)
+        GoogleJsonWebSignature.Payload payload;
+        try
         {
-            throw Invalid(ToErrors(createResult.Errors));
+            var clientId = _configuration["Google:ClientId"];
+            var settings = new GoogleJsonWebSignature.ValidationSettings
+            {
+                Audience = string.IsNullOrEmpty(clientId) ? null : new[] { clientId }
+            };
+
+            // Validate Token trực tiếp với Google
+            payload = await GoogleJsonWebSignature.ValidateAsync(request.IdToken, settings);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Xác thực Google ID Token thất bại.");
+            throw new UnauthorizedException(
+                ErrorCodes.AuthInvalidCredentials,
+                "Google Token không hợp lệ hoặc đã hết hạn.");
         }
 
-        // Gán Role mặc định
-        var roleResult = await _users.AddToRoleAsync(user, Roles.Author);
-        if (!roleResult.Succeeded)
-        {
-            await _users.DeleteAsync(user);
-            throw new InvalidOperationException("Không thể gán Role mặc định cho tài khoản Google.");
-        }
-    }
-    else
-    {
-        if (!user.IsActive)
-        {
-            throw new UnauthorizedException(ErrorCodes.AuthInvalidCredentials, InvalidCredentials);
-        }
+        // Kiểm tra xem User đã tồn tại trong DB chưa
+        var user = await _users.FindByEmailAsync(payload.Email);
 
-        // Cập nhật Avatar từ Google nếu user chưa có
-        if (string.IsNullOrEmpty(user.AvatarUrl) && !string.IsNullOrEmpty(payload.Picture))
+        if (user is null)
         {
+            // Tạo UserName duy nhất từ Email
+            var baseUserName = payload.Email.Split('@')[0];
+            var userName = baseUserName;
+            var count = 1;
+            while (await _users.FindByNameAsync(userName) is not null)
+            {
+                userName = $"{baseUserName}{count++}";
+            }
+
+            user = ApplicationUser.Create(
+                displayName: payload.Name ?? baseUserName,
+                email: payload.Email,
+                userName: userName
+            );
+
             user.AvatarUrl = payload.Picture;
-            await _users.UpdateAsync(user);
+            user.EmailConfirmed = payload.EmailVerified;
+
+            // Tạo User mới (không mật khẩu vì đăng nhập qua Google)
+            var createResult = await _users.CreateAsync(user);
+            if (!createResult.Succeeded)
+            {
+                throw Invalid(ToErrors(createResult.Errors));
+            }
+
+            // Gán Role mặc định
+            var roleResult = await _users.AddToRoleAsync(user, Roles.Author);
+            if (!roleResult.Succeeded)
+            {
+                await _users.DeleteAsync(user);
+                throw new InvalidOperationException("Không thể gán Role mặc định cho tài khoản Google.");
+            }
         }
+        else
+        {
+            if (!user.IsActive)
+            {
+                throw new UnauthorizedException(ErrorCodes.AuthInvalidCredentials, InvalidCredentials);
+            }
+
+            // Cập nhật Avatar từ Google nếu user chưa có
+            if (string.IsNullOrEmpty(user.AvatarUrl) && !string.IsNullOrEmpty(payload.Picture))
+            {
+                user.AvatarUrl = payload.Picture;
+                await _users.UpdateAsync(user);
+            }
+        }
+
+        return await IssueTokensAsync(user, ipAddress, ct);
     }
 
-    return await IssueTokensAsync(user, ipAddress, ct);
+    
 }
