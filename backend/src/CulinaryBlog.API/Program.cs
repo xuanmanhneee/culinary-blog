@@ -27,6 +27,7 @@ builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddMinioStorage(builder.Configuration);
 
+builder.Services.AddFrontendCors(builder.Configuration);
 builder.Services.AddJwtAuthentication(builder.Configuration);
 builder.Services.AddAuthRateLimiting();
 
@@ -76,6 +77,10 @@ if (args.Contains("--seed", StringComparer.OrdinalIgnoreCase))
 app.UseMiddleware<GlobalExceptionMiddleware>();
 // Response lỗi không có body (vd. 404 do sai route, 405) cũng trả về ProblemDetails.
 app.UseStatusCodePages();
+
+// Trước rate limiter và authentication: preflight OPTIONS không bị 401/429,
+// và response lỗi (401, 403, 429...) vẫn có header CORS để frontend đọc được nội dung lỗi.
+app.UseCors();
 
 app.UseRateLimiter();
 
