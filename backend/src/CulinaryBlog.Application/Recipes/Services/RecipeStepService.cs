@@ -10,11 +10,16 @@ public sealed class RecipeStepService : IRecipeStepService
 {
     private readonly IRecipeRepository _recipes;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly RecipeAuthorizationHandler _authorization;
 
-    public RecipeStepService(IRecipeRepository recipes, IUnitOfWork unitOfWork)
+    public RecipeStepService(
+        IRecipeRepository recipes,
+        IUnitOfWork unitOfWork,
+        RecipeAuthorizationHandler authorization)
     {
         _recipes = recipes;
         _unitOfWork = unitOfWork;
+        _authorization = authorization;
     }
 
     public async Task<RecipeStepDto> AddAsync(
@@ -24,7 +29,6 @@ public sealed class RecipeStepService : IRecipeStepService
     {
         Validate(request.Title, request.Description, request.TimerMinutes, request.ImageUrl);
 
-        // TODO(FR-RCP-010): kiểm tra Owner/Admin khi module Auth hoàn thành.
         var recipe = await GetRecipeAsync(recipeId, cancellationToken);
 
         var step = recipe.AddStep(
@@ -46,7 +50,6 @@ public sealed class RecipeStepService : IRecipeStepService
     {
         Validate(request.Title, request.Description, request.TimerMinutes, request.ImageUrl);
 
-        // TODO(FR-RCP-010): kiểm tra Owner/Admin khi module Auth hoàn thành.
         var recipe = await GetRecipeAsync(recipeId, cancellationToken);
         var step = recipe.FindStep(stepId) ?? throw StepNotFound(stepId);
 
@@ -66,7 +69,6 @@ public sealed class RecipeStepService : IRecipeStepService
         Guid stepId,
         CancellationToken cancellationToken = default)
     {
-        // TODO(FR-RCP-010): kiểm tra Owner/Admin khi module Auth hoàn thành.
         var recipe = await GetRecipeAsync(recipeId, cancellationToken);
 
         if (!recipe.RemoveStep(stepId))
@@ -75,9 +77,15 @@ public sealed class RecipeStepService : IRecipeStepService
         await _unitOfWork.SaveChangesAsync(cancellationToken);
     }
 
-    private async Task<Recipe> GetRecipeAsync(Guid recipeId, CancellationToken cancellationToken) =>
-        await _recipes.GetByIdWithStepsAsync(recipeId, cancellationToken)
+    /// <summary>Load recipe rồi kiểm tra quyền: chỉ owner hoặc Admin được sửa (NFR-SEC-006).</summary>
+    private async Task<Recipe> GetRecipeAsync(Guid recipeId, CancellationToken cancellationToken)
+    {
+        var recipe = await _recipes.GetByIdWithStepsAsync(recipeId, cancellationToken)
             ?? throw new NotFoundException(ErrorCodes.RecipeNotFound, $"Recipe '{recipeId}' không tồn tại.");
+
+        _authorization.EnsureCanModify(recipe);
+        return recipe;
+    }
 
     private static NotFoundException StepNotFound(Guid stepId) =>
         new(ErrorCodes.StepNotFound, $"Step '{stepId}' không tồn tại.");

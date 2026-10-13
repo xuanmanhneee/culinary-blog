@@ -3,15 +3,11 @@
 import Image from "next/image";
 import { useRef, useState } from "react";
 import type { ChangeEvent, DragEvent } from "react";
-import type { RecipeImageDto } from "@/lib/types/recipe";
+import type { RecipeImageDto, UploadedRecipeImageDto } from "@/lib/types/recipe";
 
 interface RecipeImageManagerProps {
   recipeId: string;
   images: RecipeImageDto[];
-}
-
-interface UploadedRecipeImage extends RecipeImageDto {
-  id: string;
 }
 
 const maxFileSize = 5 * 1024 * 1024;
@@ -118,12 +114,22 @@ export default function RecipeImageManager({
         throw new Error("Máy chủ trả về dữ liệu ảnh không hợp lệ.");
       }
 
-      const uploadedImage: UploadedRecipeImage = {
+      const uploaded: UploadedRecipeImageDto = {
         id: responseBody.id,
         originalUrl: responseBody.originalUrl,
         isPrimary: "isPrimary" in responseBody && responseBody.isPrimary === true,
       };
-      setImages((currentImages) => [...currentImages, uploadedImage]);
+      // Response upload dùng "originalUrl"; đổi sang dạng ảnh của RecipeDetailDto ("url") để hiển thị chung.
+      setImages((currentImages) => [
+        ...currentImages,
+        {
+          id: uploaded.id,
+          url: uploaded.originalUrl,
+          altText: null,
+          isPrimary: uploaded.isPrimary,
+          orderIndex: currentImages.length,
+        },
+      ]);
       setMessage("Tải ảnh lên thành công!");
     } catch (uploadError) {
       setError(
@@ -164,14 +170,14 @@ export default function RecipeImageManager({
       {images.length > 0 ? (
         <ul className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
           {images.map((image, index) => {
-            const imageUrl = image.url ?? image.originalUrl;
+            const imageUrl = image.url;
             if (!imageUrl) {
               return null;
             }
 
             return (
               <li
-                key={image.id ?? imageUrl}
+                key={image.id}
                 className="relative aspect-[4/3] overflow-hidden rounded-lg bg-zinc-100"
               >
                 <Image

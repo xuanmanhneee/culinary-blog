@@ -32,6 +32,8 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# file mẫu không chứa secret, cần commit để người khác biết biến nào phải khai báo
+!.env.example
 
 # vercel
 .vercel

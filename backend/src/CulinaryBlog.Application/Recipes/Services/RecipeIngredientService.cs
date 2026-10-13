@@ -10,11 +10,16 @@ public sealed class RecipeIngredientService : IRecipeIngredientService
 {
     private readonly IRecipeRepository _recipes;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly RecipeAuthorizationHandler _authorization;
 
-    public RecipeIngredientService(IRecipeRepository recipes, IUnitOfWork unitOfWork)
+    public RecipeIngredientService(
+        IRecipeRepository recipes,
+        IUnitOfWork unitOfWork,
+        RecipeAuthorizationHandler authorization)
     {
         _recipes = recipes;
         _unitOfWork = unitOfWork;
+        _authorization = authorization;
     }
 
     public async Task<RecipeIngredientDto> AddAsync(
@@ -24,7 +29,6 @@ public sealed class RecipeIngredientService : IRecipeIngredientService
     {
         Validate(request.Name, request.Quantity, request.Unit, request.Notes, request.OrderIndex);
 
-        // TODO(FR-RCP-009): kiểm tra Owner/Admin khi module Auth hoàn thành.
         var recipe = await GetRecipeAsync(recipeId, cancellationToken);
 
         var ingredient = recipe.AddIngredient(
@@ -47,7 +51,6 @@ public sealed class RecipeIngredientService : IRecipeIngredientService
     {
         Validate(request.Name, request.Quantity, request.Unit, request.Notes, request.OrderIndex);
 
-        // TODO(FR-RCP-009): kiểm tra Owner/Admin khi module Auth hoàn thành.
         var recipe = await GetRecipeAsync(recipeId, cancellationToken);
         var ingredient = recipe.FindIngredient(ingredientId)
             ?? throw new NotFoundException(ErrorCodes.IngredientNotFound, $"Ingredient '{ingredientId}' không tồn tại.");
@@ -68,7 +71,6 @@ public sealed class RecipeIngredientService : IRecipeIngredientService
         Guid ingredientId,
         CancellationToken cancellationToken = default)
     {
-        // TODO(FR-RCP-009): kiểm tra Owner/Admin khi module Auth hoàn thành.
         var recipe = await GetRecipeAsync(recipeId, cancellationToken);
 
         if (!recipe.RemoveIngredient(ingredientId))
@@ -78,9 +80,15 @@ public sealed class RecipeIngredientService : IRecipeIngredientService
         await _unitOfWork.SaveChangesAsync(cancellationToken);
     }   
 
-    private async Task<Recipe> GetRecipeAsync(Guid recipeId, CancellationToken cancellationToken) =>
-        await _recipes.GetByIdWithIngredientsAsync(recipeId, cancellationToken)
-            ?? throw new NotFoundException( ErrorCodes.RecipeNotFound, $"Recipe '{recipeId}' không tồn tại.");
+    /// <summary>Load recipe rồi kiểm tra quyền: chỉ owner hoặc Admin được sửa (NFR-SEC-006).</summary>
+    private async Task<Recipe> GetRecipeAsync(Guid recipeId, CancellationToken cancellationToken)
+    {
+        var recipe = await _recipes.GetByIdWithIngredientsAsync(recipeId, cancellationToken)
+            ?? throw new NotFoundException(ErrorCodes.RecipeNotFound, $"Recipe '{recipeId}' không tồn tại.");
+
+        _authorization.EnsureCanModify(recipe);
+        return recipe;
+    }
 
     private static void Validate(string? name, decimal? quantity, string? unit, string? notes, int? orderIndex)
     {
