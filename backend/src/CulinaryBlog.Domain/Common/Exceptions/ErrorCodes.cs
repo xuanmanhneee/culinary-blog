@@ -18,6 +18,7 @@ public static class ErrorCodes
 
     public const string AuthEmailExists = "AUTH_EMAIL_EXISTS";
     public const string AuthInvalidCredentials = "AUTH_INVALID_CREDENTIALS";
+    public const string AuthUnauthorized = "AUTH_UNAUTHORIZED";
     
     public const string IngredientNotFound = "INGREDIENT_NOT_FOUND";
     public const string IngredientNameRequired = "INGREDIENT_NAME_REQUIRED";

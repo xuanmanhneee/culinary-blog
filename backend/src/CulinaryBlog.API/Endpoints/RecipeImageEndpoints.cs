@@ -1,3 +1,4 @@
+using CulinaryBlog.API.Extensions;
 using CulinaryBlog.Application.Recipes.Services;
 
 namespace CulinaryBlog.API.Endpoints;
@@ -11,9 +12,10 @@ public static class RecipeImageEndpoints
 {
     public static IEndpointRouteBuilder MapRecipeImageEndpoints(this IEndpointRouteBuilder app)
     {
-        // TODO(FR-RCP-008): RequireAuthorization (Owner/Admin) khi module Auth hoàn thành.
+        // Role Author/Admin tại endpoint; owner/Admin trên từng recipe do RecipeAuthorizationHandler kiểm tra.
         var group = app.MapGroup("/api/v1/recipes/{recipeId:guid}/images")
-            .WithTags("Recipe Images");
+            .WithTags("Recipe Images")
+            .RequireAuthorization(AuthServiceCollectionExtensions.AuthorPolicy);
 
         group.MapPatch("/{imageId:guid}/primary", SetPrimaryAsync);
         group.MapDelete("/{imageId:guid}", DeleteAsync);

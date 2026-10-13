@@ -1,3 +1,4 @@
+using CulinaryBlog.API.Extensions;
 using CulinaryBlog.Application.Recipes.Models;
 using CulinaryBlog.Application.Recipes.Services;
 
@@ -10,9 +11,10 @@ public static class RecipeStepEndpoints
 {
     public static IEndpointRouteBuilder MapRecipeStepEndpoints(this IEndpointRouteBuilder app)
     {
-        // TODO(FR-RCP-010): RequireAuthorization (Owner/Admin) khi module Auth hoàn thành.
+        // Role Author/Admin tại endpoint; owner/Admin trên từng recipe do RecipeAuthorizationHandler kiểm tra.
         var group = app.MapGroup("/api/v1/recipes/{recipeId:guid}/steps")
-            .WithTags("Recipe Steps");
+            .WithTags("Recipe Steps")
+            .RequireAuthorization(AuthServiceCollectionExtensions.AuthorPolicy);
 
         group.MapPost("/", AddAsync);
         group.MapPut("/{stepId:guid}", UpdateAsync);

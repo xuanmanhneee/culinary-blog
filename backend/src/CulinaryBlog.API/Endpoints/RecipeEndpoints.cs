@@ -1,3 +1,4 @@
+using CulinaryBlog.API.Extensions;
 using CulinaryBlog.Application.Recipes.Models;
 using CulinaryBlog.Application.Recipes.Services;
 
@@ -19,17 +20,24 @@ public static class RecipeEndpoints
         var group = app.MapGroup("/api/v1/recipes")
             .WithTags("Recipes");
 
+        // Public: Guest xem được recipe Published; người đã đăng nhập (nếu gửi token)
+        // xem thêm Draft/Archived của mình, Admin xem tất cả.
         group.MapGet("/", GetPagedAsync);
-        // {id:guid} khai báo riêng để không bị route {slug} bắt mất.
-        group.MapGet("/{id:guid}", GetByIdAsync);
         group.MapGet("/{slug}", GetBySlugAsync);
-        // TODO(FR-RCP-003/004): RequireAuthorization (Author/Admin, Owner) khi module Auth hoàn thành.
-        group.MapPost("/", CreateAsync);
-        group.MapPut("/{id:guid}", UpdateAsync);
-        group.MapPatch("/{id:guid}/publish", PublishAsync);
-        group.MapPatch("/{id:guid}/unpublish", UnpublishAsync);
-        group.MapPatch("/{id:guid}/archive", ArchiveAsync);
-        group.MapDelete("/{id:guid}", DeleteAsync);
+
+        // Yêu cầu role Author/Admin (401 nếu chưa đăng nhập, 403 nếu thiếu role);
+        // quyền trên từng recipe (owner/Admin) do RecipeAuthorizationHandler kiểm tra.
+        var authorized = group.MapGroup(string.Empty)
+            .RequireAuthorization(AuthServiceCollectionExtensions.AuthorPolicy);
+
+        // {id:guid} khai báo riêng để không bị route {slug} bắt mất.
+        authorized.MapGet("/{id:guid}", GetByIdAsync);
+        authorized.MapPost("/", CreateAsync);
+        authorized.MapPut("/{id:guid}", UpdateAsync);
+        authorized.MapPatch("/{id:guid}/publish", PublishAsync);
+        authorized.MapPatch("/{id:guid}/unpublish", UnpublishAsync);
+        authorized.MapPatch("/{id:guid}/archive", ArchiveAsync);
+        authorized.MapDelete("/{id:guid}", DeleteAsync);
 
         return app;
     }
@@ -119,7 +127,6 @@ public static class RecipeEndpoints
                 statusCode: StatusCodes.Status404NotFound);
         }
 
-        // TODO(FR-RCP-002): Draft/Archived chỉ cho Owner/Admin xem (403) khi module Auth hoàn thành.
         return Results.Ok(recipe);
     }
 
