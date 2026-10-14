@@ -3,6 +3,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
+import ErrorState from "@/components/common/ErrorState";
+import Loading from "@/components/common/Loading";
+import Pagination from "@/components/common/Pagination";
 import { useRecipeSearch } from "@/lib/hooks/useRecipeSearch";
 
 const pageSize = 10;
@@ -46,12 +49,8 @@ export default function SearchPage() {
       {searchTerm.length === 1 && (
         <p className="mt-4 text-sm text-zinc-600">Từ khóa cần có ít nhất 2 ký tự.</p>
       )}
-      {isLoading && (
-        <p role="status" className="mt-6 text-zinc-600">Đang tìm công thức...</p>
-      )}
-      {error && (
-        <p role="alert" className="mt-6 text-red-700">{error}</p>
-      )}
+      {isLoading && <Loading message="Đang tìm công thức..." />}
+      {error && <ErrorState message={error} />}
       {data && (
         <section aria-live="polite" className="mt-8">
           <p className="mb-4 text-sm text-zinc-600">
@@ -93,29 +92,15 @@ export default function SearchPage() {
             <p className="text-zinc-600">Không tìm thấy công thức phù hợp.</p>
           )}
 
-          {data.totalPages > 1 && (
-            <nav aria-label="Phân trang kết quả tìm kiếm" className="mt-8 flex items-center justify-center gap-4">
-              <button
-                type="button"
-                disabled={!data.hasPreviousPage || isLoading}
-                onClick={() => setPage((current) => Math.max(1, current - 1))}
-                className="rounded-md border px-4 py-2 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Trước
-              </button>
-              <span className="text-sm text-zinc-600">
-                Trang {data.page} / {data.totalPages}
-              </span>
-              <button
-                type="button"
-                disabled={!data.hasNextPage || isLoading}
-                onClick={() => setPage((current) => current + 1)}
-                className="rounded-md border px-4 py-2 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Sau
-              </button>
-            </nav>
-          )}
+          <Pagination
+            page={data.page}
+            totalPages={data.totalPages}
+            hasPreviousPage={data.hasPreviousPage}
+            hasNextPage={data.hasNextPage}
+            onPageChange={setPage}
+            isDisabled={isLoading}
+            ariaLabel="Phân trang kết quả tìm kiếm"
+          />
         </section>
       )}
     </main>

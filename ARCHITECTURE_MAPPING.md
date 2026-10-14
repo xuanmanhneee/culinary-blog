@@ -76,6 +76,7 @@ cover empty errors such as unmatched routes.
 | PostgreSQL | EF Core Npgsql configured through `ConnectionStrings:DefaultConnection`; schema migrations run at application startup. |
 | JWT | Bearer validation uses configured issuer, audience, signing key and lifetime, with 30 seconds clock skew. Inbound claims are not remapped; `sub` and `role` are the name/role claim types. Keys shorter than 32 characters stop startup. |
 | Authorization | `AuthorPolicy` permits Author/Admin; `AdminPolicy` permits Admin. Recipe resource checks are performed by `RecipeAuthorizationHandler` in application services/handlers. |
+| API versioning | `Asp.Versioning` reads the API version from the URL segment. Current endpoint groups use `/api/v1/...`; the API Explorer/OpenAPI document group is `v1` and supported-version response headers are enabled. |
 | CORS | One default policy uses `Cors:AllowedOrigins`; wildcard origins are rejected. Methods, request headers (`Content-Type`, `Authorization`, `X-Correlation-ID`, `If-Match`) and exposed headers (`ETag`, `Location`, `Retry-After`) are explicitly listed. Current checked-in appsettings origin is the local frontend origin. |
 | Rate limit | Sliding window: 10 requests/minute per remote IP, six segments, no queue; applied to the `/api/v1/auth` group. Rejections use 429 and set `Retry-After` when available. |
 | OpenAPI / Scalar | ASP.NET Core OpenAPI document and operation transformers add a JWT bearer scheme. Operations with authorization metadata are marked secured unless `AllowAnonymous` is present. Scalar UI is enabled in Development; no separate Swagger middleware/UI is registered here. |
@@ -93,7 +94,8 @@ do not use development defaults in production.
 ## 3. API contract map
 
 All recipe routes use `/api/v1/recipes`. Endpoint results use ASP.NET's JSON
-serialization (camel-case JSON contract).
+serialization (camel-case JSON contract). `Asp.Versioning` maps these routes
+from `/api/v{version}/...`, currently version 1 (`/api/v1/...`).
 
 | Method and route | Access / result | Implementation |
 |---|---|---|
@@ -148,9 +150,9 @@ pagination. Results include the primary image's `OriginalUrl` when one exists.
 
 `RecipeSummaryDto` is search-specific (`id`, `title`, `slug`, nullable
 `description`, nullable `thumbnailUrl`, numeric `rank`); it is not
-`RecipeListItemDto` or `RecipeDetailDto`. The frontend currently has no search
-response type or search UI/API call. The recipe types file defines general
-recipe list/detail and request contracts, but does not define this search DTO.
+`RecipeListItemDto` or `RecipeDetailDto`. The frontend types this response as
+`SearchRecipesResponse` (`PagedResult<RecipeSummaryDto>`) and `useRecipeSearch`
+calls the endpoint with `q`, `page` and `pageSize`.
 The custom configuration is accent-normalizing and uses PostgreSQL's `simple`
 dictionary; it is not a Vietnamese stemming/semantic search engine.
 
@@ -234,9 +236,10 @@ ingredients, instructions, images and optional non-empty nutrition. JSON is
 escaped for `<`, `>` and `&` before insertion into the script element.
 
 `RecipeImageManager` is a client component. It accepts
-`recipeId: string`, `RecipeImageDto[]`, `accessToken`, `isOwner` and `isAdmin`.
-Upload controls are shown only when a token is present and either ownership or
-Admin access is true. It validates file type and 5 MiB size in the browser,
+`recipeId: string`, `RecipeImageDto[]` and the recipe `authorId`; it obtains
+the access token and roles from Auth.js `useSession()`. Upload controls are
+shown only to a signed-in Admin or the signed-in Author who owns the recipe.
+It validates file type and 5 MiB size in the browser,
 posts `FormData` with `Authorization: Bearer <accessToken>`, then validates the
 response's `id`, `url`, `altText`, `isPrimary` and `orderIndex` before adding
 it to local state. The backend independently verifies authorization; frontend
@@ -253,44 +256,79 @@ and nullable category/author/publishedAt.
 The public `/search` page uses `useRecipeSearch` to call the backend search
 contract with q/page/pageSize, handles loading/error/empty states and renders
 paged recipe cards. The hook uses fetch with AbortController, so it does not
-depend on the dashboard-only TanStack Query provider.
+depend on the dashboard-only TanStack Query provider. API requests obtain
+their backend URL from `src/lib/config/env.ts`; browser/server callers use the
+central `API_V1` prefix, while the shared client uses `API_URL`.
 
 TanStack Query is installed and `QueryProvider` wraps the dashboard route
 group only, with 60-second stale time, no focus refetch, no mutation retries
 and no retry for 4xx responses. Public recipe pages currently use server
 `fetch`, not TanStack Query.
 
-There is no `next-auth`/Auth.js dependency, auth configuration, sign-in route
-or session integration in the current frontend source. The shared API client
-supports an optional bearer token. The current recipe route does not obtain
-auth/session state or pass the new image manager props, so upload is hidden on
-that page until an authenticated parent supplies the token/owner/admin values.
+The shared API client in `src/lib/api/client.ts` converts non-2xx responses
+into `ApiError` with RFC 7807 `ProblemDetails` fields (`type`, `title`,
+`status`, `detail`, `instance`, and validation `errors`). It uses the HTTP
+status as authoritative and falls back to the response status text or body
+when the server response is empty or not valid JSON.
 
-## 7. Remaining integration limits / follow-up items
+The public route-group layout at `src/app/(public)/layout.tsx` wraps pages with
+the shared `Header` and `Footer`. The header links to site navigation/search
+and reflects the Auth.js session with profile and sign-in/sign-out actions.
+Shared components under `src/components/common/` also provide reusable
+`Pagination`, `Loading` and `ErrorState` UI; the search results page uses all
+three state/result components.
 
-1. **The public recipe route has no authentication/session source.** The image
-   manager now accepts a parent-provided `accessToken`, `isOwner` and
-   `isAdmin`, and hides controls unless the caller is authorized. The current
-   route does not pass those values, so upload remains hidden there until a
-   real session provider supplies them. Backend authorization remains the
-   security boundary.
-2. **No Auth.js implementation is present.** The dashboard layout comment says
-   it is for an authenticated area, but the layout itself only mounts
-   `QueryProvider`; it does not enforce a session.
-3. **Redis health is not Redis caching.** Redis participates in `/health/ready`,
+Auth.js v5 (`next-auth`) is configured in `src/auth.ts` with JWT sessions and a
+Credentials provider that calls `/api/v1/auth/login`. The route handler at
+`src/app/api/auth/[...nextauth]/route.ts` exposes Auth.js endpoints under
+`/api/auth/*`; the root layout mounts `AuthSessionProvider`, making
+`useSession()` available to client components. The provider also mounts the
+React Context store in `src/lib/stores/auth-store.ts`, which projects the
+session user into client-side UI state. Auth.js stores the backend access
+token and roles in its session; `types/next-auth.d.ts` augments the session
+and user types. The public `/login` page submits credentials through
+Auth.js's credentials provider.
+
+`RecipeImageManager` reads `session.accessToken` and session roles via
+`useSession()`. It allows an Admin to upload, or an Author when the recipe
+author id matches the signed-in user id, and sends the upload as multipart
+`FormData` to `API_V1` with `Authorization: Bearer <token>`. These checks only
+gate the UI; backend authorization remains the security boundary. The central
+environment module exports `API_URL`, `API_V1` and `SITE_URL`; frontend API
+calls use these exports rather than reading environment variables directly.
+
+## 7. Integration gap status and remaining follow-up items
+
+### Resolved integration gaps
+
+- **Auth/Session:** Auth.js v5 JWT sessions and the Auth.js route handler are
+  configured; the root layout provides `SessionProvider`. The recipe image
+  manager gets the backend access token and roles from `useSession()`, checks
+  the current user against the recipe author/Admin role, and sends a Bearer
+  token for MinIO-backed upload requests.
+- **Frontend environment config:** API URL selection is centralized in
+  `src/lib/config/env.ts` (`API_URL` and `API_V1`; `SITE_URL` for public SEO
+  URLs). Auth, recipe, search, upload and shared-client calls use these exports
+  instead of reading API environment variables directly.
+- **API versioning:** `Asp.Versioning` is registered and the current endpoint
+  groups resolve under `/api/v1/...`.
+
+### Remaining integration limits / follow-up items
+
+1. **Redis health is not Redis caching.** Redis participates in `/health/ready`,
    but `ICacheService` remains a logging no-op.
-4. **Deletion cleanup is not transactional across PostgreSQL and S3.** Objects
+2. **Deletion cleanup is not transactional across PostgreSQL and S3.** Objects
    are deleted after the DB commit. A MinIO error is surfaced but can leave an
    orphan; reliable retry requires an outbox or durable job.
-5. **Upload can leave an orphan if PostgreSQL persistence fails after the
+3. **Upload can leave an orphan if PostgreSQL persistence fails after the
    MinIO write.** No compensating delete is currently implemented.
-6. **CORS is configured for the local origin in checked-in appsettings.**
+4. **CORS is configured for the local origin in checked-in appsettings.**
    Production frontend origins must be explicitly provided in deployment
    configuration.
-7. **Some README features remain unwired** (for example Seq logging and
+5. **Some README features remain unwired** (for example Seq logging and
    several MediatR behaviors). Re-check implementations and registrations
    before relying on those descriptions.
-8. **Development MinIO credentials are local Compose credentials only.**
+6. **Development MinIO credentials are local Compose credentials only.**
    Production should supply credentials and public endpoint through deployment
    secrets/configuration.
 
