@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
+using NpgsqlTypes;
 
 #nullable disable
 
@@ -259,6 +260,10 @@ namespace CulinaryBlog.Infrastructure.Persistence.Migrations
                         .HasColumnType("bytea")
                         .HasDefaultValueSql("decode('', 'hex')");
 
+                    b.Property<NpgsqlTsVector>("SearchVector")
+                        .HasColumnType("tsvector")
+                        .HasComputedColumnSql("to_tsvector('vietnamese'::regconfig, COALESCE(\"Title\", '') || ' ' || COALESCE(\"Description\", '') || ' ' || COALESCE(\"Instructions\", ''))", true);
+
                     b.Property<int>("Servings")
                         .HasColumnType("integer");
 
@@ -294,6 +299,9 @@ namespace CulinaryBlog.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("PublishedAt")
                         .HasDatabaseName("IDX_Recipe_PublishedAt");
+
+                    b.HasIndex("SearchVector")
+                        .HasMethod("GIN");
 
                     b.HasIndex("Slug")
                         .IsUnique()

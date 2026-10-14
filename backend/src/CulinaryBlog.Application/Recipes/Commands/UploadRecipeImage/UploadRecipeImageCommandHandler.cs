@@ -2,9 +2,10 @@ using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using CulinaryBlog.Application.Common.Exceptions;
 using CulinaryBlog.Application.Common.Interfaces;
-using CulinaryBlog.Application.Common.Models;
-using CulinaryBlog.Domain.Recipes.Entities;
+using CulinaryBlog.Application.Recipes.Models;
+using CulinaryBlog.Domain.Common.Exceptions;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -32,34 +33,34 @@ public sealed class UploadRecipeImageCommandHandler : IRequestHandler<UploadReci
     public async Task<RecipeImageDto> Handle(UploadRecipeImageCommand request, CancellationToken cancellationToken)
     {
         var recipe = await _context.Recipes
-            .Include(r => r.Images)
-            .SingleOrDefaultAsync(r => r.Id == request.RecipeId && !r.IsDeleted, cancellationToken);
+            .Include(recipe => recipe.Images)
+            .SingleOrDefaultAsync(recipe => recipe.Id == request.RecipeId, cancellationToken);
 
         if (recipe is null)
-            throw new KeyNotFoundException("Recipe was not found.");
+        {
+            throw new NotFoundException(ErrorCodes.RecipeNotFound, "Recipe was not found.");
+        }
 
-        if (!_currentUser.IsAdmin && (!_currentUser.UserId.HasValue || recipe.AuthorId != _currentUser.UserId.Value))
-            throw new UnauthorizedAccessException("You are not allowed to upload images for this recipe.");
+        if (!_currentUser.IsAdmin
+            && !string.Equals(recipe.AuthorId, _currentUser.UserId, StringComparison.Ordinal))
+        {
+            throw new ForbiddenException(ErrorCodes.RecipeForbidden, "You are not allowed to upload images for this recipe.");
+        }
 
         await ValidateMagicBytesAsync(request.File, cancellationToken);
 
         var url = await _storage.UploadAsync(recipe.Id, request.File, cancellationToken);
-        var image = new RecipeImage
-        {
-            Id = Guid.NewGuid(),
-            RecipeId = recipe.Id,
-            OriginalUrl = url,
-            IsPrimary = recipe.Images.Count == 0
-        };
+        var image = recipe.AddImage(url, isPrimary: recipe.Images.Count == 0);
 
-        _context.RecipeImages.Add(image);
         await _context.SaveChangesAsync(cancellationToken);
         await _cache.EvictByTagAsync("recipes", cancellationToken);
 
-        return new RecipeImageDto { Id = image.Id, OriginalUrl = image.OriginalUrl, IsPrimary = image.IsPrimary };
+        return new RecipeImageDto(image.Id, image.OriginalUrl, image.AltText, image.IsPrimary, image.OrderIndex);
     }
 
-    private static async Task ValidateMagicBytesAsync(Microsoft.AspNetCore.Http.IFormFile file, CancellationToken cancellationToken)
+    private static async Task ValidateMagicBytesAsync(
+        Microsoft.AspNetCore.Http.IFormFile file,
+        CancellationToken cancellationToken)
     {
         await using var stream = file.OpenReadStream();
         var bytes = new byte[12];
@@ -82,6 +83,8 @@ public sealed class UploadRecipeImageCommandHandler : IRequestHandler<UploadReci
         };
 
         if (!valid)
-            throw new InvalidDataException("The file content does not match its declared image format.");
+        {
+            throw new ValidationException("File", "The file content does not match its declared image format.");
+        }
     }
 }

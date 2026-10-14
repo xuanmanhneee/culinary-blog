@@ -14,7 +14,7 @@ public static class RecipeImageEndpoints
     public static IEndpointRouteBuilder MapRecipeImageEndpoints(this IEndpointRouteBuilder app)
     {
         // Role Author/Admin tại endpoint; owner/Admin trên từng recipe do RecipeAuthorizationHandler kiểm tra.
-        var group = app.MapGroup("/api/v1/recipes/{recipeId:guid}/images")
+        var group = app.MapVersionedApiGroup("RecipeImages", "recipes/{recipeId:guid}/images")
             .WithTags("Recipe Images")
             .RequireAuthorization(AuthServiceCollectionExtensions.AuthorPolicy)
             .ProducesAuthProblems()

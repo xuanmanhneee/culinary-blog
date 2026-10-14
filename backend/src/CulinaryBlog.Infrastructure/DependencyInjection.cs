@@ -1,4 +1,5 @@
 using CulinaryBlog.Application.Auth.Abstractions;
+using CulinaryBlog.Application.Common.Interfaces;
 using CulinaryBlog.Domain.Common;
 using CulinaryBlog.Domain.Modules.Categories;
 using CulinaryBlog.Domain.Modules.Identity;
@@ -34,6 +35,7 @@ public static class DependencyInjection
                 npgsql.MigrationsAssembly(typeof(CulinaryBlogDbContext).Assembly.FullName));
             options.AddInterceptors(sp.GetRequiredService<AuditInterceptor>());
         });
+        services.AddScoped<IApplicationDbContext>(sp => sp.GetRequiredService<CulinaryBlogDbContext>());
 
         services.AddIdentity<ApplicationUser, IdentityRole>(options =>
             {
@@ -63,7 +65,11 @@ public static class DependencyInjection
         services.AddScoped<RecipeSeeder>();
 
         var healthChecks = services.AddHealthChecks()
-            .AddDbContextCheck<CulinaryBlogDbContext>(name: "database", tags: new[] { "ready" });
+            .AddDbContextCheck<CulinaryBlogDbContext>(name: "database", tags: new[] { "ready" })
+            .AddRedis(
+                configuration.GetConnectionString("Redis") ?? "localhost:6379",
+                name: "redis",
+                tags: ["ready"]);
 
         return services;
     }

@@ -17,3 +17,5 @@ frontend/.pnpm-store/
 .vs/
 .vscode/
 .DS_Store
+
+.clinerules/

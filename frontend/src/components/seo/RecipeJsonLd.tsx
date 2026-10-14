@@ -63,6 +63,7 @@ export default function RecipeJsonLd({ data }: RecipeJsonLdProps) {
     recipeIngredient: data.ingredients.map(formatIngredient),
     recipeInstructions: data.steps.map((step) => ({
       "@type": "HowToStep",
+      name: step.title,
       text: step.description,
     })),
     nutrition: getNutrition(data.nutrition),

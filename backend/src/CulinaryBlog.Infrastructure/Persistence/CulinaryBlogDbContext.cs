@@ -3,6 +3,7 @@ using CulinaryBlog.Domain.Common;
 using CulinaryBlog.Domain.Modules.Categories;
 using CulinaryBlog.Domain.Modules.Identity;
 using CulinaryBlog.Domain.Modules.Recipes;
+using CulinaryBlog.Application.Common.Interfaces;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,7 +15,7 @@ namespace CulinaryBlog.Infrastructure.Persistence;
 /// khi tách microservice, module nào tách ra sẽ mang theo Configuration của module đó
 /// sang một DbContext/DB riêng.
 /// </summary>
-public class CulinaryBlogDbContext : IdentityDbContext<ApplicationUser>
+public class CulinaryBlogDbContext : IdentityDbContext<ApplicationUser>, IApplicationDbContext
 {
     public CulinaryBlogDbContext(DbContextOptions<CulinaryBlogDbContext> options) : base(options) { }
 

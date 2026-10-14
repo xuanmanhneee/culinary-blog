@@ -1,13 +1,16 @@
 "use client";
 
 import Image from "next/image";
+import { useSession } from "next-auth/react";
 import { useRef, useState } from "react";
 import type { ChangeEvent, DragEvent } from "react";
-import type { RecipeImageDto, UploadedRecipeImageDto } from "@/lib/types/recipe";
+import { API_V1 } from "@/lib/config/env";
+import type { RecipeImageDto } from "@/lib/types/recipe";
 
 interface RecipeImageManagerProps {
   recipeId: string;
   images: RecipeImageDto[];
+  authorId?: string | null;
 }
 
 const maxFileSize = 5 * 1024 * 1024;
@@ -17,9 +20,6 @@ const acceptedImageTypes = new Set([
   "image/webp",
   "image/avif",
 ]);
-
-const apiUrl =
-  process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "http://localhost:5000";
 
 function getErrorMessage(body: unknown, fallback: string): string {
   if (typeof body === "string" && body.trim()) {
@@ -50,16 +50,23 @@ function getErrorMessage(body: unknown, fallback: string): string {
 export default function RecipeImageManager({
   recipeId,
   images: initialImages,
+  authorId,
 }: RecipeImageManagerProps) {
+  const { data: session } = useSession();
   const [images, setImages] = useState<RecipeImageDto[]>(initialImages);
   const [isUploading, setIsUploading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [isDragging, setIsDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const accessToken = session?.accessToken;
+  const isAdmin = session?.user.roles.includes("Admin") ?? false;
+  const hasAuthorRole = session?.user.roles.includes("Author") ?? false;
+  const isOwner = Boolean(authorId && session?.user.id === authorId);
+  const canUpload = Boolean(accessToken) && (isAdmin || (hasAuthorRole && isOwner));
 
   async function uploadImage(file: File) {
-    if (isUploading) {
+    if (isUploading || !accessToken || !canUpload) {
       return;
     }
 
@@ -81,8 +88,12 @@ export default function RecipeImageManager({
       formData.append("file", file);
 
       const response = await fetch(
-        `${apiUrl}/api/v1/recipes/${encodeURIComponent(recipeId)}/images`,
-        { method: "POST", body: formData },
+        `${API_V1}/recipes/${encodeURIComponent(recipeId)}/images`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${accessToken}` },
+          body: formData,
+        },
       );
       const responseText = await response.text();
       let responseBody: unknown;
@@ -108,27 +119,28 @@ export default function RecipeImageManager({
         || responseBody === null
         || !("id" in responseBody)
         || typeof responseBody.id !== "string"
-        || !("originalUrl" in responseBody)
-        || typeof responseBody.originalUrl !== "string"
+        || !("url" in responseBody)
+        || typeof responseBody.url !== "string"
+        || !("altText" in responseBody)
+        || (responseBody.altText !== null && typeof responseBody.altText !== "string")
+        || !("isPrimary" in responseBody)
+        || typeof responseBody.isPrimary !== "boolean"
+        || !("orderIndex" in responseBody)
+        || typeof responseBody.orderIndex !== "number"
       ) {
         throw new Error("Máy chủ trả về dữ liệu ảnh không hợp lệ.");
       }
 
-      const uploaded: UploadedRecipeImageDto = {
+      const uploadedImage: RecipeImageDto = {
         id: responseBody.id,
-        originalUrl: responseBody.originalUrl,
-        isPrimary: "isPrimary" in responseBody && responseBody.isPrimary === true,
+        url: responseBody.url,
+        altText: responseBody.altText,
+        isPrimary: responseBody.isPrimary,
+        orderIndex: responseBody.orderIndex,
       };
-      // Response upload dùng "originalUrl"; đổi sang dạng ảnh của RecipeDetailDto ("url") để hiển thị chung.
       setImages((currentImages) => [
         ...currentImages,
-        {
-          id: uploaded.id,
-          url: uploaded.originalUrl,
-          altText: null,
-          isPrimary: uploaded.isPrimary,
-          orderIndex: currentImages.length,
-        },
+        uploadedImage,
       ]);
       setMessage("Tải ảnh lên thành công!");
     } catch (uploadError) {
@@ -182,7 +194,7 @@ export default function RecipeImageManager({
               >
                 <Image
                   src={imageUrl}
-                  alt={`Ảnh công thức ${index + 1}`}
+                  alt={image.altText ?? `Ảnh công thức ${index + 1}`}
                   fill
                   unoptimized
                   className="object-cover"
@@ -201,7 +213,7 @@ export default function RecipeImageManager({
         <p className="mt-3 text-sm text-zinc-600">Công thức chưa có ảnh.</p>
       )}
 
-      <div
+      {canUpload && <div
         onDragOver={(event) => {
           event.preventDefault();
           setIsDragging(true);
@@ -242,7 +254,7 @@ export default function RecipeImageManager({
           )}
           {isUploading ? "Đang tải ảnh lên..." : "Chọn ảnh"}
         </label>
-      </div>
+      </div>}
 
       {isUploading && (
         <p role="status" className="mt-3 text-sm text-zinc-600">

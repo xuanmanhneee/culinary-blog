@@ -19,22 +19,21 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 
-// Add OpenAPI/Swagger services
-builder.Services.AddOpenApi(options =>
-{
-    // JWT Bearer cho Scalar: khai báo scheme và đánh dấu endpoint cần đăng nhập.
-    options.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
-    options.AddOperationTransformer<BearerSecuritySchemeTransformer>();
-});
+// Không gọi builder.Services.AddOpenApi(): AddApiVersioning().AddOpenApi() đã đăng ký dịch vụ
+// OpenAPI biết về phiên bản (AV0029).
 
 builder.Services.AddApplicationServices();
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddMinioStorage(builder.Configuration);
 
+// API versioning theo URL segment (/api/v1/...) kèm sinh tài liệu OpenAPI riêng cho mỗi phiên bản
+// (đã đăng ký JWT Bearer transformer bên trong, xem ApiVersioningExtensions).
+builder.Services.AddCulinaryApiVersioning();
+
 builder.Services.AddFrontendCors(builder.Configuration);
 builder.Services.AddJwtAuthentication(builder.Configuration);
-builder.Services.AddAuthRateLimiting();
+builder.Services.AddCulinaryRateLimiting();
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
@@ -95,7 +94,7 @@ app.UseAuthorization();
 // Bật OpenAPI & Scalar UI trong môi trường Development
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    app.MapOpenApi().WithDocumentPerVersion();
     app.MapScalarApiReference(options =>
     {
         options.WithTitle("Culinary Blog API")
@@ -104,7 +103,6 @@ if (app.Environment.IsDevelopment())
 }
 
 // Map các Endpoints của ứng dụng
-// app.MapRecipesEndpoints();
 app.MapGet("/", () => "Hello World!");
 
 app.MapAuthEndpoints();

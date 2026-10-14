@@ -3,13 +3,12 @@ import { notFound } from "next/navigation";
 import RecipeJsonLd from "@/components/seo/RecipeJsonLd";
 import RecipeImageManager from "@/components/recipes/RecipeImageManager";
 import { getRecipeBySlug } from "@/lib/api/recipes";
+import { SITE_URL } from "@/lib/config/env";
 import { RecipeStatus, type RecipeDetailDto } from "@/lib/types/recipe";
 
 interface RecipePageProps {
   params: Promise<{ slug: string }>;
 }
-
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
 function limitText(value: string, maxLength: number): string {
   return value.length > maxLength
@@ -37,7 +36,7 @@ export async function generateMetadata({
   const title = limitText(`${recipe.title} | Culinary Blog`, 60);
   const description = limitText(recipe.description, 160);
   const canonicalPath = `/recipes/${recipe.slug}`;
-  const canonicalUrl = new URL(canonicalPath, siteUrl).toString();
+  const canonicalUrl = new URL(canonicalPath, SITE_URL).toString();
   const primaryImageUrl = getPrimaryImage(recipe);
   const isPublished = recipe.status === RecipeStatus.Published;
 
@@ -68,7 +67,7 @@ export async function generateMetadata({
       description,
       ...(primaryImageUrl ? { images: [primaryImageUrl] } : {}),
     },
-    robots: isPublished ? "index, follow" : "noindex",
+    robots: isPublished ? "index, follow" : { index: false, follow: true },
   };
 }
 
@@ -87,7 +86,11 @@ export default async function RecipePage({ params }: RecipePageProps) {
         <h1>{recipe.title}</h1>
         <p>{recipe.description}</p>
       </article>
-      <RecipeImageManager recipeId={recipe.id} images={recipe.images} />
+      <RecipeImageManager
+        recipeId={recipe.id}
+        images={recipe.images}
+        authorId={recipe.author?.id}
+      />
     </main>
   );
 }

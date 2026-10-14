@@ -3,7 +3,7 @@
  * CulinaryBlog.Application.Recipes.Models (RecipeDto.cs, RecipeRequests.cs).
  * Enum được backend gửi dạng số; field nullable bên C# là `| null` ở đây.
  */
-import type { Guid, IsoDateTime } from "./api";
+import type { Guid, IsoDateTime, PagedResult } from "./api";
 
 // ---------------------------------------------------------------- Enum
 
@@ -61,13 +61,6 @@ export interface RecipeImageDto {
   orderIndex: number;
 }
 
-/** Response của POST /api/v1/recipes/{id}/images (upload, FR-FILE-001) – khác RecipeImageDto. */
-export interface UploadedRecipeImageDto {
-  id: Guid;
-  originalUrl: string;
-  isPrimary: boolean;
-}
-
 /** Dinh dưỡng mỗi khẩu phần: calories (kcal), protein/carbohydrates/fat/fiber (g), sodium (mg). */
 export interface RecipeNutritionDto {
   calories: number | null;
@@ -115,6 +108,19 @@ export interface RecipeListItemDto {
   category: RecipeCategoryDto | null;
   author: RecipeAuthorDto | null;
 }
+
+/** Một kết quả từ GET /api/v1/recipes/search. */
+export interface RecipeSummaryDto {
+  id: Guid;
+  title: string;
+  slug: string;
+  description: string | null;
+  thumbnailUrl: string | null;
+  rank: number;
+}
+
+/** Response phân trang của GET /api/v1/recipes/search. */
+export type SearchRecipesResponse = PagedResult<RecipeSummaryDto>;
 
 /** GET /api/v1/recipes/{slug} và /{id} (FR-RCP-002, FR-RCP-004). */
 export interface RecipeDetailDto {

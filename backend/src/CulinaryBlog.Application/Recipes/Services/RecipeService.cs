@@ -1,5 +1,6 @@
 using CulinaryBlog.Application.Common.Exceptions;
 using CulinaryBlog.Application.Common.Helpers;
+using CulinaryBlog.Application.Common.Interfaces;
 using CulinaryBlog.Application.Common.Models;
 using CulinaryBlog.Application.Recipes.Models;
 using CulinaryBlog.Domain.Common;
@@ -25,17 +26,20 @@ public sealed class RecipeService : IRecipeService
     private readonly ICategoryRepository _categories;
     private readonly IUnitOfWork _unitOfWork;
     private readonly RecipeAuthorizationHandler _authorization;
+    private readonly IFileStorageService _fileStorage;
 
     public RecipeService(
         IRecipeRepository recipes,
         ICategoryRepository categories,
         IUnitOfWork unitOfWork,
-        RecipeAuthorizationHandler authorization)
+        RecipeAuthorizationHandler authorization,
+        IFileStorageService fileStorage)
     {
         _recipes = recipes;
         _categories = categories;
         _unitOfWork = unitOfWork;
         _authorization = authorization;
+        _fileStorage = fileStorage;
     }
 
     public async Task<PagedResult<RecipeListItemDto>> GetPagedAsync(
@@ -231,12 +235,13 @@ public sealed class RecipeService : IRecipeService
 
         _authorization.EnsureCanModify(recipe);
 
-        // TODO(FR-RCP-007): khi module File Storage được merge, lấy recipe.Images[].OriginalUrl trước
-        // khi xóa rồi BackgroundJob.Enqueue IFileStorageService.DeleteAsync cho từng URL (Hangfire retry 3 lần).
+        var imageUrls = recipe.Images.Select(image => image.OriginalUrl).ToArray();
 
         // Hard delete (không soft delete cho recipe); DB cascade xóa Steps, Ingredients, Images.
         _recipes.Remove(recipe);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+        await Task.WhenAll(imageUrls.Select(
+            imageUrl => _fileStorage.DeleteAsync(id, imageUrl, cancellationToken)));
 
         // TODO(FR-RCP-007): EvictByTagAsync("recipes") và $"recipe:{slug}" khi bật Output Cache.
     }

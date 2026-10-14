@@ -11,13 +11,13 @@ public sealed class HttpCurrentUserService : ICurrentUserService
 
     public HttpCurrentUserService(IHttpContextAccessor accessor) => _accessor = accessor;
 
-    public Guid? UserId
+    public string? UserId
     {
         get
         {
             var value = _accessor.HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier)
                 ?? _accessor.HttpContext?.User.FindFirstValue("sub");
-            return Guid.TryParse(value, out var id) ? id : null;
+            return string.IsNullOrWhiteSpace(value) ? null : value;
         }
     }
 

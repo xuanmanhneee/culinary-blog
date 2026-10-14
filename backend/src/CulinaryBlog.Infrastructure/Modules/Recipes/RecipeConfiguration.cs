@@ -21,6 +21,12 @@ public class RecipeConfiguration : IEntityTypeConfiguration<Recipe>
 
         builder.Property(r => r.Description).IsRequired();
         builder.Property(r => r.Instructions).IsRequired();
+        builder.Property<NpgsqlTypes.NpgsqlTsVector>("SearchVector")
+            .HasColumnType("tsvector")
+            .HasComputedColumnSql(
+                "to_tsvector('vietnamese'::regconfig, COALESCE(\"Title\", '') || ' ' || COALESCE(\"Description\", '') || ' ' || COALESCE(\"Instructions\", ''))",
+                stored: true);
+        builder.HasIndex("SearchVector").HasMethod("GIN");
 
         builder.Property(r => r.PrepTime).IsRequired();
         builder.Property(r => r.CookTime).IsRequired();

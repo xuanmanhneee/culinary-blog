@@ -63,6 +63,54 @@ public sealed class MinioFileStorageService : IFileStorageService
         return $"{endpoint}/{Uri.EscapeDataString(_options.BucketName)}/{Uri.EscapeDataString(key).Replace("%2F", "/", StringComparison.OrdinalIgnoreCase)}";
     }
 
+    public async Task DeleteAsync(Guid recipeId, string objectUrl, CancellationToken cancellationToken)
+    {
+        var key = GetObjectKey(recipeId, objectUrl);
+        await _client.DeleteObjectAsync(new DeleteObjectRequest
+        {
+            BucketName = _options.BucketName,
+            Key = key
+        }, cancellationToken);
+    }
+
+    private string GetObjectKey(Guid recipeId, string objectUrl)
+    {
+        if (!Uri.TryCreate(objectUrl, UriKind.Absolute, out var objectUri))
+            throw new InvalidDataException("The stored image URL is invalid.");
+
+        var configuredEndpoints = new[] { _options.PublicEndpoint, _options.Endpoint }
+            .Where(endpoint => !string.IsNullOrWhiteSpace(endpoint))
+            .Select(endpoint => new Uri(endpoint, UriKind.Absolute));
+
+        foreach (var endpoint in configuredEndpoints)
+        {
+            if (Uri.Compare(objectUri, endpoint, UriComponents.SchemeAndServer, UriFormat.SafeUnescaped,
+                    StringComparison.OrdinalIgnoreCase) != 0)
+            {
+                continue;
+            }
+
+            var endpointPath = endpoint.AbsolutePath.TrimEnd('/');
+            var prefix = $"{endpointPath}/{_options.BucketName}/recipes/{recipeId:D}/";
+            var objectPath = Uri.UnescapeDataString(objectUri.AbsolutePath);
+            if (!objectPath.StartsWith(prefix, StringComparison.Ordinal))
+                continue;
+
+            var fileName = objectPath[prefix.Length..];
+            if (string.IsNullOrWhiteSpace(fileName)
+                || fileName.Contains('/')
+                || fileName is "." or ".."
+                || !AllowedExtensions.Contains(Path.GetExtension(fileName), StringComparer.OrdinalIgnoreCase))
+            {
+                throw new InvalidDataException("The stored image URL does not identify a valid recipe object.");
+            }
+
+            return $"recipes/{recipeId:D}/{fileName}";
+        }
+
+        throw new InvalidDataException("The stored image URL does not belong to the configured MinIO endpoint.");
+    }
+
     private async Task EnsureBucketExistsAsync(CancellationToken cancellationToken)
     {
         try

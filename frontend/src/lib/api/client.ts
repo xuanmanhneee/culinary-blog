@@ -4,23 +4,11 @@
  * để UI hiển thị theo mã lỗi (`type`, ví dụ RECIPE_FORBIDDEN) hoặc theo field (`errors`).
  */
 
-export const API_URL = (
-  (typeof window === "undefined" ? process.env.API_URL : undefined) ||
-  process.env.NEXT_PUBLIC_API_URL ||
-  "http://localhost:5000"
-).replace(/\/$/, "");
+import { API_URL } from "@/lib/config/env";
+import type { ProblemDetails } from "@/lib/types/api";
 
-/** RFC 7807 Problem Details do GlobalExceptionMiddleware của backend trả về. */
-export interface ProblemDetails {
-  type?: string | null;
-  title?: string;
-  status?: number;
-  detail?: string | null;
-  instance?: string;
-  traceId?: string;
-  /** Lỗi validation theo field: { "title": ["..."], "ingredients[0].name": ["..."] }. */
-  errors?: Record<string, string[]>;
-}
+export { API_URL };
+export type { ProblemDetails };
 
 export class ApiError extends Error {
   readonly status: number;
@@ -52,6 +40,70 @@ export interface ApiResponse<T> {
   headers: Headers;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+async function readProblemDetails(response: Response): Promise<ProblemDetails> {
+  const problem: ProblemDetails = {
+    status: response.status,
+    title: response.statusText || "Request failed",
+  };
+  const body = await response.text();
+
+  if (!body.trim()) {
+    return problem;
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(body);
+  } catch (parseError) {
+    if (!(parseError instanceof SyntaxError)) {
+      throw parseError;
+    }
+    problem.detail = body;
+    return problem;
+  }
+
+  if (!isRecord(parsed)) {
+    problem.detail = body;
+    return problem;
+  }
+
+  if (typeof parsed.type === "string" || parsed.type === null) {
+    problem.type = parsed.type;
+  }
+  if (typeof parsed.title === "string") {
+    problem.title = parsed.title;
+  }
+  if (typeof parsed.detail === "string" || parsed.detail === null) {
+    problem.detail = parsed.detail;
+  }
+  if (typeof parsed.instance === "string") {
+    problem.instance = parsed.instance;
+  }
+  if (typeof parsed.traceId === "string") {
+    problem.traceId = parsed.traceId;
+  }
+  if (isRecord(parsed.errors)) {
+    const errors = Object.fromEntries(
+      Object.entries(parsed.errors).flatMap(([field, messages]) => {
+        if (!Array.isArray(messages)) {
+          return [];
+        }
+        const strings = messages.filter((message): message is string => typeof message === "string");
+        return strings.length > 0 ? [[field, strings]] : [];
+      }),
+    );
+    if (Object.keys(errors).length > 0) {
+      problem.errors = errors;
+    }
+  }
+
+  return problem;
+}
+
 export async function apiFetchWithHeaders<T>(
   path: string,
   { body, token, headers, ...init }: ApiFetchOptions = {},
@@ -66,12 +118,9 @@ export async function apiFetchWithHeaders<T>(
     requestHeaders.set("Content-Type", "application/json");
     requestBody = JSON.stringify(body);
   }
-
   const response = await fetch(`${API_URL}${path}`, { ...init, headers: requestHeaders, body: requestBody });
-
   if (!response.ok) {
-    const problem = await response.json().catch(() => ({}) as ProblemDetails);
-    throw new ApiError(response.status, { status: response.status, ...problem });
+    throw new ApiError(response.status, await readProblemDetails(response));
   }
 
   // 204 No Content (DELETE) không có body.
