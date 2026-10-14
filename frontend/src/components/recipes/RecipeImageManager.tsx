@@ -1,16 +1,16 @@
 "use client";
 
 import Image from "next/image";
+import { useSession } from "next-auth/react";
 import { useRef, useState } from "react";
 import type { ChangeEvent, DragEvent } from "react";
+import { API_V1 } from "@/lib/config/env";
 import type { RecipeImageDto } from "@/lib/types/recipe";
 
 interface RecipeImageManagerProps {
   recipeId: string;
   images: RecipeImageDto[];
-  accessToken?: string | null;
-  isOwner?: boolean;
-  isAdmin?: boolean;
+  authorId?: string | null;
 }
 
 const maxFileSize = 5 * 1024 * 1024;
@@ -20,9 +20,6 @@ const acceptedImageTypes = new Set([
   "image/webp",
   "image/avif",
 ]);
-
-const apiUrl =
-  process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "http://localhost:5000";
 
 function getErrorMessage(body: unknown, fallback: string): string {
   if (typeof body === "string" && body.trim()) {
@@ -53,20 +50,23 @@ function getErrorMessage(body: unknown, fallback: string): string {
 export default function RecipeImageManager({
   recipeId,
   images: initialImages,
-  accessToken,
-  isOwner = false,
-  isAdmin = false,
+  authorId,
 }: RecipeImageManagerProps) {
+  const { data: session } = useSession();
   const [images, setImages] = useState<RecipeImageDto[]>(initialImages);
   const [isUploading, setIsUploading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [isDragging, setIsDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const canUpload = Boolean(accessToken) && (isOwner || isAdmin);
+  const accessToken = session?.accessToken;
+  const isAdmin = session?.user.roles.includes("Admin") ?? false;
+  const hasAuthorRole = session?.user.roles.includes("Author") ?? false;
+  const isOwner = Boolean(authorId && session?.user.id === authorId);
+  const canUpload = Boolean(accessToken) && (isAdmin || (hasAuthorRole && isOwner));
 
   async function uploadImage(file: File) {
-    if (isUploading || !canUpload) {
+    if (isUploading || !accessToken || !canUpload) {
       return;
     }
 
@@ -88,7 +88,7 @@ export default function RecipeImageManager({
       formData.append("file", file);
 
       const response = await fetch(
-        `${apiUrl}/api/v1/recipes/${encodeURIComponent(recipeId)}/images`,
+        `${API_V1}/recipes/${encodeURIComponent(recipeId)}/images`,
         {
           method: "POST",
           headers: { Authorization: `Bearer ${accessToken}` },

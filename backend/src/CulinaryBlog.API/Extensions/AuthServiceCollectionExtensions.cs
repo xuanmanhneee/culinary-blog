@@ -1,9 +1,7 @@
 using System.Text;
-using System.Threading.RateLimiting;
 using CulinaryBlog.Domain.Modules.Identity;
 using CulinaryBlog.Infrastructure.Modules.Identity;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 
 namespace CulinaryBlog.API.Extensions;
@@ -12,7 +10,8 @@ public static class AuthServiceCollectionExtensions
 {
     public const string AuthorPolicy = "AuthorPolicy";
     public const string AdminPolicy = "AdminPolicy";
-    public const string AuthRateLimitPolicy = "auth";
+    /// <summary>NFR-SEC-003: /auth/* giới hạn 10 request/phút/IP; xem <see cref="RateLimitingExtensions"/>.</summary>
+    public const string AuthRateLimitPolicy = RateLimitPolicies.Auth;
 
     public static IServiceCollection AddJwtAuthentication(
         this IServiceCollection services, IConfiguration configuration)
@@ -56,39 +55,6 @@ public static class AuthServiceCollectionExtensions
         services.AddAuthorizationBuilder()
             .AddPolicy(AuthorPolicy, p => p.RequireRole(Roles.Author, Roles.Admin))
             .AddPolicy(AdminPolicy, p => p.RequireRole(Roles.Admin));
-
-        return services;
-    }
-
-    /// <summary>NFR-SEC-003: /auth/* giới hạn 10 request/phút/IP, trả 429 kèm Retry-After.</summary>
-    public static IServiceCollection AddAuthRateLimiting(this IServiceCollection services)
-    {
-        services.AddRateLimiter(options =>
-        {
-            options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-
-            options.AddPolicy(AuthRateLimitPolicy, context =>
-                RateLimitPartition.GetSlidingWindowLimiter(
-                    context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-                    _ => new SlidingWindowRateLimiterOptions
-                    {
-                        PermitLimit = 10,
-                        Window = TimeSpan.FromMinutes(1),
-                        SegmentsPerWindow = 6,
-                        QueueLimit = 0
-                    }));
-
-            options.OnRejected = (context, _) =>
-            {
-                if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
-                {
-                    context.HttpContext.Response.Headers.RetryAfter =
-                        ((int)retryAfter.TotalSeconds).ToString();
-                }
-
-                return ValueTask.CompletedTask;
-            };
-        });
 
         return services;
     }

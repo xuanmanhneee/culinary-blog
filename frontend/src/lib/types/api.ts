@@ -19,3 +19,18 @@ export interface PagedResult<T> {
   hasNextPage: boolean;
   hasPreviousPage: boolean;
 }
+
+/**
+ * RFC 7807 Problem Details do GlobalExceptionMiddleware của backend trả về.
+ * `type` là mã lỗi ứng dụng (SRS Phụ lục B), ví dụ "RECIPE_SLUG_EXISTS".
+ */
+export interface ProblemDetails {
+  type?: string | null;
+  title?: string;
+  status?: number;
+  detail?: string | null;
+  instance?: string;
+  traceId?: string;
+  /** Lỗi validation theo field: { "title": ["..."], "ingredients[0].name": ["..."] }. */
+  errors?: Record<string, string[]>;
+}

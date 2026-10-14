@@ -4,23 +4,11 @@
  * để UI hiển thị theo mã lỗi (`type`, ví dụ RECIPE_FORBIDDEN) hoặc theo field (`errors`).
  */
 
-export const API_URL = (
-  (typeof window === "undefined" ? process.env.API_URL : undefined) ||
-  process.env.NEXT_PUBLIC_API_URL ||
-  "http://localhost:5000"
-).replace(/\/$/, "");
+import { API_URL } from "@/lib/config/env";
+import type { ProblemDetails } from "@/lib/types/api";
 
-/** RFC 7807 Problem Details do GlobalExceptionMiddleware của backend trả về. */
-export interface ProblemDetails {
-  type?: string | null;
-  title?: string;
-  status?: number;
-  detail?: string | null;
-  instance?: string;
-  traceId?: string;
-  /** Lỗi validation theo field: { "title": ["..."], "ingredients[0].name": ["..."] }. */
-  errors?: Record<string, string[]>;
-}
+export { API_URL };
+export type { ProblemDetails };
 
 export class ApiError extends Error {
   readonly status: number;

@@ -1,10 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { API_V1 } from "@/lib/config/env";
 import type { SearchRecipesResponse } from "@/lib/types/recipe";
-
-const apiUrl =
-  process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "http://localhost:5000";
 
 interface RecipeSearchState {
   data: SearchRecipesResponse | null;
@@ -41,7 +39,7 @@ export function useRecipeSearch(
           pageSize: String(pageSize),
         });
         const response = await fetch(
-          `${apiUrl}/api/v1/recipes/search?${params}`,
+          `${API_V1}/recipes/search?${params}`,
           { signal: controller.signal },
         );
 

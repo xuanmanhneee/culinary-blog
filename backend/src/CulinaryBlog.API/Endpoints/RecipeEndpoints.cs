@@ -26,7 +26,7 @@ public static class RecipeEndpoints
 {
     public static IEndpointRouteBuilder MapRecipeEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/v1/recipes")
+        var group = app.MapVersionedApiGroup("Recipes", "recipes")
             .WithTags("Recipes");
 
         // Public: Guest xem được recipe Published; người đã đăng nhập (nếu gửi token)
@@ -252,6 +252,6 @@ public static class RecipeEndpoints
         CancellationToken cancellationToken)
     {
         var recipe = await service.CreateAsync(request, cancellationToken);
-        return Results.Created($"/api/v1/recipes/{recipe.Slug}", recipe);
+        return Results.Created($"{ApiVersioningExtensions.V1Path}/recipes/{recipe.Slug}", recipe);
     }
 }
