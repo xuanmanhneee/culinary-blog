@@ -1,18 +1,15 @@
 import type { Metadata } from "next";
+import { mockCategories } from "@/lib/mocks/recipes";
+import { RecipeFormWizard } from "../_components/recipe-form/RecipeFormWizard";
 
 export const metadata: Metadata = {
   title: "Tạo công thức",
 };
 
 /**
- * /dashboard/recipes/new – form tạo công thức (FR-RCP-003): React Hook Form + Zod,
- * gửi POST /api/v1/recipes; recipe mới ở trạng thái Draft.
+ * /dashboard/recipes/new – form tạo công thức nhiều bước (FR-RCP-003): React Hook Form + Zod,
+ * dữ liệu giữ trong recipe-form-store. Giao diện tĩnh: danh mục lấy từ dữ liệu mẫu.
  */
 export default function NewRecipePage() {
-  return (
-    <section className="space-y-2">
-      <h2 className="text-lg font-medium">Tạo công thức</h2>
-      <p className="text-sm text-zinc-600">Form tạo công thức đang được xây dựng.</p>
-    </section>
-  );
+  return <RecipeFormWizard mode="create" categories={mockCategories} />;
 }

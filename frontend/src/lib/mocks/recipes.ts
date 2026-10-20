@@ -2,8 +2,13 @@
  * Dữ liệu mẫu cho giao diện tĩnh của dashboard công thức (Lab 6). Cùng kiểu với response
  * GET /api/v1/recipes nên khi nối API chỉ cần thay nguồn dữ liệu.
  */
-import { RecipeDifficulty, RecipeStatus, type RecipeListItemDto } from "@/lib/types/recipe";
-import type { RecipeCategoryDto } from "@/lib/types/recipe";
+import {
+  RecipeDifficulty,
+  RecipeStatus,
+  type RecipeCategoryDto,
+  type RecipeDetailDto,
+  type RecipeListItemDto,
+} from "@/lib/types/recipe";
 
 export const mockCategories: RecipeCategoryDto[] = [
   { id: "c1000000-0000-0000-0000-000000000001", name: "Món chính", slug: "mon-chinh" },
@@ -66,3 +71,51 @@ export const mockDashboardRecipes: RecipeListItemDto[] = [
   recipe(8, "Gà kho gừng", "ga-kho-gung", "Thịt gà săn, đậm vị gừng, ăn với cơm trắng.", main,
     RecipeStatus.Draft, RecipeDifficulty.Easy, 15, 35, 4, false),
 ];
+
+/**
+ * Chi tiết mẫu cho trang sửa (cùng kiểu với GET /api/v1/recipes/{id}). Recipe "Canh chua" có đủ
+ * nguyên liệu/bước; các recipe khác dùng nguyên liệu/bước chung để form luôn có dữ liệu.
+ */
+export function getMockRecipeDetail(id: string): RecipeDetailDto | null {
+  const item = mockDashboardRecipes.find((recipe) => recipe.id === id);
+  if (!item) return null;
+
+  const isCanhChua = item.slug === "canh-chua-ca-loc";
+  return {
+    id: item.id,
+    title: item.title,
+    slug: item.slug,
+    description: item.description,
+    instructions: isCanhChua ? "Nêm nếm lại trước khi tắt bếp, ăn kèm bún hoặc cơm trắng." : "",
+    prepTimeMinutes: item.prepTimeMinutes,
+    cookTimeMinutes: item.cookTimeMinutes,
+    servings: item.servings,
+    difficulty: item.difficulty,
+    status: item.status,
+    publishedAt: item.publishedAt,
+    category: item.category,
+    author: item.author,
+    images: item.primaryImageUrl
+      ? [{ id: `${item.id}-img`, url: item.primaryImageUrl, altText: item.title, isPrimary: true, orderIndex: 0 }]
+      : [],
+    nutrition: isCanhChua
+      ? { calories: 220, protein: 18.5, carbohydrates: 12, fat: 6, fiber: 2.4, sodium: 640 }
+      : { calories: null, protein: null, carbohydrates: null, fat: null, fiber: null, sodium: null },
+    ingredients: isCanhChua
+      ? [
+          { id: "ing-1", name: "Cá lóc", quantity: 500, unit: "g", notes: "cắt khúc", orderIndex: 0 },
+          { id: "ing-2", name: "Me chua", quantity: 50, unit: "g", notes: "dầm lấy nước", orderIndex: 1 },
+          { id: "ing-3", name: "Dứa", quantity: 0.25, unit: "quả", notes: null, orderIndex: 2 },
+          { id: "ing-4", name: "Rau ngổ, ngò gai", quantity: null, unit: null, notes: "vừa đủ", orderIndex: 3 },
+        ]
+      : [{ id: "ing-1", name: "Nguyên liệu chính", quantity: 500, unit: "g", notes: null, orderIndex: 0 }],
+    steps: isCanhChua
+      ? [
+          { id: "step-1", stepNumber: 1, title: "Sơ chế cá", description: "Rửa cá với muối, cắt khúc vừa ăn.", timerMinutes: 10, imageUrl: null },
+          { id: "step-2", stepNumber: 2, title: "Nấu nước dùng", description: "Đun sôi nước với me, thêm dứa.", timerMinutes: 10, imageUrl: null },
+          { id: "step-3", stepNumber: 3, title: "Bước 3", description: "Cho cá vào nấu chín, nêm nếm, thêm rau.", timerMinutes: 5, imageUrl: null },
+        ]
+      : [{ id: "step-1", stepNumber: 1, title: "Bước 1", description: "Chế biến theo công thức.", timerMinutes: null, imageUrl: null }],
+    rowVersion: "AAAAAAAAB9E=",
+  };
+}
