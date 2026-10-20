@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { mockDashboardRecipes } from "@/lib/mocks/recipes";
+import { RecipeListView } from "./_components/RecipeListView";
 
 export const metadata: Metadata = {
   // Template "%s | ..." của layout chỉ áp dụng cho trang con, trang cùng cấp phải ghi đầy đủ.
@@ -7,13 +9,8 @@ export const metadata: Metadata = {
 
 /**
  * /dashboard/recipes – danh sách công thức của tác giả đang đăng nhập (Draft, Published, Archived).
- * Dữ liệu: GET /api/v1/recipes kèm access token (FR-RCP-001); thao tác publish/archive/xóa (FR-RCP-005/006/007).
+ * Giao diện tĩnh dùng dữ liệu mẫu; khi nối API sẽ lấy từ GET /api/v1/recipes kèm access token (FR-RCP-001).
  */
 export default function RecipeDashboardPage() {
-  return (
-    <section className="space-y-2">
-      <h2 className="text-lg font-medium">Công thức của tôi</h2>
-      <p className="text-sm text-zinc-600">Danh sách công thức đang được xây dựng.</p>
-    </section>
-  );
+  return <RecipeListView initialRecipes={mockDashboardRecipes} />;
 }
