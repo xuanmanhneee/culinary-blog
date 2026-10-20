@@ -27,6 +27,17 @@ export class ApiError extends Error {
   }
 }
 
+/** Lỗi mạng/timeout khi request chưa nhận được HTTP response từ backend. */
+export class ApiNetworkError extends Error {
+  readonly cause?: unknown;
+
+  constructor(message: string, cause?: unknown) {
+    super(message);
+    this.name = "ApiNetworkError";
+    this.cause = cause;
+  }
+}
+
 export interface ApiFetchOptions extends Omit<RequestInit, "body"> {
   /** Object sẽ được JSON.stringify; FormData được gửi nguyên (multipart). */
   body?: unknown;
@@ -40,11 +51,35 @@ export interface ApiResponse<T> {
   headers: Headers;
 }
 
+async function readResponseBody(response: Response): Promise<unknown> {
+  const text = await response.text();
+  if (!text) return undefined;
+
+  try {
+    return JSON.parse(text) as unknown;
+  } catch {
+    return text;
+  }
+}
+
+function toProblemDetails(status: number, body: unknown): ProblemDetails {
+  if (typeof body === "object" && body !== null) {
+    return { status, ...(body as ProblemDetails) };
+  }
+
+  return {
+    status,
+    title: "Yêu cầu không thành công",
+    detail: typeof body === "string" ? body : null,
+  };
+}
+
 export async function apiFetchWithHeaders<T>(
   path: string,
   { body, token, headers, ...init }: ApiFetchOptions = {},
 ): Promise<ApiResponse<T>> {
   const requestHeaders = new Headers(headers);
+  requestHeaders.set("Accept", "application/json");
   if (token) requestHeaders.set("Authorization", `Bearer ${token}`);
 
   let requestBody: BodyInit | undefined;
@@ -55,16 +90,22 @@ export async function apiFetchWithHeaders<T>(
     requestBody = JSON.stringify(body);
   }
 
-  const response = await fetch(`${API_URL}${path}`, { ...init, headers: requestHeaders, body: requestBody });
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}${path}`, { ...init, headers: requestHeaders, body: requestBody });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") throw error;
+    throw new ApiNetworkError("Không thể kết nối đến máy chủ. Vui lòng kiểm tra mạng và thử lại.", error);
+  }
+
+  const responseBody = await readResponseBody(response);
 
   if (!response.ok) {
-    const problem = await response.json().catch(() => ({}) as ProblemDetails);
-    throw new ApiError(response.status, { status: response.status, ...problem });
+    throw new ApiError(response.status, toProblemDetails(response.status, responseBody));
   }
 
   // 204 No Content (DELETE) không có body.
-  const text = await response.text();
-  return { data: (text ? JSON.parse(text) : undefined) as T, headers: response.headers };
+  return { data: responseBody as T, headers: response.headers };
 }
 
 export async function apiFetch<T>(path: string, options?: ApiFetchOptions): Promise<T> {

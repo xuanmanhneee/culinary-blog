@@ -1,27 +1,6 @@
 import type { Metadata } from "next";
+import { RecipeEditorForm } from "@/components/recipes/RecipeEditorForm";
 
-interface EditRecipePageProps {
-  params: Promise<{ id: string }>;
-}
+export const metadata: Metadata = { title: "Sửa công thức" };
 
-export const metadata: Metadata = {
-  title: "Sửa công thức",
-};
-
-/**
- * /dashboard/recipes/[id]/edit – sửa công thức theo id (không theo slug vì slug đổi khi còn Draft).
- * Dữ liệu: GET /api/v1/recipes/{id} lấy ETag, PUT kèm If-Match (FR-RCP-004);
- * nguyên liệu, bước, ảnh qua FR-RCP-009/010/008.
- */
-export default async function EditRecipePage({ params }: EditRecipePageProps) {
-  const { id } = await params;
-
-  return (
-    <section className="space-y-2">
-      <h2 className="text-lg font-medium">Sửa công thức</h2>
-      <p className="text-sm text-zinc-600">
-        Form sửa công thức <code className="rounded bg-zinc-100 px-1">{id}</code> đang được xây dựng.
-      </p>
-    </section>
-  );
-}
+export default async function EditRecipePage({ params }: { params: Promise<{ id: string }> }) { const { id } = await params; return <section><p className="text-xs font-bold uppercase tracking-[.15em] text-[#a84f37]">Công thức #{id}</p><h2 className="font-display mt-2 text-4xl font-bold tracking-[-.04em]">Chỉnh sửa công thức</h2><p className="mt-2 text-sm text-[#786e66]">Cập nhật câu chuyện và thông tin món ăn của bạn.</p><RecipeEditorForm mode="edit" /></section>; }
