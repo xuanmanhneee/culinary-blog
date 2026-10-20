@@ -11,10 +11,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { emptyStep, useRecipeFormStore, type StepDraft } from "@/lib/stores/recipe-form-store";
 import { optionalNumber, stepsSchema, type StepsValues } from "./schemas";
+import { useServerErrors, type ServerErrors } from "./server-errors";
 import { StepActions } from "./StepActions";
 
 /** Bước 3 – các bước thực hiện (FR-RCP-010). Số thứ tự theo vị trí, backend đánh lại 1, 2, 3... */
-export function StepsStep() {
+export function StepsStep({ serverErrors }: { serverErrors?: ServerErrors | null }) {
   const setSteps = useRecipeFormStore((state) => state.setSteps);
   const nextStep = useRecipeFormStore((state) => state.nextStep);
   const previousStep = useRecipeFormStore((state) => state.previousStep);
@@ -30,6 +31,7 @@ export function StepsStep() {
     keyName: "fieldKey",
   });
   const errors = form.formState.errors.steps;
+  useServerErrors(form.setError, serverErrors, 2);
 
   useEffect(() => {
     const subscription = form.watch((values) => setSteps((values.steps ?? []) as StepDraft[]));

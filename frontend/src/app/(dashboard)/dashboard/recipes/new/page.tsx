@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { mockCategories } from "@/lib/mocks/recipes";
 import { RecipeFormWizard } from "../_components/recipe-form/RecipeFormWizard";
 
 export const metadata: Metadata = {
@@ -8,8 +7,8 @@ export const metadata: Metadata = {
 
 /**
  * /dashboard/recipes/new – form tạo công thức nhiều bước (FR-RCP-003): React Hook Form + Zod,
- * dữ liệu giữ trong recipe-form-store. Giao diện tĩnh: danh mục lấy từ dữ liệu mẫu.
+ * dữ liệu giữ trong recipe-form-store, lưu bằng POST /api/v1/recipes (recipe mới ở trạng thái Draft).
  */
 export default function NewRecipePage() {
-  return <RecipeFormWizard mode="create" categories={mockCategories} />;
+  return <RecipeFormWizard mode="create" />;
 }

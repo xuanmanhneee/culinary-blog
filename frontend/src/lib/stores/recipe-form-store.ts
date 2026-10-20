@@ -318,7 +318,8 @@ export function draftFromRecipe(recipe: RecipeDetailDto): RecipeFormDraft {
       .map((item) => ({
         key: newKey(),
         id: item.id,
-        title: item.title,
+        // Title mặc định do server đặt ("Bước n") để trống: đổi thứ tự thì số tự cập nhật theo vị trí mới.
+        title: item.title === `Bước ${item.stepNumber}` ? "" : item.title,
         description: item.description,
         timerMinutes: item.timerMinutes,
       })),

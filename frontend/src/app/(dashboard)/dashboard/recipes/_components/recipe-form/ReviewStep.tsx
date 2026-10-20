@@ -17,6 +17,7 @@ import {
 } from "@/lib/stores/recipe-form-store";
 import type { RecipeCategoryDto } from "@/lib/types/recipe";
 import { nutritionSchema, optionalNumber, type NutritionValues } from "./schemas";
+import { useServerErrors, type ServerErrors } from "./server-errors";
 import { StepActions } from "./StepActions";
 
 const nutritionFields: { name: keyof NutritionValues; label: string; unit: string }[] = [
@@ -32,10 +33,11 @@ interface ReviewStepProps {
   categories: RecipeCategoryDto[];
   isSubmitting: boolean;
   onSubmit: () => void;
+  serverErrors?: ServerErrors | null;
 }
 
 /** Bước 4 – dinh dưỡng mỗi khẩu phần (tùy chọn) và xem lại toàn bộ trước khi lưu. */
-export function ReviewStep({ categories, isSubmitting, onSubmit }: ReviewStepProps) {
+export function ReviewStep({ categories, isSubmitting, onSubmit, serverErrors }: ReviewStepProps) {
   const mode = useRecipeFormStore((state) => state.mode);
   const draft = useRecipeFormStore((state) => state.draft);
   const setNutrition = useRecipeFormStore((state) => state.setNutrition);
@@ -47,6 +49,10 @@ export function ReviewStep({ categories, isSubmitting, onSubmit }: ReviewStepPro
     mode: "onTouched",
   });
   const { errors } = form.formState;
+  // Backend báo lỗi chung "nutrition" → hiện ở ô đầu tiên; "nutrition.x" → ô x.
+  useServerErrors(form.setError, serverErrors, 3, (path) =>
+    path === "nutrition" ? "calories" : path.replace(/^nutrition\./, ""),
+  );
 
   useEffect(() => {
     const subscription = form.watch((values) =>

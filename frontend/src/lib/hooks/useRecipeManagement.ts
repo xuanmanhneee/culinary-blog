@@ -16,8 +16,15 @@ import {
   type MyRecipesQuery,
   type RecipeStatusAction,
 } from "@/lib/api/recipe-management";
+import { saveRecipeEdit } from "@/lib/api/recipe-sync";
 import { useAccessToken } from "@/lib/hooks/useAccessToken";
-import { RecipeStatus, type CreateRecipeRequest, type UpdateRecipeRequest } from "@/lib/types/recipe";
+import type { RecipeFormDraft } from "@/lib/stores/recipe-form-store";
+import {
+  RecipeStatus,
+  type CreateRecipeRequest,
+  type RecipeDetailDto,
+  type UpdateRecipeRequest,
+} from "@/lib/types/recipe";
 
 export const recipeKeys = {
   all: ["recipes"] as const,
@@ -59,13 +66,13 @@ export function useMyRecipeCounts(): Record<(typeof countStatuses)[number], numb
   >;
 }
 
-/** Chi tiết công thức cho trang sửa, kèm ETag (GET /recipes/{id}). */
-export function useRecipeForEdit(id: string) {
+/** Chi tiết công thức cho trang sửa, kèm ETag (GET /recipes/{id}). Không truyền id thì không tải. */
+export function useRecipeForEdit(id: string | undefined) {
   const { token, isReady } = useAccessToken();
   return useQuery({
-    queryKey: recipeKeys.detail(id),
-    queryFn: () => getRecipeById(id, token),
-    enabled: isReady,
+    queryKey: recipeKeys.detail(id ?? ""),
+    queryFn: () => getRecipeById(id!, token),
+    enabled: isReady && Boolean(id),
     // Trang sửa luôn lấy bản mới nhất để RowVersion (If-Match) không bị cũ.
     staleTime: 0,
   });
@@ -106,6 +113,24 @@ export function useCreateRecipe() {
   return useMutation({
     mutationFn: (body: CreateRecipeRequest) => createRecipe(body, token),
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: recipeKeys.mine() }),
+  });
+}
+
+/**
+ * Lưu form sửa: PUT thông tin chính (If-Match) rồi đồng bộ nguyên liệu/các bước (saveRecipeEdit).
+ * Thành công → cache chi tiết nhận bản mới (ETag mới); lỗi → tải lại chi tiết vì có thể đã lưu một phần.
+ */
+export function useSaveRecipeEdit(id: string) {
+  const { token } = useAccessToken();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ original, draft, etag }: { original: RecipeDetailDto; draft: RecipeFormDraft; etag: string }) =>
+      saveRecipeEdit(original, draft, etag, token),
+    onSuccess: (result) => {
+      queryClient.setQueryData(recipeKeys.detail(id), result);
+      void queryClient.invalidateQueries({ queryKey: recipeKeys.mine() });
+    },
+    onError: () => void queryClient.invalidateQueries({ queryKey: recipeKeys.detail(id) }),
   });
 }
 
