@@ -23,6 +23,10 @@ namespace CulinaryBlog.Infrastructure.Persistence.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "pg_trgm");
+
+            NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "unaccent");
+
             modelBuilder.Entity("CulinaryBlog.Domain.Modules.Categories.Category", b =>
                 {
                     b.Property<Guid>("Id")
@@ -260,6 +264,11 @@ namespace CulinaryBlog.Infrastructure.Persistence.Migrations
                         .HasColumnType("bytea")
                         .HasDefaultValueSql("decode('', 'hex')");
 
+                    b.Property<string>("SearchTextNormalized")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("text")
+                        .HasComputedColumnSql("public.immutable_unaccent(lower(coalesce(\"Title\", '') || ' ' || coalesce(\"Description\", '')))", true);
+
                     b.Property<NpgsqlTsVector>("SearchVector")
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("tsvector")
@@ -301,6 +310,13 @@ namespace CulinaryBlog.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("PublishedAt")
                         .HasDatabaseName("IDX_Recipe_PublishedAt");
+
+                    b.HasIndex("SearchTextNormalized")
+                        .HasDatabaseName("IDX_Recipe_SearchTextNormalized_Trgm");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("SearchTextNormalized"), "gin");
+
+                    NpgsqlIndexBuilderExtensions.HasOperators(b.HasIndex("SearchTextNormalized"), new[] { "gin_trgm_ops" });
 
                     b.HasIndex("SearchVector")
                         .HasDatabaseName("IDX_Recipe_SearchVector");

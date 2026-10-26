@@ -76,6 +76,16 @@ public class RecipeConfiguration : IEntityTypeConfiguration<Recipe>
             .IsGeneratedTsVectorColumn("simple", "Title", "Description");
         builder.HasIndex("SearchVector").HasDatabaseName("IDX_Recipe_SearchVector").HasMethod("gin");
 
+        // Chuỗi đã bỏ dấu/lowercase dành cho pg_trgm: hỗ trợ không dấu và lỗi chính tả.
+        builder.Property<string>("SearchTextNormalized")
+            .HasComputedColumnSql(
+                "public.immutable_unaccent(lower(coalesce(\"Title\", '') || ' ' || coalesce(\"Description\", '')))",
+                stored: true);
+        builder.HasIndex("SearchTextNormalized")
+            .HasDatabaseName("IDX_Recipe_SearchTextNormalized_Trgm")
+            .HasMethod("gin")
+            .HasOperators("gin_trgm_ops");
+
         // 1:N child collections, cascade delete
         builder.HasMany(r => r.Steps)
             .WithOne(s => s.Recipe)

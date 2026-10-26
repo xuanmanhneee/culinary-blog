@@ -29,6 +29,9 @@ public class CulinaryBlogDbContext : IdentityDbContext<ApplicationUser>
     {
         base.OnModelCreating(builder); // áp dụng cấu hình Identity (AspNetUsers, AspNetRoles...)
 
+        builder.HasPostgresExtension("pg_trgm");
+        builder.HasPostgresExtension("unaccent");
+
         // Tự động load mọi IEntityTypeConfiguration<T> trong assembly Infrastructure
         // (mỗi module tự khai báo Configuration của mình, DbContext không cần biết chi tiết)
         builder.ApplyConfigurationsFromAssembly(typeof(CulinaryBlogDbContext).Assembly);
