@@ -1,6 +1,7 @@
 using System.IO;
 using CulinaryBlog.Application.Common.Exceptions;
 using CulinaryBlog.Application.Common.Interfaces;
+using CulinaryBlog.Application.Recipes.Models;
 using CulinaryBlog.Domain.Common;
 using CulinaryBlog.Domain.Common.Exceptions;
 using CulinaryBlog.Domain.Modules.Recipes;
@@ -48,7 +49,12 @@ public sealed class UploadRecipeImageCommandHandler : IRequestHandler<UploadReci
         await _cache.EvictByTagAsync("recipes", cancellationToken);
 
         var image = recipe.Images.Last();
-        return new RecipeImageDto { Id = image.Id, OriginalUrl = image.OriginalUrl, IsPrimary = image.IsPrimary };
+        return new RecipeImageDto(
+            image.Id,
+            image.OriginalUrl,
+            image.AltText,
+            image.IsPrimary,
+            image.OrderIndex);
     }
 
     private static async Task ValidateMagicBytesAsync(IFormFile file, CancellationToken cancellationToken)
@@ -74,6 +80,10 @@ public sealed class UploadRecipeImageCommandHandler : IRequestHandler<UploadReci
         };
 
         if (!valid)
-            throw new InvalidDataException("The file content does not match its declared image format.");
+        {
+            throw new ValidationException(
+                nameof(UploadRecipeImageCommand.File),
+                "The file content does not match its declared image format.");
+        }
     }
 }

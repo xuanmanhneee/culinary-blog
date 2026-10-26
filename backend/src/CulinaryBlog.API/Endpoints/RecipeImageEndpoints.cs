@@ -1,6 +1,9 @@
 using CulinaryBlog.API.Extensions;
+using CulinaryBlog.Application.Recipes.Commands.UploadRecipeImage;
 using CulinaryBlog.Application.Recipes.Models;
 using CulinaryBlog.Application.Recipes.Services;
+using MediatR;
+using Microsoft.AspNetCore.Mvc;
 
 namespace CulinaryBlog.API.Endpoints;
 
@@ -19,6 +22,15 @@ public static class RecipeImageEndpoints
             .RequireAuthorization(AuthServiceCollectionExtensions.AuthorPolicy)
             .ProducesAuthProblems()
             .ProducesNotFoundProblem();
+
+        group.MapPost("/", UploadAsync)
+            .WithName("UploadRecipeImage")
+            .WithSummary("Tải ảnh lên cho công thức")
+            .WithDescription("FR-FILE-001. Chỉ owner hoặc Admin; hỗ trợ JPEG, PNG, WebP, AVIF, tối đa 5 MB.")
+            .Accepts<IFormFile>("multipart/form-data")
+            .Produces<RecipeImageDto>(StatusCodes.Status201Created)
+            .ProducesValidationProblem()
+            .DisableAntiforgery();
 
         group.MapPatch("/{imageId:guid}/primary", SetPrimaryAsync)
             .WithName("SetPrimaryRecipeImage")
@@ -41,6 +53,21 @@ public static class RecipeImageEndpoints
         IRecipeImageService service,
         CancellationToken cancellationToken) =>
         Results.Ok(await service.SetPrimaryAsync(recipeId, imageId, cancellationToken));
+
+    private static async Task<IResult> UploadAsync(
+        Guid recipeId,
+        [FromForm(Name = "file")] IFormFile file,
+        ISender sender,
+        CancellationToken cancellationToken)
+    {
+        var image = await sender.Send(
+            new UploadRecipeImageCommand(recipeId, file),
+            cancellationToken);
+
+        return Results.Created(
+            $"{ApiVersioningExtensions.V1Path}/recipes/{recipeId}/images/{image.Id}",
+            image);
+    }
 
     private static async Task<IResult> DeleteAsync(
         Guid recipeId,

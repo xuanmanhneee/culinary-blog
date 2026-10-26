@@ -69,11 +69,11 @@ public class RecipeConfiguration : IEntityTypeConfiguration<Recipe>
             .IsConcurrencyToken()
             .HasDefaultValueSql("decode('', 'hex')");
 
-        // Full-text search: cột tsvector ảo sinh tự động từ Title + Description (tiếng Việt).
+        // Full-text search: "simple" có sẵn trong PostgreSQL và giữ nguyên từ tiếng Việt.
         // Là shadow property để Domain không phải phụ thuộc NpgsqlTypes; query qua EF.Property
-        // trong RecipeRepository.SearchAsync.
+        // trong RecipeSearchReader.SearchAsync.
         builder.Property<NpgsqlTsVector>("SearchVector")
-            .IsGeneratedTsVectorColumn("vietnamese", "Title", "Description");
+            .IsGeneratedTsVectorColumn("simple", "Title", "Description");
         builder.HasIndex("SearchVector").HasDatabaseName("IDX_Recipe_SearchVector").HasMethod("gin");
 
         // 1:N child collections, cascade delete

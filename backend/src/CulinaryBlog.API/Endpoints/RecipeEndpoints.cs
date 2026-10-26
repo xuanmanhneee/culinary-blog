@@ -1,7 +1,10 @@
 using CulinaryBlog.API.Extensions;
 using CulinaryBlog.Application.Common.Models;
 using CulinaryBlog.Application.Recipes.Models;
+using CulinaryBlog.Application.Recipes.Queries.SearchRecipes;
 using CulinaryBlog.Application.Recipes.Services;
+using MediatR;
+using Microsoft.AspNetCore.Mvc;
 
 namespace CulinaryBlog.API.Endpoints;
 
@@ -31,6 +34,13 @@ public static class RecipeEndpoints
                 "Admin thấy mọi trạng thái. sort: createdAt | title | cookTime, thêm \"-\" để giảm dần (mặc định -createdAt). " +
                 "pageSize 1–50 (mặc định 12). categoryId không tồn tại trả danh sách rỗng.")
             .Produces<PagedResult<RecipeListItemDto>>()
+            .ProducesValidationProblem();
+
+        group.MapGet("/search", SearchAsync)
+            .WithName("SearchRecipes")
+            .WithSummary("Tìm kiếm toàn văn công thức đã xuất bản")
+            .WithDescription("Tìm theo tiêu đề và mô tả; hỗ trợ phân trang, pageSize từ 1 đến 50.")
+            .Produces<PagedResult<RecipeSummaryDto>>()
             .ProducesValidationProblem();
 
         group.MapGet("/{slug}", GetBySlugAsync)
@@ -183,6 +193,16 @@ public static class RecipeEndpoints
         IRecipeService service,
         CancellationToken cancellationToken) =>
         Results.Ok(await service.GetPagedAsync(query, cancellationToken));
+
+    private static async Task<IResult> SearchAsync(
+        ISender sender,
+        CancellationToken cancellationToken,
+        [FromQuery(Name = "q")] string? searchTerm = null,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10) =>
+        Results.Ok(await sender.Send(
+            new SearchRecipesQuery(searchTerm ?? string.Empty, page, pageSize),
+            cancellationToken));
 
     private static async Task<IResult> GetBySlugAsync(
         string slug,

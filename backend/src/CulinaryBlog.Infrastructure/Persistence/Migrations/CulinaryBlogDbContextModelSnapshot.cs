@@ -263,7 +263,7 @@ namespace CulinaryBlog.Infrastructure.Persistence.Migrations
                     b.Property<NpgsqlTsVector>("SearchVector")
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("tsvector")
-                        .HasAnnotation("Npgsql:TsVectorConfig", "vietnamese")
+                        .HasAnnotation("Npgsql:TsVectorConfig", "simple")
                         .HasAnnotation("Npgsql:TsVectorProperties", new[] { "Title", "Description" });
 
                     b.Property<int>("Servings")

@@ -16,7 +16,7 @@ namespace CulinaryBlog.Infrastructure.Persistence.Migrations
                 table: "Recipes",
                 type: "tsvector",
                 nullable: true)
-                .Annotation("Npgsql:TsVectorConfig", "vietnamese")
+                .Annotation("Npgsql:TsVectorConfig", "simple")
                 .Annotation("Npgsql:TsVectorProperties", new[] { "Title", "Description" });
 
             migrationBuilder.CreateIndex(

@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using CulinaryBlog.Application.Recipes.Queries.SearchRecipes;
 using CulinaryBlog.Domain.Modules.Recipes;
 using CulinaryBlog.Infrastructure.Persistence;
@@ -18,8 +19,12 @@ public sealed class RecipeSearchReader : IRecipeSearchReader
         int pageSize,
         CancellationToken cancellationToken = default)
     {
-        var terms = searchTerm.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        var tsQuery = EF.Functions.ToTsQuery("vietnamese", string.Join(" & ", terms) + ":*");
+        var terms = Regex.Matches(searchTerm, @"[\p{L}\p{N}]+")
+            .Select(match => match.Value)
+            .ToArray();
+        var tsQuery = EF.Functions.ToTsQuery(
+            "simple",
+            string.Join(" & ", terms.Select(term => $"{term}:*")));
 
         var query = _context.Recipes.AsNoTracking()
             .Where(recipe => recipe.Status == RecipeStatus.Published)
