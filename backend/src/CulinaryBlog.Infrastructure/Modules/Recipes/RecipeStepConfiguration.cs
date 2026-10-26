@@ -27,6 +27,5 @@ public class RecipeStepConfiguration : IEntityTypeConfiguration<RecipeStep>
             .IsRowVersion()
             .HasDefaultValueSql("decode('', 'hex')");
 
-        builder.HasQueryFilter(s => !s.IsDeleted);
     }
 }

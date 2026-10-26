@@ -25,6 +25,5 @@ public class RecipeIngredientConfiguration : IEntityTypeConfiguration<RecipeIngr
             .IsRowVersion()
             .HasDefaultValueSql("decode('', 'hex')");
 
-        builder.HasQueryFilter(i => !i.IsDeleted);
     }
 }

@@ -35,16 +35,10 @@ public static class RecipesEndpoints
             }
             catch (InvalidDataException ex)
             {
+                // Nội dung file không khớp định dạng khai báo — GlobalExceptionMiddleware không map lỗi này.
                 return Results.Problem(ex.Message, statusCode: 400);
             }
-            catch (KeyNotFoundException ex)
-            {
-                return Results.Problem(ex.Message, statusCode: 404);
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                return Results.Problem(ex.Message, statusCode: 403);
-            }
+            // NotFoundException/ForbiddenException do GlobalExceptionMiddleware trả 404/403.
         }).Accepts<IFormFile>("multipart/form-data");
 
         group.MapGet("/search", async ([FromQuery(Name = "q")] string? q, 

@@ -1,6 +1,7 @@
 using CulinaryBlog.Domain.Modules.Recipes;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using NpgsqlTypes;
 
 namespace CulinaryBlog.Infrastructure.Modules.Recipes;
 
@@ -68,7 +69,12 @@ public class RecipeConfiguration : IEntityTypeConfiguration<Recipe>
             .IsConcurrencyToken()
             .HasDefaultValueSql("decode('', 'hex')");
 
-        builder.HasQueryFilter(r => !r.IsDeleted);
+        // Full-text search: cột tsvector ảo sinh tự động từ Title + Description (tiếng Việt).
+        // Là shadow property để Domain không phải phụ thuộc NpgsqlTypes; query qua EF.Property
+        // trong RecipeRepository.SearchAsync.
+        builder.Property<NpgsqlTsVector>("SearchVector")
+            .IsGeneratedTsVectorColumn("vietnamese", "Title", "Description");
+        builder.HasIndex("SearchVector").HasDatabaseName("IDX_Recipe_SearchVector").HasMethod("gin");
 
         // 1:N child collections, cascade delete
         builder.HasMany(r => r.Steps)

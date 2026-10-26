@@ -29,7 +29,6 @@ public class CategoryConfiguration : IEntityTypeConfiguration<Category>
             .IsRowVersion()
             .HasDefaultValueSql("decode('', 'hex')");
 
-        builder.HasQueryFilter(c => !c.IsDeleted);
 
         builder.HasMany(c => c.Recipes)
             .WithOne(r => r.Category)

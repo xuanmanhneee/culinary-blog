@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
+using NpgsqlTypes;
 
 #nullable disable
 
@@ -17,7 +18,7 @@ namespace CulinaryBlog.Infrastructure.Persistence.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.0")
+                .HasAnnotation("ProductVersion", "10.0.12")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -259,6 +260,12 @@ namespace CulinaryBlog.Infrastructure.Persistence.Migrations
                         .HasColumnType("bytea")
                         .HasDefaultValueSql("decode('', 'hex')");
 
+                    b.Property<NpgsqlTsVector>("SearchVector")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("tsvector")
+                        .HasAnnotation("Npgsql:TsVectorConfig", "vietnamese")
+                        .HasAnnotation("Npgsql:TsVectorProperties", new[] { "Title", "Description" });
+
                     b.Property<int>("Servings")
                         .HasColumnType("integer");
 
@@ -294,6 +301,11 @@ namespace CulinaryBlog.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("PublishedAt")
                         .HasDatabaseName("IDX_Recipe_PublishedAt");
+
+                    b.HasIndex("SearchVector")
+                        .HasDatabaseName("IDX_Recipe_SearchVector");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("SearchVector"), "gin");
 
                     b.HasIndex("Slug")
                         .IsUnique()

@@ -1,65 +1,57 @@
-using System;
 using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
+using CulinaryBlog.Application.Common.Exceptions;
 using CulinaryBlog.Application.Common.Interfaces;
-using CulinaryBlog.Application.Common.Models;
-using CulinaryBlog.Domain.Recipes.Entities;
+using CulinaryBlog.Domain.Common;
+using CulinaryBlog.Domain.Common.Exceptions;
+using CulinaryBlog.Domain.Modules.Recipes;
+using CulinaryBlog.Application.Recipes.Services;
 using MediatR;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Http;
 
 namespace CulinaryBlog.Application.Recipes.Commands.UploadRecipeImage;
 
 public sealed class UploadRecipeImageCommandHandler : IRequestHandler<UploadRecipeImageCommand, RecipeImageDto>
 {
-    private readonly IApplicationDbContext _context;
-    private readonly ICurrentUserService _currentUser;
+    private readonly IRecipeRepository _recipes;
+    private readonly IUnitOfWork _unitOfWork;
+    private readonly RecipeAuthorizationHandler _authorization;
     private readonly IFileStorageService _storage;
     private readonly ICacheService _cache;
 
     public UploadRecipeImageCommandHandler(
-        IApplicationDbContext context,
-        ICurrentUserService currentUser,
+        IRecipeRepository recipes,
+        IUnitOfWork unitOfWork,
+        RecipeAuthorizationHandler authorization,
         IFileStorageService storage,
         ICacheService cache)
     {
-        _context = context;
-        _currentUser = currentUser;
+        _recipes = recipes;
+        _unitOfWork = unitOfWork;
+        _authorization = authorization;
         _storage = storage;
         _cache = cache;
     }
 
     public async Task<RecipeImageDto> Handle(UploadRecipeImageCommand request, CancellationToken cancellationToken)
     {
-        var recipe = await _context.Recipes
-            .Include(r => r.Images)
-            .SingleOrDefaultAsync(r => r.Id == request.RecipeId && !r.IsDeleted, cancellationToken);
+        var recipe = await _recipes.GetByIdWithImagesAsync(request.RecipeId, cancellationToken)
+            ?? throw new NotFoundException(ErrorCodes.RecipeNotFound, $"Recipe '{request.RecipeId}' không tồn tại.");
 
-        if (recipe is null)
-            throw new KeyNotFoundException("Recipe was not found.");
-
-        if (!_currentUser.IsAdmin && (!_currentUser.UserId.HasValue || recipe.AuthorId != _currentUser.UserId.Value))
-            throw new UnauthorizedAccessException("You are not allowed to upload images for this recipe.");
+        // Chỉ owner hoặc Admin được upload ảnh cho recipe (NFR-SEC-006).
+        _authorization.EnsureCanModify(recipe);
 
         await ValidateMagicBytesAsync(request.File, cancellationToken);
 
         var url = await _storage.UploadAsync(recipe.Id, request.File, cancellationToken);
-        var image = new RecipeImage
-        {
-            Id = Guid.NewGuid(),
-            RecipeId = recipe.Id,
-            OriginalUrl = url,
-            IsPrimary = recipe.Images.Count == 0
-        };
-
-        _context.RecipeImages.Add(image);
-        await _context.SaveChangesAsync(cancellationToken);
+        recipe.AddImage(url, isPrimary: recipe.Images.Count == 0);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
         await _cache.EvictByTagAsync("recipes", cancellationToken);
 
+        var image = recipe.Images.Last();
         return new RecipeImageDto { Id = image.Id, OriginalUrl = image.OriginalUrl, IsPrimary = image.IsPrimary };
     }
 
-    private static async Task ValidateMagicBytesAsync(Microsoft.AspNetCore.Http.IFormFile file, CancellationToken cancellationToken)
+    private static async Task ValidateMagicBytesAsync(IFormFile file, CancellationToken cancellationToken)
     {
         await using var stream = file.OpenReadStream();
         var bytes = new byte[12];

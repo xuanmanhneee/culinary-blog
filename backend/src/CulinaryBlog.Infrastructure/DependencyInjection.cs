@@ -1,4 +1,5 @@
 using CulinaryBlog.Application.Auth.Abstractions;
+using CulinaryBlog.Application.Recipes.Queries.SearchRecipes;
 using CulinaryBlog.Domain.Common;
 using CulinaryBlog.Domain.Modules.Categories;
 using CulinaryBlog.Domain.Modules.Identity;
@@ -50,6 +51,7 @@ public static class DependencyInjection
         services.AddScoped<ICategoryRepository, CategoryRepository>();
         // Module Recipes
         services.AddScoped<IRecipeRepository, RecipeRepository>();
+        services.AddScoped<IRecipeSearchReader, RecipeSearchReader>();
         services.AddScoped<IJwtService, JwtService>();
 
         // Module Identity

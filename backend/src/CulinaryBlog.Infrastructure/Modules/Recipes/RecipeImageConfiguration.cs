@@ -26,6 +26,5 @@ public class RecipeImageConfiguration : IEntityTypeConfiguration<RecipeImage>
             .IsRowVersion()
             .HasDefaultValueSql("decode('', 'hex')");
 
-        builder.HasQueryFilter(i => !i.IsDeleted);
     }
 }
