@@ -22,18 +22,18 @@ public sealed class RecipeSearchReader : IRecipeSearchReader
         var terms = Regex.Matches(searchTerm, @"[\p{L}\p{N}]+")
             .Select(match => match.Value)
             .ToArray();
-        var tsQuery = EF.Functions.ToTsQuery(
-            "simple",
-            string.Join(" & ", terms.Select(term => $"{term}:*")));
+        var queryText = string.Join(" & ", terms.Select(term => $"{term}:*"));
 
         var query = _context.Recipes.AsNoTracking()
             .Where(recipe => recipe.Status == RecipeStatus.Published)
-            .Where(recipe => EF.Property<NpgsqlTsVector>(recipe, "SearchVector")!.Matches(tsQuery));
+            .Where(recipe => EF.Property<NpgsqlTsVector>(recipe, "SearchVector")!
+                .Matches(EF.Functions.ToTsQuery("simple", queryText)));
 
         var totalCount = await query.CountAsync(cancellationToken);
         var items = await query
             .OrderByDescending(recipe =>
-                EF.Property<NpgsqlTsVector>(recipe, "SearchVector")!.Rank(tsQuery))
+                EF.Property<NpgsqlTsVector>(recipe, "SearchVector")!
+                    .Rank(EF.Functions.ToTsQuery("simple", queryText)))
             .ThenBy(recipe => recipe.Id)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
@@ -47,7 +47,8 @@ public sealed class RecipeSearchReader : IRecipeSearchReader
                     .OrderBy(image => image.OrderIndex)
                     .Select(image => image.OriginalUrl)
                     .FirstOrDefault(),
-                EF.Property<NpgsqlTsVector>(recipe, "SearchVector")!.Rank(tsQuery)))
+                EF.Property<NpgsqlTsVector>(recipe, "SearchVector")!
+                    .Rank(EF.Functions.ToTsQuery("simple", queryText))))
             .ToListAsync(cancellationToken);
 
         return (items, totalCount);
