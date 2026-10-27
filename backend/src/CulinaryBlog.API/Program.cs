@@ -48,7 +48,7 @@ builder.Services.AddHangfire(config => config
 builder.Services.AddHangfireServer();
 
 // 3. Đăng ký chính job class vào DI (để Hangfire resolve dependency của nó, ví dụ ILogger)
-builder.Services.AddScoped<PingJob>();
+// builder.Services.AddScoped<PingJob>();
 
 // RFC 7807: mọi lỗi trả về application/problem+json kèm traceId và instance.
 builder.Services.AddProblemDetails(options =>
@@ -125,13 +125,9 @@ app.MapCategoriesEndpoints();
 
 app.MapHealthEndpoints();
 
-app.Lifetime.ApplicationStarted.Register(() =>
-{
-    RecurringJob.AddOrUpdate<PingJob>(
-    recurringJobId: "ping-every-minute",
-    methodCall: j => j.Execute("scheduled ping"),
-    cronExpression: "* * * * *");
-});
+// PingJob chỉ dùng để kiểm tra Hangfire khi cần; tạm thời không đăng ký recurring job.
+// Xóa bản ghi cũ trong storage để job không tiếp tục chạy sau khi deploy/restart.
+RecurringJob.RemoveIfExists("ping-every-minute");
 
 
 
