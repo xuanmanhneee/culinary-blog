@@ -5,11 +5,29 @@
   --foreground: #2e2925;
   --primary: #1f4b3f;
   --accent: #b65338;
+  --muted: #f2eadf;
+  --muted-foreground: #756b63;
+  --border: #ded4c8;
+  --popover: #fffdf9;
+  --popover-foreground: #2e2925;
+  --sidebar: #f4eee6;
+  --sidebar-foreground: #3d3732;
+  --sidebar-accent: #dfe9e2;
+  --sidebar-accent-foreground: #1f4b3f;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --font-sans: "Inter", "Aptos", "Segoe UI", Arial, sans-serif;
   --font-display: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
 }

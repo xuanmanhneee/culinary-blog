@@ -1,6 +1,4 @@
 import type { Metadata } from "next";
-import { Footer } from "@/components/layout/Footer";
-import { Header } from "@/components/layout/Header";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -15,13 +13,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="vi" className="h-full scroll-smooth antialiased" data-scroll-behavior="smooth">
-      <body className="min-h-full">
-        <div className="flex min-h-screen flex-col overflow-x-clip">
-          <Header />
-          <main className="flex-1">{children}</main>
-          <Footer />
-        </div>
-      </body>
+      <body className="min-h-full"><div className="min-h-screen overflow-x-clip">{children}</div></body>
     </html>
   );
 }

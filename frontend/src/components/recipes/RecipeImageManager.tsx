@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useRef, useState } from "react";
 import type { ChangeEvent, DragEvent } from "react";
+import { useSession } from "next-auth/react";
 import { API_V1 } from "@/lib/config/env";
 import type { RecipeImageDto, UploadedRecipeImageDto } from "@/lib/types/recipe";
 
@@ -49,6 +50,7 @@ export default function RecipeImageManager({
   recipeId,
   images: initialImages,
 }: RecipeImageManagerProps) {
+  const { data: session } = useSession();
   const [images, setImages] = useState<RecipeImageDto[]>(initialImages);
   const [isUploading, setIsUploading] = useState(false);
   const [message, setMessage] = useState("");
@@ -78,9 +80,10 @@ export default function RecipeImageManager({
       const formData = new FormData();
       formData.append("file", file);
 
+      if (!session?.accessToken) throw new Error("PhiÃªn Ä‘Äƒng nháº­p Ä‘Ã£ háº¿t, vui lÃ²ng Ä‘Äƒng nháº­p láº¡i.");
       const response = await fetch(
         `${API_V1}/recipes/${encodeURIComponent(recipeId)}/images`,
-        { method: "POST", body: formData },
+        { method: "POST", body: formData, headers: { Authorization: `Bearer ${session.accessToken}` } },
       );
       const responseText = await response.text();
       let responseBody: unknown;
@@ -106,15 +109,16 @@ export default function RecipeImageManager({
         || responseBody === null
         || !("id" in responseBody)
         || typeof responseBody.id !== "string"
-        || !("originalUrl" in responseBody)
-        || typeof responseBody.originalUrl !== "string"
+        || (!("originalUrl" in responseBody) && !("url" in responseBody))
+        || (("originalUrl" in responseBody) && typeof responseBody.originalUrl !== "string")
+        || (("url" in responseBody) && typeof responseBody.url !== "string")
       ) {
         throw new Error("Máy chủ trả về dữ liệu ảnh không hợp lệ.");
       }
 
       const uploaded: UploadedRecipeImageDto = {
         id: responseBody.id,
-        originalUrl: responseBody.originalUrl,
+        originalUrl: ("url" in responseBody ? responseBody.url : responseBody.originalUrl) as string,
         isPrimary: "isPrimary" in responseBody && responseBody.isPrimary === true,
       };
       // Response upload dùng "originalUrl"; đổi sang dạng ảnh của RecipeDetailDto ("url") để hiển thị chung.
