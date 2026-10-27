@@ -11,6 +11,7 @@ interface RecipeImageManagerProps {
   recipeId: string;
   images: RecipeImageDto[];
   authorId?: string | null;
+  uploadOnly?: boolean;
 }
 
 const maxFileSize = 5 * 1024 * 1024;
@@ -51,6 +52,7 @@ export default function RecipeImageManager({
   recipeId,
   images: initialImages,
   authorId,
+  uploadOnly = false,
 }: RecipeImageManagerProps) {
   const { data: session } = useSession();
   const [images, setImages] = useState<RecipeImageDto[]>(initialImages);
@@ -64,6 +66,10 @@ export default function RecipeImageManager({
   const hasAuthorRole = session?.user.roles.includes("Author") ?? false;
   const isOwner = Boolean(authorId && session?.user.id === authorId);
   const canUpload = Boolean(accessToken) && (isAdmin || (hasAuthorRole && isOwner));
+
+  if (uploadOnly && !canUpload) {
+    return null;
+  }
 
   async function uploadImage(file: File) {
     if (isUploading || !accessToken || !canUpload) {
@@ -174,12 +180,18 @@ export default function RecipeImageManager({
   }
 
   return (
-    <section aria-labelledby="recipe-images-heading" className="mt-8">
-      <h2 id="recipe-images-heading" className="text-xl font-semibold">
-        Ảnh công thức
-      </h2>
+    <section
+      aria-label={uploadOnly ? "Tải ảnh công thức lên" : undefined}
+      aria-labelledby={uploadOnly ? undefined : "recipe-images-heading"}
+      className="mt-8"
+    >
+      {!uploadOnly && (
+        <h2 id="recipe-images-heading" className="text-xl font-semibold">
+          Ảnh công thức
+        </h2>
+      )}
 
-      {images.length > 0 ? (
+      {!uploadOnly && images.length > 0 ? (
         <ul className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
           {images.map((image, index) => {
             const imageUrl = image.url;
@@ -209,9 +221,9 @@ export default function RecipeImageManager({
             );
           })}
         </ul>
-      ) : (
+      ) : !uploadOnly ? (
         <p className="mt-3 text-sm text-zinc-600">Công thức chưa có ảnh.</p>
-      )}
+      ) : null}
 
       {canUpload && <div
         onDragOver={(event) => {

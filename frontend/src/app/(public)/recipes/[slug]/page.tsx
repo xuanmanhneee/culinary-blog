@@ -1,134 +1,84 @@
 import type { Metadata } from "next";
-import { ChefHat, Clock3, Flame, Star, UsersRound } from "lucide-react";
+import { ChefHat, Clock3, Flame, Lock, UsersRound } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import RecipeImageManager from "@/components/recipes/RecipeImageManager";
 import { RecipeActions } from "@/components/recipes/RecipeActions";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { RecipeGallery } from "@/components/recipes/detail/RecipeGallery";
+import { RecipeIngredients } from "@/components/recipes/detail/RecipeIngredients";
+import { RecipeNutrition } from "@/components/recipes/detail/RecipeNutrition";
+import { RecipeOwnerActions } from "@/components/recipes/detail/RecipeOwnerActions";
 import RecipeJsonLd from "@/components/seo/RecipeJsonLd";
-import { getRecipeBySlug } from "@/lib/api/recipes";
-import { SITE_URL } from "@/lib/config/env";
-import {
-  RECIPE_DIFFICULTY_LABELS,
-  RecipeStatus,
-  type RecipeDetailDto,
-} from "@/lib/types/recipe";
+import { getRecipeForViewer } from "@/lib/api/recipe-detail";
+import { formatDate } from "@/lib/recipe-format";
+import { RECIPE_DIFFICULTY_LABELS, RECIPE_STATUS_LABELS, type RecipeDetailDto } from "@/lib/types/recipe";
 import { formatMinutes } from "@/lib/utils";
 
-interface RecipePageProps {
-  params: Promise<{ slug: string }>;
-}
+interface RecipePageProps { params: Promise<{ slug: string }> }
 
-function limitText(value: string, maxLength: number): string {
-  return value.length > maxLength
-    ? `${value.slice(0, maxLength - 1).trimEnd()}…`
-    : value;
-}
+/** ISR: trang công khai được làm mới tối đa mỗi 300 giây (SRS 5.1). */
+export const revalidate = 300;
 
-function getPrimaryImage(recipe: RecipeDetailDto): string | undefined {
-  return recipe.images.find((image) => image.isPrimary)?.url ?? recipe.images[0]?.url;
+function primaryImage(recipe: RecipeDetailDto) {
+  return recipe.images.find((image) => image.isPrimary) ?? recipe.images[0];
 }
 
 export async function generateMetadata({ params }: RecipePageProps): Promise<Metadata> {
   const { slug } = await params;
-  const recipe = await getRecipeBySlug(slug);
+  const result = await getRecipeForViewer(slug);
+  if (result.kind !== "found") return { title: "Không tìm thấy công thức", robots: { index: false } };
 
-  if (!recipe) {
-    return {
-      title: "Không tìm thấy công thức",
-      robots: { index: false, follow: false },
-    };
-  }
-
-  const title = limitText(recipe.title, 60);
-  const description = limitText(recipe.description, 160);
-  const canonicalUrl = new URL(`/recipes/${recipe.slug}`, SITE_URL).toString();
-  const primaryImageUrl = getPrimaryImage(recipe);
-  const isPublished = recipe.status === RecipeStatus.Published;
-
+  const { recipe, isPreview } = result;
+  const image = primaryImage(recipe);
   return {
-    title,
-    description,
-    alternates: { canonical: canonicalUrl },
-    openGraph: {
-      title,
-      description,
-      url: canonicalUrl,
-      type: "article",
-      ...(primaryImageUrl
-        ? { images: [{ url: primaryImageUrl, width: 1200, height: 630 }] }
-        : {}),
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-      ...(primaryImageUrl ? { images: [primaryImageUrl] } : {}),
-    },
-    robots: isPublished ? "index, follow" : { index: false, follow: true },
+    title: recipe.title,
+    description: recipe.description,
+    openGraph: { title: recipe.title, description: recipe.description, type: "article", ...(image ? { images: [image.url] } : {}) },
+    // Bản nháp/lưu trữ chỉ chủ công thức xem trước, không cho công cụ tìm kiếm index.
+    robots: isPreview ? { index: false, follow: false } : undefined,
   };
 }
 
 export default async function RecipePage({ params }: RecipePageProps) {
   const { slug } = await params;
-  const recipe = await getRecipeBySlug(slug);
-  if (!recipe) notFound();
+  const result = await getRecipeForViewer(slug);
+  if (result.kind === "not-found") notFound();
+  if (result.kind === "forbidden") return <ForbiddenRecipe />;
 
-  const primaryImage = getPrimaryImage(recipe);
+  const { recipe, isPreview } = result;
+  const ingredients = [...recipe.ingredients].sort((a, b) => a.orderIndex - b.orderIndex);
+  const steps = [...recipe.steps].sort((a, b) => a.stepNumber - b.stepNumber);
   const categoryName = recipe.category?.name ?? "Công thức";
-  const authorName = recipe.author?.displayName;
-  const publishedDate = recipe.publishedAt
-    ? new Date(recipe.publishedAt).toLocaleDateString("vi-VN")
-    : undefined;
 
   return (
     <article>
-      <RecipeJsonLd data={recipe} />
+      {/* Structured data chỉ cho bản công khai; bản xem trước (noindex) không cần. */}
+      {!isPreview && <RecipeJsonLd data={recipe} />}
       <div className="site-container py-10 sm:py-14">
-        <div className="text-xs font-semibold text-[#81766d]">
-          <Link href="/" className="hover:text-[#1f4b3f]">Trang chủ</Link>
-          <span className="mx-2">/</span>
-          <Link href="/recipes" className="hover:text-[#1f4b3f]">Công thức</Link>
-          <span className="mx-2">/</span>
-          <span>{categoryName}</span>
-        </div>
+        <div className="text-xs font-semibold text-[#81766d]"><Link href="/" className="hover:text-[#1f4b3f]">Trang chủ</Link><span className="mx-2">/</span><Link href="/recipes" className="hover:text-[#1f4b3f]">Công thức</Link><span className="mx-2">/</span><span>{categoryName}</span></div>
+
+        {isPreview && (
+          <p role="status" className="mx-auto mt-6 max-w-4xl rounded-xl border border-[#e0cbb9] bg-[#fff6eb] px-4 py-3 text-center text-sm text-[#8e402c]">
+            Bạn đang xem trước công thức ở trạng thái <strong>{RECIPE_STATUS_LABELS[recipe.status]}</strong> – chỉ bạn và quản trị viên nhìn thấy trang này.
+          </p>
+        )}
 
         <header className="mx-auto mt-10 max-w-4xl text-center">
-          <span className="inline-flex rounded-full bg-[#efe5d8] px-4 py-2 text-xs font-bold text-[#8e402c]">
-            {categoryName}
-          </span>
-          <h1 className="font-display mt-5 text-5xl leading-[1.02] font-bold tracking-[-.05em] text-[#2b2622] sm:text-7xl">
-            {recipe.title}
-          </h1>
-          <p className="mx-auto mt-6 max-w-2xl text-base leading-8 text-[#70665e]">
-            {recipe.description}
-          </p>
+          <Badge variant="warm">{categoryName}</Badge>
+          <h1 className="font-display mt-5 text-5xl leading-[1.02] font-bold tracking-[-.05em] text-[#2b2622] sm:text-7xl">{recipe.title}</h1>
+          <p className="mx-auto mt-6 max-w-2xl text-base leading-8 text-[#70665e]">{recipe.description}</p>
           <div className="mt-7 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-sm text-[#665d55]">
-            {authorName && <span className="font-bold text-[#1f4b3f]">Bởi {authorName}</span>}
-            <span className="inline-flex items-center gap-1.5">
-              <Star className="size-4 fill-[#d99a42] text-[#d99a42]" />
-              Công thức từ cộng đồng Bếp Nhà
-            </span>
-            {publishedDate && <span>Cập nhật {publishedDate}</span>}
+            {recipe.author && <span className="font-bold text-[#1f4b3f]">Bởi {recipe.author.displayName}</span>}
+            {recipe.publishedAt && <span>Đăng ngày {formatDate(recipe.publishedAt)}</span>}
           </div>
+          <RecipeOwnerActions recipeId={recipe.id} authorId={recipe.author?.id} />
         </header>
 
-        <div className="relative mt-12 aspect-[16/8.2] min-h-[300px] overflow-hidden rounded-[2rem] bg-[#e4d8ca] sm:min-h-[360px]">
-          {primaryImage ? (
-            <Image
-              src={primaryImage}
-              alt={recipe.title}
-              fill
-              priority
-              unoptimized
-              sizes="(max-width: 1280px) 100vw, 1200px"
-              className="object-cover"
-            />
-          ) : (
-            <div className="grid size-full min-h-[300px] place-items-center text-[#8a7461]">
-              <ChefHat className="size-16" aria-hidden="true" />
-            </div>
-          )}
+        <div className="relative">
+          <RecipeGallery images={recipe.images} title={recipe.title} />
           <RecipeActions title={recipe.title} />
         </div>
 
@@ -141,70 +91,47 @@ export default async function RecipePage({ params }: RecipePageProps) {
 
         <div className="mx-auto grid max-w-5xl gap-14 py-20 lg:grid-cols-[.72fr_1.28fr]">
           <aside>
-            <div className="sticky top-28 rounded-[1.5rem] bg-[#efe5d8] p-7 sm:p-8">
-              <p className="text-xs font-bold uppercase tracking-[.16em] text-[#a64e37]">Chuẩn bị</p>
-              <h2 className="font-display mt-2 text-3xl font-bold text-[#302a26]">Nguyên liệu</h2>
-              <p className="mt-2 text-sm text-[#766b62]">Cho {recipe.servings} người ăn</p>
-              <ul className="mt-7 space-y-4">
-                {recipe.ingredients.map((ingredient) => (
-                  <li key={ingredient.id} className="flex gap-3 text-sm leading-6 text-[#4e4741]">
-                    <span className="mt-2 size-1.5 shrink-0 rounded-full bg-[#b65338]" />
-                    <span>
-                      {[ingredient.quantity, ingredient.unit, ingredient.name].filter(Boolean).join(" ")}
-                      {ingredient.notes && <span className="text-[#766b62]"> ({ingredient.notes})</span>}
-                    </span>
-                  </li>
-                ))}
-              </ul>
+            <div className="sticky top-28">
+              <div className="rounded-[1.5rem] bg-[#efe5d8] p-7 sm:p-8">
+                <p className="text-xs font-bold uppercase tracking-[.16em] text-[#a64e37]">Chuẩn bị</p>
+                <h2 className="font-display mt-2 text-3xl font-bold text-[#302a26]">Nguyên liệu</h2>
+                <RecipeIngredients ingredients={ingredients} servings={recipe.servings} />
+              </div>
+              <RecipeNutrition nutrition={recipe.nutrition} />
             </div>
           </aside>
           <section>
             <p className="text-xs font-bold uppercase tracking-[.16em] text-[#1f4b3f]">Cùng vào bếp</p>
             <h2 className="font-display mt-2 text-4xl font-bold text-[#302a26]">Cách thực hiện</h2>
-            <ol className="mt-9 space-y-9">
-              {recipe.steps.map((step, index) => (
-                <li key={step.id} className="grid grid-cols-[3rem_1fr] gap-4 border-b border-[#e0d6ca] pb-9">
-                  <span className="font-display grid size-11 place-items-center rounded-full bg-[#1f4b3f] text-lg font-bold text-white">
-                    {index + 1}
-                  </span>
-                  <div>
-                    <h3 className="font-display text-2xl font-bold text-[#332d28]">{step.title}</h3>
-                    <p className="mt-2 text-sm leading-7 text-[#71675f]">{step.description}</p>
-                    {step.timerMinutes !== null && (
-                      <p className="mt-2 text-xs font-semibold text-[#8e402c]">
-                        Thời gian: {formatMinutes(step.timerMinutes)}
-                      </p>
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ol>
-            {recipe.instructions && (
-              <p className="mt-8 rounded-[1.4rem] border border-[#e0cbb9] bg-[#fff6eb] p-6 text-sm leading-7 text-[#6e5e53]">
-                {recipe.instructions}
-              </p>
-            )}
+            <ol className="mt-9 space-y-9">{steps.map((step) => <li key={step.id} className="grid grid-cols-[3rem_1fr] gap-4 border-b border-[#e0d6ca] pb-9"><span className="font-display grid size-11 place-items-center rounded-full bg-[#1f4b3f] text-lg font-bold text-white">{step.stepNumber}</span><div><h3 className="font-display text-2xl font-bold text-[#332d28]">{step.title}</h3>{step.timerMinutes && <p className="mt-1 inline-flex items-center gap-1.5 text-xs font-semibold text-[#a64e37]"><Clock3 className="size-3.5" aria-hidden />{formatMinutes(step.timerMinutes)}</p>}<p className="mt-2 text-sm leading-7 whitespace-pre-line text-[#71675f]">{step.description}</p>{step.imageUrl && <div className="relative mt-4 aspect-[16/10] overflow-hidden rounded-xl bg-[#e4d8ca]"><Image src={step.imageUrl} alt={`${step.title} – minh hoạ`} fill unoptimized sizes="(max-width: 1024px) 100vw, 640px" className="object-cover" /></div>}</div></li>)}</ol>
+            {recipe.instructions.trim() && <div className="mt-10 rounded-[1.4rem] border border-[#e0cbb9] bg-[#fff6eb] p-6"><p className="font-display text-xl font-bold text-[#8e402c]">Ghi chú của tác giả</p><p className="mt-2 text-sm leading-7 whitespace-pre-line text-[#6e5e53]">{recipe.instructions}</p></div>}
           </section>
         </div>
-
         <RecipeImageManager
           recipeId={recipe.id}
           images={recipe.images}
           authorId={recipe.author?.id}
+          uploadOnly
         />
       </div>
     </article>
   );
 }
 
-function Info({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+/** Draft/Archived mà người xem không phải chủ công thức hoặc Admin (backend trả 403). */
+function ForbiddenRecipe() {
   return (
-    <div className="flex items-center justify-center gap-3 px-4 py-3">
-      <span className="text-[#b65338] [&>svg]:size-5">{icon}</span>
-      <div>
-        <dt className="text-[10px] font-bold uppercase tracking-[.13em] text-[#8a8077]">{label}</dt>
-        <dd className="mt-1 text-sm font-bold text-[#3a342f]">{value}</dd>
+    <div className="site-container py-24">
+      <div className="mx-auto flex max-w-lg flex-col items-center rounded-[1.5rem] border border-[#e1d5c7] bg-white/65 px-6 py-12 text-center">
+        <span className="grid size-12 place-items-center rounded-full bg-[#f3dfcf] text-[#a94731]"><Lock /></span>
+        <h1 className="font-display mt-5 text-2xl font-bold text-[#2e2925]">Công thức chưa được công khai</h1>
+        <p className="mt-2 text-sm leading-6 text-[#70675f]">Công thức này đang là bản nháp hoặc đã được lưu trữ. Chỉ tác giả và quản trị viên mới xem được.</p>
+        <Button asChild className="mt-6"><Link href="/recipes">Xem các công thức khác</Link></Button>
       </div>
     </div>
   );
+}
+
+function Info({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+  return <div className="flex items-center justify-center gap-3 px-4 py-3"><span className="text-[#b65338] [&>svg]:size-5">{icon}</span><div><dt className="text-[10px] font-bold uppercase tracking-[.13em] text-[#8a8077]">{label}</dt><dd className="mt-1 text-sm font-bold text-[#3a342f]">{value}</dd></div></div>;
 }
