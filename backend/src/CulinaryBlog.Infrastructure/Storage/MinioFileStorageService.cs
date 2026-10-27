@@ -63,6 +63,25 @@ public sealed class MinioFileStorageService : IFileStorageService
         return $"{endpoint}/{Uri.EscapeDataString(_options.BucketName)}/{Uri.EscapeDataString(key).Replace("%2F", "/", StringComparison.OrdinalIgnoreCase)}";
     }
 
+    public async Task DeleteAsync(string url, CancellationToken cancellationToken)
+    {
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
+            throw new InvalidDataException("Invalid object storage URL.");
+
+        var segments = uri.AbsolutePath.Trim('/').Split('/', 2, StringSplitOptions.RemoveEmptyEntries);
+        if (segments.Length != 2 ||
+            !string.Equals(Uri.UnescapeDataString(segments[0]), _options.BucketName, StringComparison.Ordinal))
+        {
+            throw new InvalidDataException("The URL does not belong to the configured object storage bucket.");
+        }
+
+        await _client.DeleteObjectAsync(new DeleteObjectRequest
+        {
+            BucketName = _options.BucketName,
+            Key = Uri.UnescapeDataString(segments[1])
+        }, cancellationToken);
+    }
+
     private async Task EnsureBucketExistsAsync(CancellationToken cancellationToken)
     {
         try

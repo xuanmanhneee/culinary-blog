@@ -22,8 +22,8 @@ public class RecipeIngredientConfiguration : IEntityTypeConfiguration<RecipeIngr
         builder.Property(i => i.CreatedAt).IsRequired();
         builder.Property(i => i.IsDeleted).HasDefaultValue(false);
         builder.Property(i => i.RowVersion)
-            .IsRowVersion()
-            .HasDefaultValueSql("decode('', 'hex')");
+            .IsConcurrencyToken()
+            .ValueGeneratedNever();
 
     }
 }

@@ -12,7 +12,7 @@ namespace CulinaryBlog.API.Endpoints;
 /// FR-RCP-001: GET /api/v1/recipes
 /// FR-RCP-002: GET /api/v1/recipes/{slug}
 /// FR-RCP-003: POST /api/v1/recipes
-/// FR-RCP-004: GET /api/v1/recipes/{id:guid} (trang edit, trả ETag), PUT /api/v1/recipes/{id:guid} (If-Match)
+/// FR-RCP-004: GET /api/v1/recipes/by-id/{id:guid} (trang edit, trả ETag), PUT /api/v1/recipes/{id:guid} (If-Match)
 /// FR-RCP-005: PATCH /api/v1/recipes/{id:guid}/publish | /unpublish
 /// FR-RCP-006: PATCH /api/v1/recipes/{id:guid}/archive
 /// FR-RCP-007: DELETE /api/v1/recipes/{id:guid}
@@ -60,7 +60,7 @@ public static class RecipeEndpoints
             .ProducesAuthProblems();
 
         // {id:guid} khai báo riêng để không bị route {slug} bắt mất.
-        authorized.MapGet("/{id:guid}", GetByIdAsync)
+        authorized.MapGet("/by-id/{id:guid}", GetByIdAsync)
             .WithName("GetRecipeById")
             .WithSummary("Chi tiết công thức theo id (trang chỉnh sửa)")
             .WithDescription("FR-RCP-004. Chỉ owner hoặc Admin. Trả header ETag = rowVersion, gửi lại qua If-Match khi cập nhật.")

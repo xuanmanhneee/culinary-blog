@@ -62,9 +62,7 @@ namespace CulinaryBlog.Infrastructure.Persistence.Migrations
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
                         .IsRequired()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("bytea")
-                        .HasDefaultValueSql("decode('', 'hex')");
+                        .HasColumnType("bytea");
 
                     b.Property<string>("Slug")
                         .IsRequired()
@@ -260,9 +258,7 @@ namespace CulinaryBlog.Infrastructure.Persistence.Migrations
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
                         .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bytea")
-                        .HasDefaultValueSql("decode('', 'hex')");
+                        .HasColumnType("bytea");
 
                     b.Property<string>("SearchTextNormalized")
                         .ValueGeneratedOnAddOrUpdate()
@@ -380,9 +376,7 @@ namespace CulinaryBlog.Infrastructure.Persistence.Migrations
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
                         .IsRequired()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("bytea")
-                        .HasDefaultValueSql("decode('', 'hex')");
+                        .HasColumnType("bytea");
 
                     b.Property<string>("ThumbnailUrl")
                         .HasMaxLength(500)
@@ -436,9 +430,7 @@ namespace CulinaryBlog.Infrastructure.Persistence.Migrations
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
                         .IsRequired()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("bytea")
-                        .HasDefaultValueSql("decode('', 'hex')");
+                        .HasColumnType("bytea");
 
                     b.Property<string>("Unit")
                         .HasMaxLength(50)
@@ -483,9 +475,7 @@ namespace CulinaryBlog.Infrastructure.Persistence.Migrations
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
                         .IsRequired()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("bytea")
-                        .HasDefaultValueSql("decode('', 'hex')");
+                        .HasColumnType("bytea");
 
                     b.Property<int>("StepNumber")
                         .HasColumnType("integer");

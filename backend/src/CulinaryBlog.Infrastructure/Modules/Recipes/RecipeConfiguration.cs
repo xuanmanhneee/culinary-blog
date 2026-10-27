@@ -67,7 +67,7 @@ public class RecipeConfiguration : IEntityTypeConfiguration<Recipe>
         // (AuditInterceptor đổi giá trị mỗi lần Added/Modified) và EF so sánh trong WHERE.
         builder.Property(r => r.RowVersion)
             .IsConcurrencyToken()
-            .HasDefaultValueSql("decode('', 'hex')");
+            .ValueGeneratedNever();
 
         // Full-text search: "simple" có sẵn trong PostgreSQL và giữ nguyên từ tiếng Việt.
         // Là shadow property để Domain không phải phụ thuộc NpgsqlTypes; query qua EF.Property

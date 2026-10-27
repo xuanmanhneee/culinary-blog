@@ -30,6 +30,7 @@ public static class RecipeImageEndpoints
             .Accepts<IFormFile>("multipart/form-data")
             .Produces<RecipeImageDto>(StatusCodes.Status201Created)
             .ProducesValidationProblem()
+            .RequireRateLimiting(RateLimitPolicies.Upload)
             .DisableAntiforgery();
 
         group.MapPatch("/{imageId:guid}/primary", SetPrimaryAsync)

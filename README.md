@@ -31,8 +31,8 @@ Hệ thống theo mô hình Client–Server, giao tiếp qua REST API. Backend t
 | Frontend | Next.js 14+ (App Router), TypeScript, Tailwind CSS, Auth.js v5, TanStack Query, React Hook Form + Zod |
 | Backend | .NET 10 Minimal APIs, C#, MediatR (CQRS), FluentValidation |
 | Database | PostgreSQL 16 (EF Core Code First, Full-Text Search) |
-| Cache | Redis 7 |
-| Object Storage | MinIO (S3-Compatible) |
+| Cache | Adapter boundary available; distributed cache is not enabled yet |
+| Object Storage | Local files (Development), MinIO/S3-compatible (Production) |
 | Reverse Proxy | Nginx |
 | Observability | Serilog + Seq, OpenTelemetry (Grafana/Jaeger) |
 | Background Jobs | Hangfire |
@@ -124,7 +124,7 @@ culinary-blog/
 |---|---|
 | .NET SDK | 10.0.x |
 | Node.js | 20+ LTS (npm 10+) |
-| Docker | Docker Desktop 4.x+ / Docker Engine (để chạy PostgreSQL, Redis, MinIO local) |
+| Docker | Docker Desktop 4.x+ / Docker Engine (để chạy PostgreSQL và Mailhog local) |
 | Git | 2.40+ |
 | IDE | Visual Studio 2022 17.12+ / Rider 2024+ / VS Code + C# Dev Kit |
 
@@ -135,7 +135,7 @@ culinary-blog/
 git clone https://github.com/xuanmanhneee/culinary-blog.git
 cd culinary-blog
 
-# 2. Khởi động các service phụ trợ (PostgreSQL, Redis, MinIO, Seq, Mailhog)
+# 2. Khởi động các service phụ trợ (PostgreSQL, Mailhog)
 docker compose up -d
 
 # 3. Backend
@@ -157,8 +157,6 @@ Sau khi chạy, ứng dụng khả dụng tại:
 | Frontend | http://localhost:3000 |
 | Backend API | http://localhost:5000 |
 | API Docs (Scalar) | http://localhost:5000/scalar |
-| MinIO Console | http://localhost:9001 |
-| Seq (logs, dev only) | http://localhost:5341 |
 | Mailhog (dev only) | http://localhost:8025 |
 
 ### Triển khai Production
@@ -186,7 +184,7 @@ Base URL: `/api/v1` · Auth: `Bearer JWT` · Lỗi theo chuẩn **RFC 7807** (`a
 
 | Module | Endpoint gốc | Mô tả |
 |---|---|---|
-| Authentication | `/auth` | Đăng ký, đăng nhập (email/password, Google OAuth 2.0), refresh/revoke token, hồ sơ cá nhân |
+| Authentication | `/auth` | Đăng ký, đăng nhập email/password, refresh/revoke token, hồ sơ cá nhân |
 | Categories | `/categories` | CRUD danh mục công thức |
 | Recipes | `/recipes` | CRUD, publish/unpublish/archive, tìm kiếm full-text |
 | Recipe Images | `/recipes/{id}/images` | Upload / cập nhật / xoá ảnh |

@@ -25,7 +25,8 @@ public class RecipeRepository : IRecipeRepository
             .Include(r => r.Ingredients)
             .Include(r => r.Images)
             .Include(r => r.Category)
-            .Include(r => r.Author);
+            .Include(r => r.Author)
+            .AsSplitQuery();
 
     public async Task<(IReadOnlyList<Recipe> Items, int TotalCount)> GetPagedAsync(
         int page,
@@ -92,6 +93,9 @@ public class RecipeRepository : IRecipeRepository
         await _context.Recipes
             .Include(r => r.Images)
             .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
+
+    public void AddImage(RecipeImage image) =>
+        _context.Entry(image).State = EntityState.Added;
 
     public void AddStep(RecipeStep step) =>
         _context.Entry(step).State = EntityState.Added;

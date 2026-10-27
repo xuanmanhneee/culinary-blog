@@ -10,6 +10,19 @@ public static class StorageDependencyInjection
 {
     public static IServiceCollection AddMinioStorage(this IServiceCollection services, IConfiguration configuration)
     {
+        services.AddHttpContextAccessor();
+        services.AddScoped<ICurrentUserService, HttpCurrentUserService>();
+
+        if (string.Equals(
+                configuration["Storage:Provider"],
+                "Local",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            services.AddScoped<IFileStorageService, LocalFileStorageService>();
+            services.AddScoped<ICacheService, LoggingCacheService>();
+            return services;
+        }
+
         services.Configure<MinioOptions>(configuration.GetSection("Minio"));
         services.AddSingleton<IAmazonS3>(provider =>
         {
@@ -23,8 +36,6 @@ public static class StorageDependencyInjection
         });
         services.AddScoped<IFileStorageService, MinioFileStorageService>();
         services.AddScoped<ICacheService, LoggingCacheService>();
-        services.AddHttpContextAccessor();
-        services.AddScoped<ICurrentUserService, HttpCurrentUserService>();
         return services;
     }
 }

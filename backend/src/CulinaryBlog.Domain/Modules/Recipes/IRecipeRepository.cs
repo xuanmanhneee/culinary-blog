@@ -37,6 +37,9 @@ public interface IRecipeRepository : IRepository<Recipe>
 
     Task<Recipe?> GetByIdWithImagesAsync(Guid id, CancellationToken cancellationToken = default);
 
+    /// <summary>Đánh dấu ảnh mới là Added vì entity dùng UUID được sinh trước khi EF theo dõi.</summary>
+    void AddImage(RecipeImage image);
+
     /// <summary>Đánh dấu bước mới là Added, cùng lý do với <see cref="AddIngredient"/>.</summary>
     void AddStep(RecipeStep step);
 

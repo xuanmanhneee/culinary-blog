@@ -16,9 +16,8 @@ public abstract class BaseEntity
     public bool IsDeleted { get; set; }
 
     /// <summary>
-    /// Concurrency token. EF Core map sang cột "bytea" (timestamp) trên PostgreSQL
-    /// thông qua .IsRowVersion() trong Configuration, KHÔNG dùng [Timestamp] attribute
-    /// (attribute đó chỉ hoạt động chuẩn trên SQL Server).
+    /// Concurrency token do ứng dụng sinh. PostgreSQL không tự sinh byte[] rowversion
+    /// như SQL Server; AuditInterceptor đổi token khi entity được thêm hoặc cập nhật.
     /// </summary>
     public byte[] RowVersion { get; set; } = Array.Empty<byte>();
 }

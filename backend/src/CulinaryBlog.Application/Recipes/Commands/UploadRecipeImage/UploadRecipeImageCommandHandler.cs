@@ -8,6 +8,7 @@ using CulinaryBlog.Domain.Modules.Recipes;
 using CulinaryBlog.Application.Recipes.Services;
 using MediatR;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 
 namespace CulinaryBlog.Application.Recipes.Commands.UploadRecipeImage;
 
@@ -18,19 +19,22 @@ public sealed class UploadRecipeImageCommandHandler : IRequestHandler<UploadReci
     private readonly RecipeAuthorizationHandler _authorization;
     private readonly IFileStorageService _storage;
     private readonly ICacheService _cache;
+    private readonly ILogger<UploadRecipeImageCommandHandler> _logger;
 
     public UploadRecipeImageCommandHandler(
         IRecipeRepository recipes,
         IUnitOfWork unitOfWork,
         RecipeAuthorizationHandler authorization,
         IFileStorageService storage,
-        ICacheService cache)
+        ICacheService cache,
+        ILogger<UploadRecipeImageCommandHandler> logger)
     {
         _recipes = recipes;
         _unitOfWork = unitOfWork;
         _authorization = authorization;
         _storage = storage;
         _cache = cache;
+        _logger = logger;
     }
 
     public async Task<RecipeImageDto> Handle(UploadRecipeImageCommand request, CancellationToken cancellationToken)
@@ -44,11 +48,28 @@ public sealed class UploadRecipeImageCommandHandler : IRequestHandler<UploadReci
         await ValidateMagicBytesAsync(request.File, cancellationToken);
 
         var url = await _storage.UploadAsync(recipe.Id, request.File, cancellationToken);
-        recipe.AddImage(url, isPrimary: recipe.Images.Count == 0);
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        RecipeImage image;
+        try
+        {
+            image = recipe.AddImage(url, isPrimary: recipe.Images.Count == 0);
+            _recipes.AddImage(image);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+        }
+        catch
+        {
+            try
+            {
+                await _storage.DeleteAsync(url, CancellationToken.None);
+            }
+            catch (Exception cleanupException)
+            {
+                _logger.LogWarning(cleanupException, "Could not remove orphaned upload {Url}", url);
+            }
+
+            throw;
+        }
         await _cache.EvictByTagAsync("recipes", cancellationToken);
 
-        var image = recipe.Images.Last();
         return new RecipeImageDto(
             image.Id,
             image.OriginalUrl,
