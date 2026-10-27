@@ -4,7 +4,7 @@
  * để UI hiển thị theo mã lỗi (`type`, ví dụ RECIPE_FORBIDDEN) hoặc theo field (`errors`).
  */
 
-import { API_URL } from "@/lib/config/env";
+import { API_URL, API_V1 } from "@/lib/config/env";
 import type { ProblemDetails } from "@/lib/types/api";
 
 export { API_URL };
@@ -132,7 +132,8 @@ export async function apiFetchWithHeaders<T>(
   }
   let response: Response;
   try {
-    response = await fetch(`${API_URL}${path}`, { ...init, headers: requestHeaders, body: requestBody });
+    // Các hàm apiFetch nhận path tương đối dưới `/api/v1` (ví dụ `/recipes`).
+    response = await fetch(`${API_V1}${path}`, { ...init, headers: requestHeaders, body: requestBody });
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") throw error;
     throw new ApiNetworkError("Không thể kết nối đến máy chủ. Vui lòng kiểm tra mạng và thử lại.", error);

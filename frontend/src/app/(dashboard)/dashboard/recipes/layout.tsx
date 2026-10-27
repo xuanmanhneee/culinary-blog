@@ -3,8 +3,8 @@ import type { ReactNode } from "react";
 
 export const metadata: Metadata = {
   title: {
-    template: "%s | Quản lý công thức | Culinary Blog",
-    default: "Quản lý công thức | Culinary Blog",
+    template: "%s | Bếp Nhà",
+    default: "Quản lý công thức | Bếp Nhà",
   },
 };
 

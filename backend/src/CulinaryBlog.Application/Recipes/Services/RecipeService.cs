@@ -48,12 +48,16 @@ public sealed class RecipeService : IRecipeService
     {
         ValidateQuery(query);
 
-        // Guest: chỉ Published. Author: thêm Draft/Archived của mình. Admin: mọi trạng thái.
+        // mine=true: chỉ recipe của chính mình, mọi trạng thái (cần đăng nhập, 401 nếu chưa).
+        // Ngược lại – Guest: chỉ Published; Author: thêm Draft/Archived của mình; Admin: mọi trạng thái.
+        var mineAuthorId = query.Mine ? _authorization.RequireUserId() : null;
         var result = await _recipes.GetPagedAsync(
             query.Page,
             query.PageSize,
-            _authorization.IsAdmin,
-            _authorization.CurrentUserId,
+            includeAllStatuses: query.Mine || _authorization.IsAdmin,
+            ownerId: _authorization.CurrentUserId,
+            authorId: mineAuthorId,
+            status: query.Status,
             query.CategoryId,
             query.Difficulty,
             query.MaxCookTime,
@@ -276,6 +280,8 @@ public sealed class RecipeService : IRecipeService
             errors["pageSize"] = [$"pageSize phải trong khoảng 1–{MaxPageSize}."];
         if (query.Difficulty.HasValue && !Enum.IsDefined(query.Difficulty.Value))
             errors["difficulty"] = ["difficulty không hợp lệ."];
+        if (query.Status.HasValue && !Enum.IsDefined(query.Status.Value))
+            errors["status"] = ["status không hợp lệ."];
         if (query.MaxCookTime is < 0)
             errors["maxCookTime"] = ["maxCookTime không được âm."];
         if (query.Sort is not null && !SortOptions.Contains(query.Sort))
