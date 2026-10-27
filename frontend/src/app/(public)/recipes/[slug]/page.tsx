@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
-import { ChefHat, Clock3, Flame, ImageOff, Lock, UsersRound } from "lucide-react";
+import { ChefHat, Clock3, Flame, Lock, UsersRound } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { formatIngredient } from "@/components/recipes/detail/ingredient-format";
+import { RecipeGallery } from "@/components/recipes/detail/RecipeGallery";
+import { RecipeIngredients } from "@/components/recipes/detail/RecipeIngredients";
+import { RecipeNutrition } from "@/components/recipes/detail/RecipeNutrition";
+import { RecipeOwnerActions } from "@/components/recipes/detail/RecipeOwnerActions";
 import { getRecipeForViewer } from "@/lib/api/recipe-detail";
 import { formatDate } from "@/lib/recipe-format";
 import { RECIPE_DIFFICULTY_LABELS, RECIPE_STATUS_LABELS, type RecipeDetailDto } from "@/lib/types/recipe";
@@ -43,7 +46,6 @@ export default async function RecipePage({ params }: RecipePageProps) {
   if (result.kind === "forbidden") return <ForbiddenRecipe />;
 
   const { recipe, isPreview } = result;
-  const image = primaryImage(recipe);
   const ingredients = [...recipe.ingredients].sort((a, b) => a.orderIndex - b.orderIndex);
   const steps = [...recipe.steps].sort((a, b) => a.stepNumber - b.stepNumber);
   const categoryName = recipe.category?.name ?? "Công thức";
@@ -67,16 +69,10 @@ export default async function RecipePage({ params }: RecipePageProps) {
             {recipe.author && <span className="font-bold text-[#1f4b3f]">Bởi {recipe.author.displayName}</span>}
             {recipe.publishedAt && <span>Đăng ngày {formatDate(recipe.publishedAt)}</span>}
           </div>
+          <RecipeOwnerActions recipeId={recipe.id} authorId={recipe.author?.id} />
         </header>
 
-        <div className="relative mt-12 aspect-[16/8.2] min-h-[360px] overflow-hidden rounded-[2rem] bg-[#e4d8ca]">
-          {image ? (
-            // Ảnh nằm trên MinIO/thư mục upload của backend (host đổi theo môi trường) nên không qua bộ tối ưu ảnh.
-            <Image src={image.url} alt={image.altText ?? recipe.title} fill priority unoptimized sizes="(max-width: 1280px) 100vw, 1200px" className="object-cover" />
-          ) : (
-            <div className="grid size-full place-items-center text-[#9a8f84]"><ImageOff className="size-10" aria-hidden /><span className="sr-only">Chưa có ảnh</span></div>
-          )}
-        </div>
+        <RecipeGallery images={recipe.images} title={recipe.title} />
 
         <dl className="mx-auto -mt-1 grid max-w-4xl grid-cols-2 divide-x divide-y divide-[#ded3c6] rounded-b-[1.5rem] border border-[#ded3c6] bg-white px-4 py-5 shadow-[0_18px_40px_rgba(80,59,39,.07)] sm:grid-cols-4 sm:divide-y-0">
           <Info icon={<Clock3 />} label="Chuẩn bị" value={formatMinutes(recipe.prepTimeMinutes)} />
@@ -87,21 +83,19 @@ export default async function RecipePage({ params }: RecipePageProps) {
 
         <div className="mx-auto grid max-w-5xl gap-14 py-20 lg:grid-cols-[.72fr_1.28fr]">
           <aside>
-            <div className="sticky top-28 rounded-[1.5rem] bg-[#efe5d8] p-7 sm:p-8">
-              <p className="text-xs font-bold uppercase tracking-[.16em] text-[#a64e37]">Chuẩn bị</p>
-              <h2 className="font-display mt-2 text-3xl font-bold text-[#302a26]">Nguyên liệu</h2>
-              <p className="mt-2 text-sm text-[#766b62]">Cho {recipe.servings} người ăn</p>
-              {ingredients.length === 0 ? (
-                <p className="mt-7 text-sm text-[#766b62]">Công thức chưa có nguyên liệu.</p>
-              ) : (
-                <ul className="mt-7 space-y-4">{ingredients.map((ingredient) => <li key={ingredient.id} className="flex gap-3 text-sm leading-6 text-[#4e4741]"><span className="mt-2 size-1.5 shrink-0 rounded-full bg-[#b65338]" /><span>{formatIngredient(ingredient)}{ingredient.notes && <span className="text-[#8a7f76]"> – {ingredient.notes}</span>}</span></li>)}</ul>
-              )}
+            <div className="sticky top-28">
+              <div className="rounded-[1.5rem] bg-[#efe5d8] p-7 sm:p-8">
+                <p className="text-xs font-bold uppercase tracking-[.16em] text-[#a64e37]">Chuẩn bị</p>
+                <h2 className="font-display mt-2 text-3xl font-bold text-[#302a26]">Nguyên liệu</h2>
+                <RecipeIngredients ingredients={ingredients} servings={recipe.servings} />
+              </div>
+              <RecipeNutrition nutrition={recipe.nutrition} />
             </div>
           </aside>
           <section>
             <p className="text-xs font-bold uppercase tracking-[.16em] text-[#1f4b3f]">Cùng vào bếp</p>
             <h2 className="font-display mt-2 text-4xl font-bold text-[#302a26]">Cách thực hiện</h2>
-            <ol className="mt-9 space-y-9">{steps.map((step) => <li key={step.id} className="grid grid-cols-[3rem_1fr] gap-4 border-b border-[#e0d6ca] pb-9"><span className="font-display grid size-11 place-items-center rounded-full bg-[#1f4b3f] text-lg font-bold text-white">{step.stepNumber}</span><div><h3 className="font-display text-2xl font-bold text-[#332d28]">{step.title}</h3>{step.timerMinutes && <p className="mt-1 inline-flex items-center gap-1.5 text-xs font-semibold text-[#a64e37]"><Clock3 className="size-3.5" aria-hidden />{formatMinutes(step.timerMinutes)}</p>}<p className="mt-2 text-sm leading-7 whitespace-pre-line text-[#71675f]">{step.description}</p></div></li>)}</ol>
+            <ol className="mt-9 space-y-9">{steps.map((step) => <li key={step.id} className="grid grid-cols-[3rem_1fr] gap-4 border-b border-[#e0d6ca] pb-9"><span className="font-display grid size-11 place-items-center rounded-full bg-[#1f4b3f] text-lg font-bold text-white">{step.stepNumber}</span><div><h3 className="font-display text-2xl font-bold text-[#332d28]">{step.title}</h3>{step.timerMinutes && <p className="mt-1 inline-flex items-center gap-1.5 text-xs font-semibold text-[#a64e37]"><Clock3 className="size-3.5" aria-hidden />{formatMinutes(step.timerMinutes)}</p>}<p className="mt-2 text-sm leading-7 whitespace-pre-line text-[#71675f]">{step.description}</p>{step.imageUrl && <div className="relative mt-4 aspect-[16/10] overflow-hidden rounded-xl bg-[#e4d8ca]"><Image src={step.imageUrl} alt={`${step.title} – minh hoạ`} fill unoptimized sizes="(max-width: 1024px) 100vw, 640px" className="object-cover" /></div>}</div></li>)}</ol>
             {recipe.instructions.trim() && <div className="mt-10 rounded-[1.4rem] border border-[#e0cbb9] bg-[#fff6eb] p-6"><p className="font-display text-xl font-bold text-[#8e402c]">Ghi chú của tác giả</p><p className="mt-2 text-sm leading-7 whitespace-pre-line text-[#6e5e53]">{recipe.instructions}</p></div>}
           </section>
         </div>
