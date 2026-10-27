@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { AuthSessionProvider } from "@/components/providers/AuthSessionProvider";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -13,7 +14,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="vi" className="h-full scroll-smooth antialiased" data-scroll-behavior="smooth">
-      <body className="min-h-full"><div className="min-h-screen overflow-x-clip">{children}</div></body>
+      <body className="min-h-full"><AuthSessionProvider><div className="min-h-screen overflow-x-clip">{children}</div></AuthSessionProvider></body>
     </html>
   );
 }
