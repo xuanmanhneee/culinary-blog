@@ -104,6 +104,7 @@ Login/Register form
 
 - Hỗ trợ đăng ký và đăng nhập bằng email/mật khẩu qua backend.
 - Đổi mật khẩu yêu cầu mật khẩu hiện tại; backend dùng ASP.NET Core Identity và thu hồi các refresh token đang hoạt động sau khi đổi thành công.
+- Trang `/account` cho phép cập nhật họ tên, ảnh đại diện và bio qua `PATCH /auth/me`; đổi mật khẩu gọi `POST /auth/change-password`. Session Auth.js đồng bộ profile mới và đăng xuất sau khi đổi mật khẩu vì refresh token bị thu hồi.
 - Quên/đặt lại mật khẩu chưa được triển khai: cần tích hợp dịch vụ gửi email trước khi công khai reset token an toàn.
 - Auth.js lưu backend tokens trong JWT session; không dùng Zustand làm nguồn token. Provider xóa localStorage của auth store cũ.
 - Đăng xuất Auth.js đồng thời gọi endpoint logout backend khi có token.

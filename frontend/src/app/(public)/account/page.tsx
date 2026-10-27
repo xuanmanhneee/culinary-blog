@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { Button } from "@/components/ui/button";
 import { ProfileForm } from "./ProfileForm";
+import { PasswordChangeForm } from "./PasswordChangeForm";
 
 export const metadata: Metadata = { title: "Tài khoản của tôi" };
 
@@ -20,6 +21,7 @@ export default async function AccountPage() {
 
         <div className="mt-9 grid gap-5 lg:grid-cols-2">
           <ProfileForm />
+          <PasswordChangeForm />
 
           <article id="settings" className="scroll-mt-28 rounded-[1.75rem] border border-[#ddd1c3] bg-[#fffdf9] p-6 sm:p-8">
             <div className="flex items-center gap-3"><span className="grid size-10 place-items-center rounded-full bg-[#e3eee7] text-[#1f4b3f]"><Settings className="size-5" /></span><div><h2 className="font-display text-2xl font-bold">Cài đặt tài khoản</h2><p className="text-xs text-[#80756d]">Tùy chỉnh trải nghiệm của bạn</p></div></div>

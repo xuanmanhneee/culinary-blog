@@ -247,6 +247,9 @@ public class AuthService : IAuthService
                 ? null
                 : request.AvatarUrl;
 
+        if (request.Bio is not null)
+            user.Bio = request.Bio.Trim();
+
         var result = await _users.UpdateAsync(user);
         if (!result.Succeeded)
             throw Invalid(ToErrors(result.Errors));
@@ -310,6 +313,7 @@ public class AuthService : IAuthService
             user.Email!,
             user.UserName!,
             user.AvatarUrl,
+            user.Bio,
             roles.ToList(),
             user.EmailConfirmed,
             user.CreatedAt);

@@ -13,7 +13,7 @@ public record ChangePasswordRequest(string CurrentPassword, string NewPassword);
 /// <summary>
 /// PATCH: field nào null thì giữ nguyên. AvatarUrl = "" nghĩa là xóa avatar.
 /// </summary>
-public record UpdateProfileRequest(string? FullName, string? AvatarUrl);
+public record UpdateProfileRequest(string? FullName, string? AvatarUrl, string? Bio = null);
 
 /// <summary>Thông tin user trả kèm token (FR-AUTH-001).</summary>
 public record AuthUserDto(
@@ -37,6 +37,7 @@ public record UserProfileDto(
     string Email,
     string UserName,
     string? AvatarUrl,
+    string? Bio,
     IReadOnlyList<string> Roles,
     bool EmailConfirmed,
     DateTimeOffset CreatedAt);

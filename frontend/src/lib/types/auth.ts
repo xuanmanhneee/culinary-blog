@@ -18,6 +18,7 @@ export interface AuthUserDto {
   email: string;
   userName: string;
   avatarUrl: string | null;
+  bio: string | null;
   roles: Role[];
 }
 
@@ -37,6 +38,7 @@ export interface UserProfileDto {
   email: string;
   userName: string;
   avatarUrl: string | null;
+  bio: string | null;
   roles: Role[];
   emailConfirmed: boolean;
   createdAt: IsoDateTime;
@@ -66,8 +68,15 @@ export interface LogoutRequest {
   refreshToken: string;
 }
 
-/** PATCH /api/v1/auth/me — field nào null/bỏ trống thì giữ nguyên; avatarUrl = "" nghĩa là xóa. */
+/** PATCH /api/v1/auth/me — field nào null thì giữ nguyên; avatarUrl = "" nghĩa là xóa. */
 export interface UpdateProfileRequest {
   fullName?: string | null;
   avatarUrl?: string | null;
+  bio?: string | null;
+}
+
+/** POST /api/v1/auth/change-password. */
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
 }

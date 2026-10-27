@@ -64,6 +64,9 @@ internal static class AuthRequestValidator
                 errors["avatarUrl"] = ["Avatar phải là URL http/https hợp lệ."];
         }
 
+        if (r.Bio?.Length > 500)
+            errors["bio"] = ["Giới thiệu tối đa 500 ký tự."];
+
         return errors;
     }
 

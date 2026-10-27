@@ -50,9 +50,17 @@ export function ProfileForm() {
       const updated = await updateMyProfile(session.accessToken, {
         fullName: String(form.get("fullName") ?? "").trim(),
         avatarUrl: String(form.get("avatarUrl") ?? "").trim(),
+        bio: String(form.get("bio") ?? "").trim(),
       });
       setProfile(updated);
-      await update({ user: { name: updated.fullName, image: updated.avatarUrl, roles: updated.roles } });
+      await update({
+        user: {
+          name: updated.fullName,
+          image: updated.avatarUrl,
+          roles: updated.roles,
+          bio: updated.bio,
+        },
+      });
       router.refresh();
       setSaved(true);
     } catch (requestError) {
@@ -85,6 +93,7 @@ export function ProfileForm() {
 
       <form onSubmit={handleSubmit} className="mt-7 space-y-4">
         <label className="block"><span className="form-label">Tên hiển thị</span><input className="form-input" name="fullName" defaultValue={profile.fullName} minLength={2} maxLength={100} required />{fieldErrors.fullName && <span className="mt-1 block text-xs text-red-700">{fieldErrors.fullName}</span>}</label>
+        <label className="block"><span className="form-label">Giới thiệu</span><textarea className="form-input min-h-24 resize-y py-3" name="bio" defaultValue={profile.bio ?? ""} maxLength={500} placeholder="Chia sẻ một chút về bạn và căn bếp của mình." />{fieldErrors.bio && <span className="mt-1 block text-xs text-red-700">{fieldErrors.bio}</span>}</label>
         <label className="block"><span className="form-label">Ảnh đại diện</span><input className="form-input" name="avatarUrl" type="url" defaultValue={profile.avatarUrl ?? ""} placeholder="https://..." />{fieldErrors.avatarUrl && <span className="mt-1 block text-xs text-red-700">{fieldErrors.avatarUrl}</span>}</label>
         <label className="block"><span className="form-label">Email</span><input className="form-input cursor-not-allowed bg-[#f2ece4] text-[#81766e]" value={profile.email} readOnly /></label>
         {error && <p role="alert" className="text-sm text-red-700">{error}</p>}

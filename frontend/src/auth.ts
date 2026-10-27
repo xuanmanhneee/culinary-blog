@@ -10,6 +10,7 @@ interface BackendSessionToken {
   refreshToken?: string;
   accessTokenExpiresAt?: number;
   roles?: Role[];
+  bio?: string | null;
   error?: "RefreshAccessTokenError";
 }
 
@@ -140,6 +141,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.name = session.user.name ?? token.name;
         token.picture = session.user.image ?? token.picture;
         token.roles = session.user.roles ?? token.roles;
+        token.bio = session.user.bio ?? token.bio;
       }
 
       const backend = token as typeof token & Partial<BackendSessionToken>;
@@ -155,6 +157,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       session.error = backend.error;
       session.user.id = token.sub ?? "";
       session.user.roles = backend.roles ?? [];
+      session.user.bio = backend.bio;
       return session;
     },
   },
