@@ -33,6 +33,8 @@ public class RecipeRepository : IRecipeRepository
         int pageSize,
         bool includeAllStatuses = false,
         string? ownerId = null,
+        string? authorId = null,
+        RecipeStatus? status = null,
         Guid? categoryId = null,
         RecipeDifficulty? difficulty = null,
         int? maxCookTime = null,
@@ -47,6 +49,8 @@ public class RecipeRepository : IRecipeRepository
                 ? query.Where(r => r.Status == RecipeStatus.Published)
                 : query.Where(r => r.Status == RecipeStatus.Published || r.AuthorId == ownerId);
         }
+        if (authorId is not null) query = query.Where(r => r.AuthorId == authorId);
+        if (status.HasValue) query = query.Where(r => r.Status == status.Value);
         if (categoryId.HasValue) query = query.Where(r => r.CategoryId == categoryId.Value);
         if (difficulty.HasValue) query = query.Where(r => r.Difficulty == difficulty.Value);
         if (maxCookTime.HasValue) query = query.Where(r => r.CookTime <= maxCookTime.Value);

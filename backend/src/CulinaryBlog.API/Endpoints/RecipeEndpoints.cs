@@ -32,7 +32,9 @@ public static class RecipeEndpoints
             .WithDescription(
                 "FR-RCP-001. Không gửi token: chỉ recipe Published. Gửi token: thêm Draft/Archived của chính mình; " +
                 "Admin thấy mọi trạng thái. sort: createdAt | title | cookTime, thêm \"-\" để giảm dần (mặc định -createdAt). " +
-                "pageSize 1–50 (mặc định 12). categoryId không tồn tại trả danh sách rỗng.")
+                "pageSize 1–50 (mặc định 12). categoryId không tồn tại trả danh sách rỗng. " +
+                "mine=true: chỉ công thức của người đang đăng nhập, mọi trạng thái (401 nếu chưa đăng nhập). " +
+                "status=0|1|2: lọc Draft/Published/Archived sau khi áp dụng quyền xem.")
             .Produces<PagedResult<RecipeListItemDto>>()
             .ProducesValidationProblem();
 
