@@ -42,9 +42,7 @@ export function Header() {
               <Link href="/login"><UserRound />Đăng nhập</Link>
             </Button>
           )}
-          <Button asChild>
-            <Link href="/dashboard/recipes/new">Chia sẻ món ngon</Link>
-          </Button>
+          {user && <Button asChild><Link href="/dashboard/recipes/new">Chia sẻ món ngon</Link></Button>}
         </div>
         <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setIsOpen((value) => !value)} aria-expanded={isOpen} aria-controls="mobile-navigation" aria-label={isOpen ? "Đóng menu" : "Mở menu"}>
           {isOpen ? <X /> : <Menu />}
@@ -59,7 +57,7 @@ export function Header() {
               </Link>
             ))}
             {!user && <Button variant="outline" className="mt-3" asChild><Link href="/login"><UserRound />Đăng nhập</Link></Button>}
-            <Button className="mt-3" asChild><Link href="/dashboard/recipes/new">Chia sẻ món ngon</Link></Button>
+            {user && <Button className="mt-3" asChild><Link href="/dashboard/recipes/new">Chia sẻ món ngon</Link></Button>}
           </nav>
         </div>
       )}
