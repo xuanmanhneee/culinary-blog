@@ -17,7 +17,11 @@ public class SearchRecipesQueryHandler : IRequestHandler<SearchRecipesQuery, Pag
         CancellationToken cancellationToken)
     {
         var result = await _searchReader.SearchAsync(
-            request.SearchTerm, request.Page, request.PageSize, cancellationToken);
+            request.SearchTerm,
+            request.Page,
+            request.PageSize,
+            request.CategorySlug,
+            cancellationToken);
 
         return PagedResult<RecipeSummaryDto>.Create(
             result.Items.Select(hit => new RecipeSummaryDto

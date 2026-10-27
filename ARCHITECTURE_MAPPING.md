@@ -68,7 +68,7 @@ Các endpoint dùng prefix `/api/v1`.
 | Recipe ingredients | Thêm, sửa, xóa ingredient theo recipe |
 | Recipe steps | Thêm, sửa, xóa step theo recipe |
 | Recipe images | Upload, chọn ảnh chính, xóa ảnh |
-| Categories | Đọc danh sách/chi tiết; tạo category dành cho Admin |
+| Categories | Đọc toàn bộ danh mục đang hoạt động theo thứ tự hiển thị; đọc chi tiết; tạo category dành cho Admin |
 
 `GET /recipes` hỗ trợ lọc dữ liệu của người dùng (`mine`) và trạng thái recipe, bên cạnh phân trang. Các route quản lý được bảo vệ bằng authentication/authorization; backend vẫn là nơi quyết định quyền sở hữu và quyền Admin.
 
@@ -76,7 +76,8 @@ Các endpoint dùng prefix `/api/v1`.
 
 - `GET /recipes/search` được xử lý qua `IRecipeSearchReader` trong Infrastructure, không dùng đường truy vấn generic của `IApplicationDbContext`.
 - Chỉ recipe đã Published xuất hiện trong kết quả.
-- Từ khóa được tách thành các term và tạo PostgreSQL `tsquery` kiểu prefix, kết hợp điều kiện fuzzy trigram (`pg_trgm`) trên `SearchTextNormalized`.
+- Từ khóa được tách thành các term và tạo PostgreSQL `tsquery` kiểu prefix với cấu hình `vietnamese` dùng unaccent dictionary, kết hợp điều kiện fuzzy trigram (`pg_trgm`) trên `SearchTextNormalized`.
+- Query nhận `categorySlug` tùy chọn để giới hạn kết quả theo slug danh mục.
 - Kết quả được xếp hạng bằng tổng điểm full-text và word-trigram similarity, sau đó phân trang ổn định theo ID.
 - Chuỗi fuzzy được chuyển chữ thường, bỏ dấu kết hợp và chuẩn hóa `đ` thành `d`. Search vector và text chuẩn hóa được duy trì bằng cấu hình/migration database.
 

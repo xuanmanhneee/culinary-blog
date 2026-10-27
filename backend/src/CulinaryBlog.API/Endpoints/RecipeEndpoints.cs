@@ -46,7 +46,7 @@ public static class RecipeEndpoints
         group.MapGet("/search", SearchAsync)
             .WithName("SearchRecipes")
             .WithSummary("Tìm kiếm toàn văn công thức đã xuất bản")
-            .WithDescription("FR-SEARCH-001. Tìm theo từ khóa q (tối thiểu 2 ký tự), hỗ trợ phân trang bằng page và pageSize (1–50).")
+            .WithDescription("FR-SEARCH-001. Tìm theo từ khóa q (tối thiểu 2 ký tự), lọc categorySlug tùy chọn, hỗ trợ phân trang bằng page và pageSize (1–50).")
             .Produces<PagedResult<RecipeSummaryDto>>()
             .ProducesValidationProblem();
 
@@ -226,9 +226,14 @@ public static class RecipeEndpoints
         CancellationToken cancellationToken,
         [FromQuery(Name = "q")] string? searchTerm = null,
         [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 10) =>
+        [FromQuery] int pageSize = 10,
+        [FromQuery] string? categorySlug = null) =>
         Results.Ok(await sender.Send(
-            new SearchRecipesQuery(searchTerm ?? string.Empty, page, pageSize),
+            new SearchRecipesQuery(
+                searchTerm ?? string.Empty,
+                page,
+                pageSize,
+                string.IsNullOrWhiteSpace(categorySlug) ? null : categorySlug.Trim()),
             cancellationToken));
 
     private static async Task<IResult> GetBySlugAsync(

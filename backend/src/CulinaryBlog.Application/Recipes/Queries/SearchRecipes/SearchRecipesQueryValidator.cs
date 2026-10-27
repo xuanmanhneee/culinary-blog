@@ -12,7 +12,11 @@ public class SearchRecipesQueryValidator : AbstractValidator<SearchRecipesQuery>
             .MinimumLength(2).WithMessage("SearchTerm must be at least 2 characters long.")
             .Must(value => Regex.IsMatch(value, @"[\p{L}\p{N}]"))
             .WithMessage("SearchTerm must contain at least one letter or number.");
-            
+
+        RuleFor(v => v.CategorySlug)
+            .MaximumLength(120)
+            .WithMessage("CategorySlug must not exceed 120 characters.");
+
         RuleFor(v => v.Page)
             .GreaterThanOrEqualTo(1).WithMessage("Page at least greater than or equal to 1.");
         RuleFor(v => v.Page)

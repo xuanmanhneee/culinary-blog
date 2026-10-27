@@ -264,10 +264,8 @@ namespace CulinaryBlog.Infrastructure.Persistence.Migrations
                         .HasDefaultValueSql("decode('', 'hex')");
 
                     b.Property<NpgsqlTsVector>("SearchVector")
-                        .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("tsvector")
-                        .HasAnnotation("Npgsql:TsVectorConfig", "simple")
-                        .HasAnnotation("Npgsql:TsVectorProperties", new[] { "Title", "Description" });
+                        .HasComputedColumnSql("to_tsvector('vietnamese'::regconfig, COALESCE(\"Title\", '') || ' ' || COALESCE(\"Description\", '') || ' ' || COALESCE(\"Instructions\", ''))", true);
 
                     b.Property<int>("Servings")
                         .HasColumnType("integer");

@@ -22,6 +22,7 @@ public class CategoryRepository : ICategoryRepository
     public async Task<IReadOnlyList<Category>> GetAllWithRecipeCountAsync(CancellationToken cancellationToken = default) =>
         await _context.Categories
             .OrderBy(c => c.OrderIndex)
+            .ThenBy(c => c.Name)
             .ToListAsync(cancellationToken);
 
     public async Task<int> CountRecipesInCategoryAsync(Guid categoryId, CancellationToken cancellationToken = default) =>

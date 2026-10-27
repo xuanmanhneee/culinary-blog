@@ -9,6 +9,7 @@ public interface IRecipeSearchReader
         string searchTerm,
         int page,
         int pageSize,
+        string? categorySlug = null,
         CancellationToken cancellationToken = default);
 }
 

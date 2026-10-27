@@ -1,6 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore.Migrations;
-using NpgsqlTypes;
-
 #nullable disable
 
 namespace CulinaryBlog.Infrastructure.Persistence.Migrations
@@ -11,31 +9,35 @@ namespace CulinaryBlog.Infrastructure.Persistence.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<NpgsqlTsVector>(
-                name: "SearchVector",
-                table: "Recipes",
-                type: "tsvector",
-                nullable: true)
-                .Annotation("Npgsql:TsVectorConfig", "simple")
-                .Annotation("Npgsql:TsVectorProperties", new[] { "Title", "Description" });
-
-            migrationBuilder.CreateIndex(
-                name: "IDX_Recipe_SearchVector",
-                table: "Recipes",
-                column: "SearchVector")
-                .Annotation("Npgsql:IndexMethod", "gin");
+            migrationBuilder.Sql(
+                """
+                DO $migration$
+                BEGIN
+                    IF to_regclass('public."IDX_Recipe_SearchVector"') IS NULL
+                       AND to_regclass('public."IX_Recipes_SearchVector"') IS NOT NULL THEN
+                        ALTER INDEX public."IX_Recipes_SearchVector" RENAME TO "IDX_Recipe_SearchVector";
+                    ELSIF to_regclass('public."IDX_Recipe_SearchVector"') IS NULL THEN
+                        CREATE INDEX "IDX_Recipe_SearchVector" ON "Recipes" USING GIN ("SearchVector");
+                    END IF;
+                END
+                $migration$;
+                """);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropIndex(
-                name: "IDX_Recipe_SearchVector",
-                table: "Recipes");
-
-            migrationBuilder.DropColumn(
-                name: "SearchVector",
-                table: "Recipes");
+            migrationBuilder.Sql(
+                """
+                DO $migration$
+                BEGIN
+                    IF to_regclass('public."IX_Recipes_SearchVector"') IS NULL
+                       AND to_regclass('public."IDX_Recipe_SearchVector"') IS NOT NULL THEN
+                        ALTER INDEX public."IDX_Recipe_SearchVector" RENAME TO "IX_Recipes_SearchVector";
+                    END IF;
+                END
+                $migration$;
+                """);
         }
     }
 }
