@@ -2,6 +2,8 @@ import { ArrowRight, BookOpen, Heart, Search, Sparkles } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { RecipeCard } from "@/components/recipes/RecipeCard";
+import { Footer } from "@/components/layout/Footer";
+import { Header } from "@/components/layout/Header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { categories, featuredRecipes } from "@/lib/mock-data";
@@ -9,6 +11,8 @@ import { categories, featuredRecipes } from "@/lib/mock-data";
 export default function Home() {
   return (
     <>
+      <Header />
+      <main>
       <section className="relative overflow-hidden border-b border-[#e0d6ca] bg-[#f5ecdf]">
         <div className="hero-dots" aria-hidden="true" />
         <div className="site-container grid min-h-[680px] items-center gap-12 py-16 lg:grid-cols-[.92fr_1.08fr] lg:py-20">
@@ -95,6 +99,8 @@ export default function Home() {
           </form>
         </div>
       </section>
+      </main>
+      <Footer />
     </>
   );
 }
