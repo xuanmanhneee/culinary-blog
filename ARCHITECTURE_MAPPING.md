@@ -139,8 +139,9 @@ Trang detail hiện có:
 ### 3.4 Các trang công khai và mức độ tích hợp API
 
 - Trang tìm kiếm `/search` gọi API backend và hỗ trợ kết quả/phân trang theo query.
-- Trang chủ và `/recipes` hiện vẫn dựng danh mục/công thức từ `frontend/src/lib/mock-data`; giao diện lọc ở `/recipes` chưa được nối thành bộ lọc API thực.
-- Do đó không nên xem toàn bộ kho recipe trên các trang khám phá là dữ liệu backend trực tiếp; riêng dashboard, search và recipe detail có luồng API như mô tả ở trên.
+- Trang chủ tải danh mục từ `GET /categories` và sáu công thức Published mới nhất từ `GET /recipes`, có cache/revalidate 300 giây; lỗi API được hiển thị rõ theo từng khu vực.
+- `/categories` tải danh sách danh mục từ `GET /categories`, hiển thị ảnh/miêu tả khi có. Liên kết danh mục dẫn tới `/search?categorySlug=...`.
+- `/recipes` vẫn dùng dữ liệu mẫu; bộ lọc hiển thị ở trang đó chưa được nối backend. Luồng search theo category sẽ được hoàn tất cùng Hạng mục 3.
 
 ## 4. Luồng dữ liệu frontend ↔ backend
 
@@ -161,7 +162,7 @@ API client dùng prefix `/api/v1`, gắn access token cho request xác thực, g
 
 - Google OAuth chưa được triển khai ở frontend.
 - Favorite/“Món đã lưu” chưa được nối với API; tab hiện chỉ là placeholder.
-- Trang chủ và trang danh sách `/recipes` vẫn dùng dữ liệu mẫu; bộ lọc hiển thị trên trang danh sách chưa gọi backend.
+- Trang danh sách `/recipes` vẫn dùng dữ liệu mẫu; bộ lọc hiển thị trên trang đó chưa gọi backend.
 - `ICacheService` chưa triển khai cache phân tán; Redis hiện có health check.
 - Hangfire được cấu hình nhưng recurring ping đang bị tắt.
 - Một số lối tắt tài khoản như cài đặt/trợ giúp hiển thị điều hướng UI; không đồng nghĩa đã có backend workflow tương ứng.

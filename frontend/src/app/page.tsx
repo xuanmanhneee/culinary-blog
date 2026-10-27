@@ -1,16 +1,23 @@
-import { ArrowRight, BookOpen, Heart, Search, Sparkles, UtensilsCrossed } from "lucide-react";
+import { ArrowRight, BookOpen, Search, Sparkles, UtensilsCrossed } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { RecipeCard } from "@/components/recipes/RecipeCard";
-import { Footer } from "@/components/layout/Footer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { categories, featuredRecipes } from "@/lib/mock-data";
+import { ErrorState } from "@/components/common/ErrorState";
+import { getErrorMessage } from "@/lib/errors";
+import { getLatestPublicRecipes, getPublicCategories } from "@/lib/api/recipes";
 
-export default function Home() {
+export default async function Home() {
+  const [categoriesResult, recipesResult] = await Promise.allSettled([
+    getPublicCategories(),
+    getLatestPublicRecipes(),
+  ]);
+  const categories = categoriesResult.status === "fulfilled" ? categoriesResult.value : null;
+  const recipes = recipesResult.status === "fulfilled" ? recipesResult.value.items : null;
+
   return (
     <>
-      <main>
       <section className="relative overflow-hidden border-b border-[#e0d6ca] bg-[#f5ecdf]">
         <div className="hero-dots" aria-hidden="true" />
         <div className="site-container grid items-center gap-9 py-10 lg:h-[calc(100svh-74px)] lg:min-h-[610px] lg:max-h-[820px] lg:grid-cols-[.96fr_1.04fr] lg:gap-12 lg:py-10">
@@ -35,8 +42,8 @@ export default function Home() {
               </div>
             </div>
             <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-3 text-sm font-semibold text-[#655c54]">
-              <span className="inline-flex items-center gap-2"><BookOpen className="size-4 text-[#1f4b3f]" />180+ công thức</span>
-              <span className="inline-flex items-center gap-2"><Heart className="size-4 fill-[#b65338] text-[#b65338]" />Từ những người yêu bếp</span>
+              <span className="inline-flex items-center gap-2"><BookOpen className="size-4 text-[#1f4b3f]" />Công thức từ cộng đồng</span>
+              <span>{categories ? `${categories.length} danh mục để khám phá` : "Danh mục từ cộng đồng"}</span>
             </div>
           </div>
 
@@ -56,28 +63,49 @@ export default function Home() {
       <section id="danh-muc" className="site-container py-20 sm:py-24">
         <div className="section-heading">
           <div><Badge>Khám phá theo vị</Badge><h2 className="font-display section-title">Bạn muốn nấu gì hôm nay?</h2></div>
-          <p className="section-description">Từ bữa cơm quen thuộc đến một món mới cuối tuần — luôn có điều hay ho đang chờ trong bếp.</p>
+          <div className="flex items-center gap-4">
+            <p className="section-description">Từ bữa cơm quen thuộc đến một món mới cuối tuần — luôn có điều hay ho đang chờ trong bếp.</p>
+            <Link href="/categories" className="shrink-0 text-sm font-bold text-[#1f4b3f] hover:text-[#b65338]">Tất cả danh mục</Link>
+          </div>
         </div>
-        <div className="mt-11 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-          {categories.map((category) => (
-            <Link key={category.name} href="#cong-thuc" className="category-card group">
-              <span className="grid aspect-square w-full place-items-center rounded-full text-[2.8rem] transition duration-500 group-hover:-translate-y-1 group-hover:rotate-3" style={{ backgroundColor: category.color }}>{category.icon}</span>
-              <span className="font-display mt-4 text-lg font-bold text-[#332d28]">{category.name}</span>
-              <span className="mt-1 text-xs text-[#82786f]">{category.count} công thức</span>
-            </Link>
-          ))}
-        </div>
+        {categoriesResult.status === "rejected" ? (
+          <div className="mt-8"><ErrorState title="Không tải được danh mục" message={getErrorMessage(categoriesResult.reason)} /></div>
+        ) : categories?.length ? (
+          <div className="mt-11 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+            {categories.map((category, index) => (
+              <Link key={category.id} href={`/search?categorySlug=${encodeURIComponent(category.slug)}`} className="category-card group">
+                <span className="grid aspect-square w-full place-items-center overflow-hidden rounded-full bg-[#e3eee7] transition duration-500 group-hover:-translate-y-1 group-hover:rotate-3">
+                  {category.imageUrl ? (
+                    <Image src={category.imageUrl} alt="" width={240} height={240} unoptimized className="size-full object-cover" />
+                  ) : (
+                    <span className="font-display text-4xl font-bold text-[#1f4b3f]">{category.name.charAt(0) || index + 1}</span>
+                  )}
+                </span>
+                <span className="font-display mt-4 text-lg font-bold text-[#332d28]">{category.name}</span>
+                <span className="mt-1 text-xs text-[#82786f]">Khám phá công thức</span>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <p className="mt-8 rounded-xl bg-white/70 p-6 text-center text-sm text-[#70675f]">Chưa có danh mục nào.</p>
+        )}
       </section>
 
       <section id="cong-thuc" className="border-y border-[#e2d8cb] bg-white/45 py-20 sm:py-24">
         <div className="site-container">
           <div className="section-heading">
-            <div><Badge variant="warm">Được yêu thích</Badge><h2 className="font-display section-title">Món ngon từ cộng đồng</h2></div>
+            <div><Badge variant="warm">Mới nhất</Badge><h2 className="font-display section-title">Công thức mới từ cộng đồng</h2></div>
             <Button variant="outline" asChild><Link href="/recipes">Xem tất cả <ArrowRight /></Link></Button>
           </div>
-          <div className="mt-12 grid gap-x-7 gap-y-12 md:grid-cols-2 lg:grid-cols-3">
-            {featuredRecipes.map((recipe, index) => <RecipeCard key={recipe.slug} recipe={recipe} priority={index < 3} />)}
-          </div>
+          {recipesResult.status === "rejected" ? (
+            <div className="mt-8"><ErrorState title="Không tải được công thức" message={getErrorMessage(recipesResult.reason)} /></div>
+          ) : recipes?.length ? (
+            <div className="mt-12 grid gap-x-7 gap-y-12 md:grid-cols-2 lg:grid-cols-3">
+              {recipes.map((recipe, index) => <RecipeCard key={recipe.id} recipe={recipe} priority={index < 3} />)}
+            </div>
+          ) : (
+            <p className="mt-8 rounded-xl bg-white/70 p-6 text-center text-sm text-[#70675f]">Chưa có công thức công khai nào.</p>
+          )}
         </div>
       </section>
 
@@ -105,8 +133,6 @@ export default function Home() {
           </form>
         </div>
       </section>
-      </main>
-      <Footer />
     </>
   );
 }
