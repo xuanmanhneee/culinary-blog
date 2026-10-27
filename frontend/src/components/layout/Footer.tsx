@@ -1,10 +1,16 @@
+"use client";
+
 import { Camera, Mail, MapPin, MessageCircle } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Logo } from "@/components/layout/Logo";
 
 const footerLinks = ["Công thức mới", "Món được yêu thích", "Mẹo vào bếp", "Gửi công thức"];
 
 export function Footer() {
+  const pathname = usePathname();
+  if (pathname === "/login" || pathname === "/register") return null;
+
   return (
     <footer className="mt-auto border-t border-[#d9cdbd] bg-[#efe7db]">
       <div className="site-container grid gap-10 py-14 md:grid-cols-[1.3fr_.8fr_.8fr]">

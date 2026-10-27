@@ -4,6 +4,8 @@ backend/**/obj/
 *.user
 
 # Node / Next.js
+node_modules/
+.pnpm-store/
 frontend/node_modules/
 frontend/.next/
 frontend/.pnpm-store/

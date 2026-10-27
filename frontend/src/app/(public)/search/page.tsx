@@ -2,14 +2,17 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState, type FormEvent } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useState, type FormEvent } from "react";
 import { ErrorState } from "@/components/common/ErrorState";
 import { LoadingState } from "@/components/common/LoadingState";
 import { useRecipeSearch } from "@/lib/hooks/useRecipeSearch";
 
-export default function SearchPage() {
-  const [input, setInput] = useState("");
-  const [searchTerm, setSearchTerm] = useState("");
+function SearchContent() {
+  const searchParams = useSearchParams();
+  const initialQuery = searchParams.get("q")?.trim() ?? "";
+  const [input, setInput] = useState(initialQuery);
+  const [searchTerm, setSearchTerm] = useState(initialQuery);
   const [page, setPage] = useState(1);
   const { data, isLoading, error } = useRecipeSearch(searchTerm, page);
   function submit(event: FormEvent<HTMLFormElement>) { event.preventDefault(); setPage(1); setSearchTerm(input.trim()); }
@@ -21,4 +24,8 @@ export default function SearchPage() {
     {isLoading && <LoadingState label="Đang tìm công thức..." />}{error && <ErrorState message={error} />}
     {data && <section aria-live="polite" className="mt-8"><p className="mb-4 text-sm text-zinc-600">Tìm thấy {data.totalCount} công thức.</p>{data.items.length ? <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{data.items.map((recipe) => <li key={recipe.id} className="overflow-hidden rounded-lg border border-zinc-200">{recipe.thumbnailUrl && <Image src={recipe.thumbnailUrl} alt="" width={640} height={480} unoptimized className="h-48 w-full object-cover" />}<div className="p-4"><h2 className="text-lg font-semibold"><Link href={`/recipes/${encodeURIComponent(recipe.slug)}`} className="hover:text-emerald-800">{recipe.title}</Link></h2>{recipe.description && <p className="mt-2 line-clamp-3 text-sm text-zinc-600">{recipe.description}</p>}</div></li>)}</ul> : <p className="text-zinc-600">Không tìm thấy công thức phù hợp.</p>}</section>}
   </main>;
+}
+
+export default function SearchPage() {
+  return <Suspense fallback={<LoadingState label="Đang mở trang tìm kiếm..." />}><SearchContent /></Suspense>;
 }

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { auth } from "@/auth";
@@ -18,7 +19,9 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   const session = await auth();
 
   if (!session?.user) {
-    redirect("/login");
+    const requestHeaders = await headers();
+    const returnTo = requestHeaders.get("next-url") || "/dashboard/recipes";
+    redirect(`/login?callbackUrl=${encodeURIComponent(returnTo)}`);
   }
 
   const roles = session.user.roles ?? [];
@@ -26,11 +29,5 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     redirect("/");
   }
 
-  return (
-    <DashboardShell
-      user={{ name: session.user.name ?? null, email: session.user.email ?? null, roles }}
-    >
-      {children}
-    </DashboardShell>
-  );
+  return <DashboardShell>{children}</DashboardShell>;
 }
