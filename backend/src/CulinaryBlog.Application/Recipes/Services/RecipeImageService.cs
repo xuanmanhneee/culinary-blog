@@ -12,18 +12,21 @@ public sealed class RecipeImageService : IRecipeImageService
     private readonly IRecipeRepository _recipes;
     private readonly IUnitOfWork _unitOfWork;
     private readonly RecipeAuthorizationHandler _authorization;
-    private readonly IFileStorageService _fileStorage;
+    private readonly IFileStorageService _storage;
+    private readonly ICacheService _cache;
 
     public RecipeImageService(
         IRecipeRepository recipes,
         IUnitOfWork unitOfWork,
         RecipeAuthorizationHandler authorization,
-        IFileStorageService fileStorage)
+        IFileStorageService storage,
+        ICacheService cache)
     {
         _recipes = recipes;
         _unitOfWork = unitOfWork;
         _authorization = authorization;
-        _fileStorage = fileStorage;
+        _storage = storage;
+        _cache = cache;
     }
 
     public async Task<IReadOnlyList<RecipeImageDto>> SetPrimaryAsync(
@@ -37,8 +40,7 @@ public sealed class RecipeImageService : IRecipeImageService
             throw ImageNotFound(imageId);
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
-
-        // TODO(FR-RCP-008): EvictByTagAsync("recipes") và $"recipe:{slug}" khi bật Output Cache.
+        await _cache.EvictByTagAsync("recipes", cancellationToken);
         return recipe.Images
             .OrderByDescending(i => i.IsPrimary)
             .ThenBy(i => i.OrderIndex)
@@ -60,7 +62,8 @@ public sealed class RecipeImageService : IRecipeImageService
         var objectUrl = image.OriginalUrl;
         recipe.RemoveImage(imageId);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
-        await _fileStorage.DeleteAsync(recipeId, objectUrl, cancellationToken);
+        await _storage.DeleteAsync(recipeId, objectUrl, cancellationToken);
+        await _cache.EvictByTagAsync("recipes", cancellationToken);
     }
 
     /// <summary>Load recipe rồi kiểm tra quyền: chỉ owner hoặc Admin được sửa (NFR-SEC-006).</summary>

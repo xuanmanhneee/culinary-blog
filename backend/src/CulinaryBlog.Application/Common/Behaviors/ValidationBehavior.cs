@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using CulinaryBlog.Application.Common.Exceptions;
 using FluentValidation;
 using MediatR;
+using AppValidationException = CulinaryBlog.Application.Common.Exceptions.ValidationException;
 
 namespace CulinaryBlog.Application.Common.Behaviors;
 
@@ -36,8 +37,9 @@ public class ValidationBehavior<TRequest, TResponse> : IPipelineBehavior<TReques
             {
                 var errors = failures
                     .GroupBy(failure => failure.PropertyName, failure => failure.ErrorMessage)
-                    .ToDictionary(group => group.Key, group => group.ToArray());
-                throw new CulinaryBlog.Application.Common.Exceptions.ValidationException(errors);
+                    .ToDictionary(group => group.Key, group => group.Distinct().ToArray());
+
+                throw new AppValidationException(errors);
             }
         }
         return await next();

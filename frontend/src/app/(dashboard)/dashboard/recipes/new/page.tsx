@@ -1,18 +1,6 @@
 import type { Metadata } from "next";
+import { RecipeEditorForm } from "@/components/recipes/RecipeEditorForm";
 
-export const metadata: Metadata = {
-  title: "Tạo công thức",
-};
+export const metadata: Metadata = { title: "Tạo công thức" };
 
-/**
- * /dashboard/recipes/new – form tạo công thức (FR-RCP-003): React Hook Form + Zod,
- * gửi POST /api/v1/recipes; recipe mới ở trạng thái Draft.
- */
-export default function NewRecipePage() {
-  return (
-    <section className="space-y-2">
-      <h2 className="text-lg font-medium">Tạo công thức</h2>
-      <p className="text-sm text-zinc-600">Form tạo công thức đang được xây dựng.</p>
-    </section>
-  );
-}
+export default function NewRecipePage() { return <section><p className="text-xs font-bold uppercase tracking-[.15em] text-[#a84f37]">Chia sẻ món ngon</p><h2 className="font-display mt-2 text-4xl font-bold tracking-[-.04em]">Tạo công thức mới</h2><p className="mt-2 text-sm text-[#786e66]">Bắt đầu với thông tin cơ bản. Bạn có thể bổ sung nguyên liệu và các bước sau.</p><RecipeEditorForm /></section>; }

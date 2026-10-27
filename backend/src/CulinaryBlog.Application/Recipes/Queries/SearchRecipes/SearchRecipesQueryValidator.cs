@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using FluentValidation;
 
 namespace CulinaryBlog.Application.Recipes.Queries.SearchRecipes;
@@ -8,7 +9,9 @@ public class SearchRecipesQueryValidator : AbstractValidator<SearchRecipesQuery>
     {
         RuleFor(v => v.SearchTerm)
             .NotEmpty().WithMessage("SearchTerm is required.")
-            .MinimumLength(2).WithMessage("SearchTerm must be at least 2 characters long.");
+            .MinimumLength(2).WithMessage("SearchTerm must be at least 2 characters long.")
+            .Must(value => Regex.IsMatch(value, @"[\p{L}\p{N}]"))
+            .WithMessage("SearchTerm must contain at least one letter or number.");
             
         RuleFor(v => v.Page)
             .GreaterThanOrEqualTo(1).WithMessage("Page at least greater than or equal to 1.");

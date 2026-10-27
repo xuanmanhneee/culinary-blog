@@ -1,31 +1,23 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import { AuthSessionProvider } from "@/components/providers/AuthSessionProvider";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
 export const metadata: Metadata = {
-  title: "Culinary Blog",
-  description: "Khám phá và chia sẻ những công thức nấu ăn ngon.",
+  title: {
+    default: "Bếp Nhà — Gói trọn vị ngon trong từng câu chuyện",
+    template: "%s | Bếp Nhà",
+  },
+  description: "Khám phá những công thức gần gũi, câu chuyện căn bếp và cảm hứng nấu ăn mỗi ngày từ cộng đồng Bếp Nhà.",
+  keywords: ["công thức nấu ăn", "ẩm thực Việt", "blog ẩm thực", "Bếp Nhà"],
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html
-      lang="vi"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col">
-        <AuthSessionProvider>{children}</AuthSessionProvider>
+    <html lang="vi" className="h-full scroll-smooth antialiased" data-scroll-behavior="smooth">
+      <body className="min-h-full">
+        <AuthSessionProvider>
+          <div className="min-h-screen flex flex-col overflow-x-clip">{children}</div>
+        </AuthSessionProvider>
       </body>
     </html>
   );

@@ -11,4 +11,5 @@ public interface IFileStorageService
     Task<string> UploadAsync(Guid recipeId, IFormFile file, CancellationToken cancellationToken);
     Task<string> UploadAsync(Guid recipeId, Stream stream, string contentType, string extension, CancellationToken cancellationToken);
     Task DeleteAsync(Guid recipeId, string objectUrl, CancellationToken cancellationToken);
+    Task DeleteAsync(string url, CancellationToken cancellationToken);
 }

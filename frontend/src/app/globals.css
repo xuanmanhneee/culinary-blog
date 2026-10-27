@@ -1,26 +1,76 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #fbf8f2;
+  --foreground: #2e2925;
+  --primary: #1f4b3f;
+  --accent: #b65338;
+  --muted: #f2eadf;
+  --muted-foreground: #756b63;
+  --border: #ded4c8;
+  --popover: #fffdf9;
+  --popover-foreground: #2e2925;
+  --sidebar: #f4eee6;
+  --sidebar-foreground: #3d3732;
+  --sidebar-accent: #dfe9e2;
+  --sidebar-accent-foreground: #1f4b3f;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --font-sans: "Inter", "Aptos", "Segoe UI", Arial, sans-serif;
+  --font-display: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  * { border-color: #ded4c8; }
+  body {
+    margin: 0;
+    background: var(--background);
+    color: var(--foreground);
+    font-family: "Inter", "Aptos", "Segoe UI", Arial, sans-serif;
   }
+  ::selection { background: #d6e3da; color: #173a31; }
+  button, a, input { -webkit-tap-highlight-color: transparent; }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer components {
+  .site-container { @apply mx-auto w-full max-w-[1280px] px-5 sm:px-7 lg:px-10; }
+  .font-display { font-family: "Iowan Old Style", "Palatino Linotype", Georgia, serif; }
+  .nav-link { @apply relative py-2 text-sm font-semibold text-[#5c544e] transition-colors hover:text-[#1f4b3f]; }
+  .nav-link::after { content: ""; @apply absolute right-0 bottom-0 left-0 h-px origin-left scale-x-0 bg-[#1f4b3f] transition-transform; }
+  .nav-link:hover::after { @apply scale-x-100; }
+  .social-button { @apply grid size-10 place-items-center rounded-full border border-[#cfc2b2] text-[#5c544d] transition hover:border-[#1f4b3f] hover:bg-[#1f4b3f] hover:text-white; }
+  .social-button svg { @apply size-4; }
+  .section-heading { @apply flex flex-col justify-between gap-6 md:flex-row md:items-end; }
+  .section-title { @apply mt-4 text-4xl leading-tight font-bold tracking-[-.04em] text-[#2e2925] sm:text-5xl; }
+  .section-description { @apply max-w-lg text-sm leading-7 text-[#756b63]; }
+  .category-card { @apply flex flex-col items-center rounded-[1.5rem] p-3 text-center transition hover:-translate-y-1 hover:bg-white hover:shadow-[0_18px_45px_rgba(72,54,38,.08)]; }
+  .recipe-card { @apply rounded-[1.6rem] transition duration-300; }
+  .form-label { @apply mb-2 block text-sm font-bold text-[#4c4540]; }
+  .form-input { @apply h-12 w-full rounded-xl border border-[#d9cdbf] bg-[#fffdf9] px-4 text-sm text-[#3b3530] outline-none transition focus:border-[#1f4b3f] focus:ring-2 focus:ring-[#1f4b3f]/10; }
+}
+
+.hero-dots {
+  position: absolute;
+  inset: 0;
+  opacity: .38;
+  pointer-events: none;
+  background-image: radial-gradient(#9e8c7c 0.7px, transparent 0.7px);
+  background-size: 18px 18px;
+  mask-image: linear-gradient(to right, black, transparent 58%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }

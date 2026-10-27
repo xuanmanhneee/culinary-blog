@@ -10,26 +10,28 @@ interface RecipeSearchState {
   error: string | null;
 }
 
+interface StoredRecipeSearchState extends RecipeSearchState {
+  key: string | null;
+}
+
 export function useRecipeSearch(
   searchTerm: string,
   page: number,
   pageSize = 10,
 ): RecipeSearchState {
-  const [state, setState] = useState<RecipeSearchState>({
+  const query = searchTerm.trim();
+  const searchKey = query.length >= 2 ? `${query}\u0000${page}\u0000${pageSize}` : null;
+  const [state, setState] = useState<StoredRecipeSearchState>({
+    key: null,
     data: null,
     isLoading: false,
     error: null,
   });
 
   useEffect(() => {
-    const query = searchTerm.trim();
-    if (query.length < 2) {
-      setState({ data: null, isLoading: false, error: null });
-      return;
-    }
+    if (!searchKey) return;
 
     const controller = new AbortController();
-    setState((current) => ({ ...current, isLoading: true, error: null }));
 
     async function search() {
       try {
@@ -60,12 +62,13 @@ export function useRecipeSearch(
         if (controller.signal.aborted) {
           return;
         }
-        setState({ data, isLoading: false, error: null });
+        setState({ key: searchKey, data, isLoading: false, error: null });
       } catch (searchError) {
         if (controller.signal.aborted) {
           return;
         }
         setState({
+          key: searchKey,
           data: null,
           isLoading: false,
           error: searchError instanceof Error
@@ -77,7 +80,13 @@ export function useRecipeSearch(
 
     void search();
     return () => controller.abort();
-  }, [searchTerm, page, pageSize]);
+  }, [searchKey, query, page, pageSize]);
 
-  return state;
+  if (!searchKey) {
+    return { data: null, isLoading: false, error: null };
+  }
+
+  return state.key === searchKey
+    ? state
+    : { data: null, isLoading: true, error: null };
 }

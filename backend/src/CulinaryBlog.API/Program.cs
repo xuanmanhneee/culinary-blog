@@ -82,6 +82,10 @@ app.UseMiddleware<GlobalExceptionMiddleware>();
 // Response lỗi không có body (vd. 404 do sai route, 405) cũng trả về ProblemDetails.
 app.UseStatusCodePages();
 
+// Development uploads are served from wwwroot/uploads. Production can switch
+// Storage:Provider to MinIO without changing application code.
+app.UseStaticFiles();
+
 // Trước rate limiter và authentication: preflight OPTIONS không bị 401/429,
 // và response lỗi (401, 403, 429...) vẫn có header CORS để frontend đọc được nội dung lỗi.
 app.UseCors();
@@ -100,10 +104,12 @@ if (app.Environment.IsDevelopment())
         options.WithTitle("Culinary Blog API")
                .WithTheme(ScalarTheme.Moon);
     });
+
+    app.UseHangfireDashboard("/hangfire");
 }
 
 // Map các Endpoints của ứng dụng
-app.MapGet("/", () => "Hello World!");
+app.MapGet("/", () => "Culinary Blog API").ExcludeFromDescription();
 
 app.MapAuthEndpoints();
 
@@ -118,8 +124,6 @@ app.MapRecipeImageEndpoints();
 app.MapCategoriesEndpoints();
 
 app.MapHealthEndpoints();
-
-app.UseHangfireDashboard("/hangfire");
 
 app.Lifetime.ApplicationStarted.Register(() =>
 {

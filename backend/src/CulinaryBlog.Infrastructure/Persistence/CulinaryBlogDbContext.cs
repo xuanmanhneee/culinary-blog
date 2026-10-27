@@ -3,7 +3,6 @@ using CulinaryBlog.Domain.Common;
 using CulinaryBlog.Domain.Modules.Categories;
 using CulinaryBlog.Domain.Modules.Identity;
 using CulinaryBlog.Domain.Modules.Recipes;
-using CulinaryBlog.Application.Common.Interfaces;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,7 +14,7 @@ namespace CulinaryBlog.Infrastructure.Persistence;
 /// khi tách microservice, module nào tách ra sẽ mang theo Configuration của module đó
 /// sang một DbContext/DB riêng.
 /// </summary>
-public class CulinaryBlogDbContext : IdentityDbContext<ApplicationUser>, IApplicationDbContext
+public class CulinaryBlogDbContext : IdentityDbContext<ApplicationUser>
 {
     public CulinaryBlogDbContext(DbContextOptions<CulinaryBlogDbContext> options) : base(options) { }
 
@@ -29,6 +28,9 @@ public class CulinaryBlogDbContext : IdentityDbContext<ApplicationUser>, IApplic
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder); // áp dụng cấu hình Identity (AspNetUsers, AspNetRoles...)
+
+        builder.HasPostgresExtension("pg_trgm");
+        builder.HasPostgresExtension("unaccent");
 
         // Tự động load mọi IEntityTypeConfiguration<T> trong assembly Infrastructure
         // (mỗi module tự khai báo Configuration của mình, DbContext không cần biết chi tiết)

@@ -1,14 +1,6 @@
 "use client";
 
-import {
-  createElement,
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { createElement, createContext, useContext, useMemo } from "react";
 import type { ReactNode } from "react";
 import { useSession } from "next-auth/react";
 import type { Role } from "@/lib/types/auth";
@@ -24,40 +16,25 @@ export interface AuthStoreUser {
 interface AuthStoreValue {
   user: AuthStoreUser | null;
   isLoading: boolean;
-  setUser: (user: AuthStoreUser | null) => void;
-  clearUser: () => void;
 }
 
 const AuthStoreContext = createContext<AuthStoreValue | null>(null);
 
 export function AuthStoreProvider({ children }: { children: ReactNode }) {
   const { data: session, status } = useSession();
-  const [user, setUser] = useState<AuthStoreUser | null>(null);
+  const value = useMemo(() => {
+    const user: AuthStoreUser | null = session?.user
+      ? {
+          id: session.user.id,
+          name: session.user.name ?? null,
+          email: session.user.email ?? null,
+          image: session.user.image ?? null,
+          roles: session.user.roles,
+        }
+      : null;
 
-  useEffect(() => {
-    if (status === "loading") {
-      return;
-    }
-
-    if (!session?.user) {
-      setUser(null);
-      return;
-    }
-
-    setUser({
-      id: session.user.id,
-      name: session.user.name ?? null,
-      email: session.user.email ?? null,
-      image: session.user.image ?? null,
-      roles: session.user.roles,
-    });
+    return { user, isLoading: status === "loading" };
   }, [session, status]);
-
-  const clearUser = useCallback(() => setUser(null), []);
-  const value = useMemo(
-    () => ({ user, isLoading: status === "loading", setUser, clearUser }),
-    [user, status, clearUser],
-  );
 
   return createElement(AuthStoreContext.Provider, { value }, children);
 }

@@ -81,6 +81,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       const backend = token as typeof token & Partial<BackendSessionToken>;
 
       session.accessToken = backend.accessToken;
+      session.user.id = token.sub ?? "";
       session.user.roles = backend.roles ?? [];
       return session;
     },

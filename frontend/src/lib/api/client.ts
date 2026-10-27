@@ -27,6 +27,17 @@ export class ApiError extends Error {
   }
 }
 
+/** Lỗi mạng/timeout khi request chưa nhận được HTTP response từ backend. */
+export class ApiNetworkError extends Error {
+  readonly cause?: unknown;
+
+  constructor(message: string, cause?: unknown) {
+    super(message);
+    this.name = "ApiNetworkError";
+    this.cause = cause;
+  }
+}
+
 export interface ApiFetchOptions extends Omit<RequestInit, "body"> {
   /** Object sẽ được JSON.stringify; FormData được gửi nguyên (multipart). */
   body?: unknown;
@@ -109,6 +120,7 @@ export async function apiFetchWithHeaders<T>(
   { body, token, headers, ...init }: ApiFetchOptions = {},
 ): Promise<ApiResponse<T>> {
   const requestHeaders = new Headers(headers);
+  requestHeaders.set("Accept", "application/json");
   if (token) requestHeaders.set("Authorization", `Bearer ${token}`);
 
   let requestBody: BodyInit | undefined;
@@ -118,14 +130,30 @@ export async function apiFetchWithHeaders<T>(
     requestHeaders.set("Content-Type", "application/json");
     requestBody = JSON.stringify(body);
   }
-  const response = await fetch(`${API_URL}${path}`, { ...init, headers: requestHeaders, body: requestBody });
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}${path}`, { ...init, headers: requestHeaders, body: requestBody });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") throw error;
+    throw new ApiNetworkError("Không thể kết nối đến máy chủ. Vui lòng kiểm tra mạng và thử lại.", error);
+  }
+
   if (!response.ok) {
     throw new ApiError(response.status, await readProblemDetails(response));
   }
 
   // 204 No Content (DELETE) không có body.
-  const text = await response.text();
-  return { data: (text ? JSON.parse(text) : undefined) as T, headers: response.headers };
+  const responseText = await response.text();
+  if (!responseText) {
+    return { data: undefined as T, headers: response.headers };
+  }
+
+  try {
+    return { data: JSON.parse(responseText) as T, headers: response.headers };
+  } catch (parseError) {
+    if (!(parseError instanceof SyntaxError)) throw parseError;
+    return { data: responseText as T, headers: response.headers };
+  }
 }
 
 export async function apiFetch<T>(path: string, options?: ApiFetchOptions): Promise<T> {

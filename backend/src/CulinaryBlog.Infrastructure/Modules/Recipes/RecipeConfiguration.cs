@@ -1,6 +1,7 @@
 using CulinaryBlog.Domain.Modules.Recipes;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using NpgsqlTypes;
 
 namespace CulinaryBlog.Infrastructure.Modules.Recipes;
 
@@ -72,9 +73,24 @@ public class RecipeConfiguration : IEntityTypeConfiguration<Recipe>
         // (AuditInterceptor đổi giá trị mỗi lần Added/Modified) và EF so sánh trong WHERE.
         builder.Property(r => r.RowVersion)
             .IsConcurrencyToken()
-            .HasDefaultValueSql("decode('', 'hex')");
+            .ValueGeneratedNever();
 
-        builder.HasQueryFilter(r => !r.IsDeleted);
+        // Full-text search: "simple" có sẵn trong PostgreSQL và giữ nguyên từ tiếng Việt.
+        // Là shadow property để Domain không phải phụ thuộc NpgsqlTypes; query qua EF.Property
+        // trong RecipeSearchReader.SearchAsync.
+        builder.Property<NpgsqlTsVector>("SearchVector")
+            .IsGeneratedTsVectorColumn("simple", "Title", "Description");
+        builder.HasIndex("SearchVector").HasDatabaseName("IDX_Recipe_SearchVector").HasMethod("gin");
+
+        // Chuỗi đã bỏ dấu/lowercase dành cho pg_trgm: hỗ trợ không dấu và lỗi chính tả.
+        builder.Property<string>("SearchTextNormalized")
+            .HasComputedColumnSql(
+                "public.immutable_unaccent(lower(coalesce(\"Title\", '') || ' ' || coalesce(\"Description\", '')))",
+                stored: true);
+        builder.HasIndex("SearchTextNormalized")
+            .HasDatabaseName("IDX_Recipe_SearchTextNormalized_Trgm")
+            .HasMethod("gin")
+            .HasOperators("gin_trgm_ops");
 
         // 1:N child collections, cascade delete
         builder.HasMany(r => r.Steps)

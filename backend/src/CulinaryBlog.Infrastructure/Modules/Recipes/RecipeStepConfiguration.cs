@@ -24,9 +24,8 @@ public class RecipeStepConfiguration : IEntityTypeConfiguration<RecipeStep>
         builder.Property(s => s.CreatedAt).IsRequired();
         builder.Property(s => s.IsDeleted).HasDefaultValue(false);
         builder.Property(s => s.RowVersion)
-            .IsRowVersion()
-            .HasDefaultValueSql("decode('', 'hex')");
+            .IsConcurrencyToken()
+            .ValueGeneratedNever();
 
-        builder.HasQueryFilter(s => !s.IsDeleted);
     }
 }

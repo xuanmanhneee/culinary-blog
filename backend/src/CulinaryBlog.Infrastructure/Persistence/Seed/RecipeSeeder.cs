@@ -2,6 +2,7 @@ using Bogus;
 using CulinaryBlog.Domain.Modules.Categories;
 using CulinaryBlog.Domain.Modules.Identity;
 using CulinaryBlog.Domain.Modules.Recipes;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace CulinaryBlog.Infrastructure.Persistence.Seed;
@@ -29,19 +30,30 @@ public class RecipeSeeder
             return;
         }
 
+        var usedSlugs = (await _context.Recipes
+                .IgnoreQueryFilters()
+                .Select(recipe => recipe.Slug)
+                .ToListAsync())
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var missingCount = Math.Max(0, count - usedSlugs.Count);
+        if (missingCount == 0)
+        {
+            _logger.LogInformation("Recipe seed: {Count} recipe đã sẵn sàng, bỏ qua.", usedSlugs.Count);
+            return;
+        }
+
         var ingredientFaker = new Faker("vi");
         var recipeFaker = new Faker("vi");
-        var usedSlugs = new HashSet<string>();
         var recipes = new List<Recipe>();
 
-        for (var i = 0; i < count; i++)
+        for (var i = 0; i < missingCount; i++)
         {
             var category = recipeFaker.PickRandom(categories.ToArray());
             var author = recipeFaker.PickRandom(authors.ToArray());
 
             var dishName = recipeFaker.Commerce.ProductName(); // dùng làm "chất liệu" tên món cho đa dạng
             var title = $"{recipeFaker.PickRandom(TitlePrefixes)} {dishName}";
-            var slug = MakeUniqueSlug(title, usedSlugs, i);
+            var slug = MakeUniqueSlug(title, usedSlugs);
 
             var difficulty = recipeFaker.PickRandom<RecipeDifficulty>();
             var status = recipeFaker.Random.WeightedRandom(
@@ -110,7 +122,7 @@ public class RecipeSeeder
             recipes.Sum(r => r.Steps.Count));
     }
 
-    private static string MakeUniqueSlug(string title, HashSet<string> usedSlugs, int index)
+    private static string MakeUniqueSlug(string title, HashSet<string> usedSlugs)
     {
         var baseSlug = CategorySeeder.ToSlug(title);
         var slug = baseSlug;

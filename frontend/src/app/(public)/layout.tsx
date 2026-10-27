@@ -1,12 +1,12 @@
 import type { ReactNode } from "react";
-import Footer from "@/components/common/Footer";
-import Header from "@/components/common/Header";
+import { Footer } from "@/components/layout/Footer";
+import { Header } from "@/components/layout/Header";
 
 export default function PublicLayout({ children }: { children: ReactNode }) {
   return (
     <>
       <Header />
-      <div className="flex-1">{children}</div>
+      <main className="flex-1">{children}</main>
       <Footer />
     </>
   );

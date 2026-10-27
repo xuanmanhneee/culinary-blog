@@ -26,10 +26,9 @@ public class CategoryConfiguration : IEntityTypeConfiguration<Category>
         builder.Property(c => c.CreatedAt).IsRequired();
         builder.Property(c => c.IsDeleted).HasDefaultValue(false);
         builder.Property(c => c.RowVersion)
-            .IsRowVersion()
-            .HasDefaultValueSql("decode('', 'hex')");
+            .IsConcurrencyToken()
+            .ValueGeneratedNever();
 
-        builder.HasQueryFilter(c => !c.IsDeleted);
 
         builder.HasMany(c => c.Recipes)
             .WithOne(r => r.Category)

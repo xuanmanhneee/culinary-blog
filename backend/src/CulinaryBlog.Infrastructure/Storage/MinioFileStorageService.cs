@@ -111,6 +111,29 @@ public sealed class MinioFileStorageService : IFileStorageService
         throw new InvalidDataException("The stored image URL does not belong to the configured MinIO endpoint.");
     }
 
+    public async Task DeleteAsync(string url, CancellationToken cancellationToken)
+    {
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
+            throw new InvalidDataException("Invalid object storage URL.");
+
+        var segments = uri.AbsolutePath.Trim('/').Split('/', 2, StringSplitOptions.RemoveEmptyEntries);
+        if (segments.Length != 2 ||
+            !string.Equals(Uri.UnescapeDataString(segments[0]), _options.BucketName, StringComparison.Ordinal))
+        {
+            throw new InvalidDataException("The URL does not belong to the configured object storage bucket.");
+        }
+
+        var keySegments = Uri.UnescapeDataString(segments[1]).Split('/', StringSplitOptions.RemoveEmptyEntries);
+        if (keySegments.Length != 3
+            || keySegments[0] != "recipes"
+            || !Guid.TryParse(keySegments[1], out var recipeId))
+        {
+            throw new InvalidDataException("The URL does not identify a valid recipe object.");
+        }
+
+        await DeleteAsync(recipeId, url, cancellationToken);
+    }
+
     private async Task EnsureBucketExistsAsync(CancellationToken cancellationToken)
     {
         try

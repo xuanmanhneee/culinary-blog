@@ -1,4 +1,5 @@
 using CulinaryBlog.Domain.Modules.Categories;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace CulinaryBlog.Infrastructure.Persistence.Seed;
@@ -31,20 +32,36 @@ public class CategorySeeder
 
     public async Task<List<Category>> SeedAsync()
     {
-        var categories = new List<Category>();
+        var existingBySlug = await _context.Categories
+            .IgnoreQueryFilters()
+            .ToDictionaryAsync(category => category.Slug);
+        var categories = new List<Category>(Names.Length);
+        var addedCount = 0;
         var orderIndex = 0;
 
         foreach (var name in Names)
         {
             var slug = ToSlug(name);
+            if (existingBySlug.TryGetValue(slug, out var existing))
+            {
+                categories.Add(existing);
+                orderIndex++;
+                continue;
+            }
+
             var category = Category.Create(name, slug, $"Các công thức thuộc danh mục {name}.", orderIndex++);
             categories.Add(category);
+            _context.Categories.Add(category);
+            addedCount++;
         }
 
-        await _context.Categories.AddRangeAsync(categories);
-        await _context.SaveChangesAsync();
+        if (addedCount > 0)
+            await _context.SaveChangesAsync();
 
-        _logger.LogInformation("Category seed: đã tạo {Count} category.", categories.Count);
+        _logger.LogInformation(
+            "Category seed: {TotalCount} category sẵn sàng, tạo mới {AddedCount}.",
+            categories.Count,
+            addedCount);
         return categories;
     }
 

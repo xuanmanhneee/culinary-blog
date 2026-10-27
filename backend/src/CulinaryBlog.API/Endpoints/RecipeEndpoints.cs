@@ -17,7 +17,7 @@ namespace CulinaryBlog.API.Endpoints;
 /// FR-RCP-003: POST /api/v1/recipes
 /// FR-SEARCH-001: GET /api/v1/recipes/search?q={query}
 /// FR-FILE-001: POST /api/v1/recipes/{id}/images
-/// FR-RCP-004: GET /api/v1/recipes/{id:guid} (trang edit, trả ETag), PUT /api/v1/recipes/{id:guid} (If-Match)
+/// FR-RCP-004: GET /api/v1/recipes/by-id/{id:guid} (trang edit, trả ETag), PUT /api/v1/recipes/{id:guid} (If-Match)
 /// FR-RCP-005: PATCH /api/v1/recipes/{id:guid}/publish | /unpublish
 /// FR-RCP-006: PATCH /api/v1/recipes/{id:guid}/archive
 /// FR-RCP-007: DELETE /api/v1/recipes/{id:guid}
@@ -43,8 +43,8 @@ public static class RecipeEndpoints
 
         group.MapGet("/search", SearchAsync)
             .WithName("SearchRecipes")
-            .WithSummary("Tìm kiếm công thức toàn văn")
-            .WithDescription("FR-SEARCH-001. Tìm theo từ khóa q (tối thiểu 2 ký tự), phân trang bằng page và pageSize (1–50).")
+            .WithSummary("Tìm kiếm toàn văn công thức đã xuất bản")
+            .WithDescription("FR-SEARCH-001. Tìm theo từ khóa q (tối thiểu 2 ký tự), hỗ trợ phân trang bằng page và pageSize (1–50).")
             .Produces<PagedResult<RecipeSummaryDto>>()
             .ProducesValidationProblem();
 
@@ -75,7 +75,7 @@ public static class RecipeEndpoints
             .DisableAntiforgery();
 
         // {id:guid} khai báo riêng để không bị route {slug} bắt mất.
-        authorized.MapGet("/{id:guid}", GetByIdAsync)
+        authorized.MapGet("/by-id/{id:guid}", GetByIdAsync)
             .WithName("GetRecipeById")
             .WithSummary("Chi tiết công thức theo id (trang chỉnh sửa)")
             .WithDescription("FR-RCP-004. Chỉ owner hoặc Admin. Trả header ETag = rowVersion, gửi lại qua If-Match khi cập nhật.")
@@ -144,19 +144,6 @@ public static class RecipeEndpoints
     {
         await service.DeleteAsync(id, cancellationToken);
         return Results.NoContent();
-    }
-
-    private static async Task<IResult> SearchAsync(
-        [FromQuery(Name = "q")] string? q,
-        [FromQuery] int? page,
-        [FromQuery] int? pageSize,
-        ISender sender,
-        CancellationToken cancellationToken)
-    {
-        var result = await sender.Send(
-            new SearchRecipesQuery(q ?? string.Empty, page ?? 1, pageSize ?? 10),
-            cancellationToken);
-        return Results.Ok(result);
     }
 
     private static async Task<IResult> UploadImageAsync(
@@ -231,6 +218,16 @@ public static class RecipeEndpoints
         IRecipeService service,
         CancellationToken cancellationToken) =>
         Results.Ok(await service.GetPagedAsync(query, cancellationToken));
+
+    private static async Task<IResult> SearchAsync(
+        ISender sender,
+        CancellationToken cancellationToken,
+        [FromQuery(Name = "q")] string? searchTerm = null,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10) =>
+        Results.Ok(await sender.Send(
+            new SearchRecipesQuery(searchTerm ?? string.Empty, page, pageSize),
+            cancellationToken));
 
     private static async Task<IResult> GetBySlugAsync(
         string slug,

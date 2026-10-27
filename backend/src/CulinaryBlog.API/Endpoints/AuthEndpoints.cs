@@ -94,7 +94,12 @@ public static class AuthEndpoints
 
             return Results.Created($"{ApiVersioningExtensions.V1Path}/auth/me", result);
         })
-        .AllowAnonymous();
+        .AllowAnonymous()
+        .WithName("Register")
+        .WithSummary("Đăng ký tài khoản")
+        .Produces<AuthResponseDto>(StatusCodes.Status201Created)
+        .ProducesValidationProblem()
+        .ProducesProblem(StatusCodes.Status409Conflict);
 
         // FR-AUTH-002
         group.MapPost("/login", async (
@@ -110,7 +115,12 @@ public static class AuthEndpoints
 
             return Results.Ok(result);
         })
-        .AllowAnonymous();
+        .AllowAnonymous()
+        .WithName("Login")
+        .WithSummary("Đăng nhập bằng email và mật khẩu")
+        .Produces<AuthResponseDto>()
+        .ProducesValidationProblem()
+        .ProducesProblem(StatusCodes.Status401Unauthorized);
 
         // FR-AUTH-004
         group.MapPost("/refresh", async (
@@ -126,7 +136,12 @@ public static class AuthEndpoints
 
             return Results.Ok(result);
         })
-        .AllowAnonymous();
+        .AllowAnonymous()
+        .WithName("RefreshAccessToken")
+        .WithSummary("Đổi refresh token lấy access token mới")
+        .Produces<AuthResponseDto>()
+        .ProducesValidationProblem()
+        .ProducesProblem(StatusCodes.Status401Unauthorized);
 
         // FR-AUTH-005
         group.MapPost("/logout", async (
@@ -147,7 +162,11 @@ public static class AuthEndpoints
 
             return Results.NoContent();
         })
-        .RequireAuthorization();
+        .RequireAuthorization()
+        .WithName("Logout")
+        .WithSummary("Thu hồi refresh token và đăng xuất")
+        .Produces(StatusCodes.Status204NoContent)
+        .ProducesAuthProblems();
 
         // FR-AUTH-006
         group.MapGet("/me", async (
@@ -164,7 +183,11 @@ public static class AuthEndpoints
 
             return Results.Ok(result);
         })
-        .RequireAuthorization();
+        .RequireAuthorization()
+        .WithName("GetCurrentUser")
+        .WithSummary("Lấy hồ sơ người dùng hiện tại")
+        .Produces<UserProfileDto>()
+        .ProducesAuthProblems();
 
         // FR-AUTH-007
         group.MapPatch("/me", async (
@@ -185,7 +208,12 @@ public static class AuthEndpoints
 
             return Results.Ok(result);
         })
-        .RequireAuthorization();
+        .RequireAuthorization()
+        .WithName("UpdateCurrentUser")
+        .WithSummary("Cập nhật hồ sơ người dùng hiện tại")
+        .Produces<UserProfileDto>()
+        .ProducesValidationProblem()
+        .ProducesAuthProblems();
 
         return app;
     }

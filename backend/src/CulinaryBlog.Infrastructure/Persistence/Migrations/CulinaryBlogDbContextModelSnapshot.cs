@@ -18,10 +18,14 @@ namespace CulinaryBlog.Infrastructure.Persistence.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.0")
+                .HasAnnotation("ProductVersion", "10.0.12")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+
+            NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "pg_trgm");
+
+            NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "unaccent");
 
             modelBuilder.Entity("CulinaryBlog.Domain.Modules.Categories.Category", b =>
                 {
@@ -58,9 +62,7 @@ namespace CulinaryBlog.Infrastructure.Persistence.Migrations
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
                         .IsRequired()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("bytea")
-                        .HasDefaultValueSql("decode('', 'hex')");
+                        .HasColumnType("bytea");
 
                     b.Property<string>("Slug")
                         .IsRequired()
@@ -256,9 +258,18 @@ namespace CulinaryBlog.Infrastructure.Persistence.Migrations
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
                         .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bytea")
-                        .HasDefaultValueSql("decode('', 'hex')");
+                        .HasColumnType("bytea");
+
+                    b.Property<string>("SearchTextNormalized")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("text")
+                        .HasComputedColumnSql("public.immutable_unaccent(lower(coalesce(\"Title\", '') || ' ' || coalesce(\"Description\", '')))", true);
+
+                    b.Property<NpgsqlTsVector>("SearchVector")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("tsvector")
+                        .HasAnnotation("Npgsql:TsVectorConfig", "simple")
+                        .HasAnnotation("Npgsql:TsVectorProperties", new[] { "Title", "Description" });
 
                     b.Property<NpgsqlTsVector>("SearchVector")
                         .HasColumnType("tsvector")
@@ -300,8 +311,14 @@ namespace CulinaryBlog.Infrastructure.Persistence.Migrations
                     b.HasIndex("PublishedAt")
                         .HasDatabaseName("IDX_Recipe_PublishedAt");
 
+                    b.HasIndex("SearchTextNormalized")
+                        .HasDatabaseName("IDX_Recipe_SearchTextNormalized_Trgm")
+                        .HasMethod("GIN")
+                        .HasOperators("gin_trgm_ops");
+
                     b.HasIndex("SearchVector")
-                        .HasMethod("GIN");
+                        .HasDatabaseName("IDX_Recipe_SearchVector");
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("SearchVector"), "gin");
 
                     b.HasIndex("Slug")
                         .IsUnique()
@@ -360,9 +377,7 @@ namespace CulinaryBlog.Infrastructure.Persistence.Migrations
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
                         .IsRequired()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("bytea")
-                        .HasDefaultValueSql("decode('', 'hex')");
+                        .HasColumnType("bytea");
 
                     b.Property<string>("ThumbnailUrl")
                         .HasMaxLength(500)
@@ -416,9 +431,7 @@ namespace CulinaryBlog.Infrastructure.Persistence.Migrations
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
                         .IsRequired()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("bytea")
-                        .HasDefaultValueSql("decode('', 'hex')");
+                        .HasColumnType("bytea");
 
                     b.Property<string>("Unit")
                         .HasMaxLength(50)
@@ -463,9 +476,7 @@ namespace CulinaryBlog.Infrastructure.Persistence.Migrations
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
                         .IsRequired()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("bytea")
-                        .HasDefaultValueSql("decode('', 'hex')");
+                        .HasColumnType("bytea");
 
                     b.Property<int>("StepNumber")
                         .HasColumnType("integer");
