@@ -9,6 +9,7 @@ import { RecipeGallery } from "@/components/recipes/detail/RecipeGallery";
 import { RecipeIngredients } from "@/components/recipes/detail/RecipeIngredients";
 import { RecipeNutrition } from "@/components/recipes/detail/RecipeNutrition";
 import { RecipeOwnerActions } from "@/components/recipes/detail/RecipeOwnerActions";
+import RecipeJsonLd from "@/components/seo/RecipeJsonLd";
 import { getRecipeForViewer } from "@/lib/api/recipe-detail";
 import { formatDate } from "@/lib/recipe-format";
 import { RECIPE_DIFFICULTY_LABELS, RECIPE_STATUS_LABELS, type RecipeDetailDto } from "@/lib/types/recipe";
@@ -52,6 +53,8 @@ export default async function RecipePage({ params }: RecipePageProps) {
 
   return (
     <article>
+      {/* Structured data chỉ cho bản công khai; bản xem trước (noindex) không cần. */}
+      {!isPreview && <RecipeJsonLd data={recipe} />}
       <div className="site-container py-10 sm:py-14">
         <div className="text-xs font-semibold text-[#81766d]"><Link href="/" className="hover:text-[#1f4b3f]">Trang chủ</Link><span className="mx-2">/</span><Link href="/recipes" className="hover:text-[#1f4b3f]">Công thức</Link><span className="mx-2">/</span><span>{categoryName}</span></div>
 
