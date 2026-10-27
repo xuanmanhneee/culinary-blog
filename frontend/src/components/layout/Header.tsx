@@ -58,6 +58,7 @@ export function Header() {
                 {item.label}
               </Link>
             ))}
+            {!user && <Button variant="outline" className="mt-3" asChild><Link href="/login"><UserRound />Đăng nhập</Link></Button>}
             <Button className="mt-3" asChild><Link href="/dashboard/recipes/new">Chia sẻ món ngon</Link></Button>
           </nav>
         </div>
