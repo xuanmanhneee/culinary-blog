@@ -2,6 +2,7 @@
 
 import { Menu, Search, UserRound, X } from "lucide-react";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/layout/Logo";
@@ -16,7 +17,9 @@ const navigation = [
 
 export function Header() {
   const [isOpen, setIsOpen] = useState(false);
-  const user = useAuthStore((state) => state.user);
+  const storeUser = useAuthStore((state) => state.user);
+  const { data: session } = useSession();
+  const user = storeUser ?? (session?.user ? { fullName: session.user.name ?? "", email: session.user.email ?? "" } : null);
 
   return (
     <header className="sticky top-0 z-50 border-b border-[#ded3c5]/80 bg-[#fbf8f2]/90 backdrop-blur-xl">
