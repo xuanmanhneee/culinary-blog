@@ -66,4 +66,17 @@ internal static class AuthRequestValidator
 
         return errors;
     }
+
+    public static Dictionary<string, string[]> Validate(ChangePasswordRequest r)
+    {
+        var errors = new Dictionary<string, string[]>();
+
+        if (string.IsNullOrEmpty(r.CurrentPassword))
+            errors["currentPassword"] = ["Mật khẩu hiện tại không được để trống."];
+
+        if (string.IsNullOrEmpty(r.NewPassword))
+            errors["newPassword"] = ["Mật khẩu mới không được để trống."];
+
+        return errors;
+    }
 }

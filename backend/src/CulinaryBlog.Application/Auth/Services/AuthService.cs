@@ -189,6 +189,29 @@ public class AuthService : IAuthService
         await _uow.SaveChangesAsync(ct);
     }
 
+    public async Task ChangePasswordAsync(
+        string userId,
+        ChangePasswordRequest request,
+        CancellationToken ct = default)
+    {
+        var errors = AuthRequestValidator.Validate(request);
+        if (errors.Count > 0) throw Invalid(errors);
+
+        var user = await _users.FindByIdAsync(userId)
+                   ?? throw new NotFoundException(
+                       ErrorCodes.AuthInvalidCredentials,
+                       "Người dùng không tồn tại.");
+
+        var result = await _users.ChangePasswordAsync(
+            user,
+            request.CurrentPassword,
+            request.NewPassword);
+        if (!result.Succeeded)
+            throw Invalid(ToErrors(result.Errors));
+
+        await RevokeAllActiveAsync(userId, ct);
+    }
+
     // ---------------------------------------------------------------- FR-AUTH-006
     public async Task<UserProfileDto> GetProfileAsync(
         string userId,

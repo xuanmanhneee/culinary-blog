@@ -12,6 +12,8 @@ public interface IAuthService
 
     Task LogoutAsync(string userId, string refreshToken, CancellationToken ct = default);
 
+    Task ChangePasswordAsync(string userId, ChangePasswordRequest request, CancellationToken ct = default);
+
     Task<UserProfileDto> GetProfileAsync(string userId, CancellationToken ct = default);
 
     Task<UserProfileDto> UpdateProfileAsync(string userId, UpdateProfileRequest request, CancellationToken ct = default);

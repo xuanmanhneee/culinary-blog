@@ -122,6 +122,27 @@ public static class AuthEndpoints
         .ProducesValidationProblem()
         .ProducesProblem(StatusCodes.Status401Unauthorized);
 
+        // FR-AUTH-008
+        group.MapPost("/change-password", async (
+            ChangePasswordRequest request,
+            [FromServices] IAuthService auth,
+            HttpContext http,
+            CancellationToken ct) =>
+        {
+            var userId = http.User.GetUserId();
+            if (userId is null)
+                return Results.Unauthorized();
+
+            await auth.ChangePasswordAsync(userId, request, ct);
+            return Results.NoContent();
+        })
+        .RequireAuthorization()
+        .WithName("ChangePassword")
+        .WithSummary("Đổi mật khẩu")
+        .Produces(StatusCodes.Status204NoContent)
+        .ProducesValidationProblem()
+        .ProducesAuthProblems();
+
         // FR-AUTH-004
         group.MapPost("/refresh", async (
             RefreshRequest request,

@@ -8,6 +8,8 @@ public record RefreshRequest(string RefreshToken);
 
 public record LogoutRequest(string RefreshToken);
 
+public record ChangePasswordRequest(string CurrentPassword, string NewPassword);
+
 /// <summary>
 /// PATCH: field nào null thì giữ nguyên. AvatarUrl = "" nghĩa là xóa avatar.
 /// </summary>
