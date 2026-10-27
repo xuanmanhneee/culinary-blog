@@ -1,4 +1,5 @@
 import type { RecipeDetailDto } from "@/lib/types/recipe";
+import { SITE_URL } from "@/lib/config/env";
 
 interface RecipeJsonLdProps {
   data: RecipeDetailDto;
@@ -45,12 +46,26 @@ function formatIngredient(
 }
 
 export default function RecipeJsonLd({ data }: RecipeJsonLdProps) {
+  const images = data.images.map(getImageUrl).filter(Boolean);
+  const ingredients = [...data.ingredients]
+    .sort((left, right) => left.orderIndex - right.orderIndex)
+    .map(formatIngredient);
+  const instructions = [...data.steps]
+    .sort((left, right) => left.stepNumber - right.stepNumber)
+    .map((step) => ({
+      "@type": "HowToStep",
+      name: step.title,
+      text: step.description,
+      ...(step.imageUrl ? { image: step.imageUrl } : {}),
+    }));
   const recipeJsonLd = {
     "@context": "https://schema.org",
     "@type": "Recipe",
+    "@id": `${SITE_URL}/recipes/${encodeURIComponent(data.slug)}#recipe`,
+    url: `${SITE_URL}/recipes/${encodeURIComponent(data.slug)}`,
     name: data.title,
     description: data.description,
-    image: data.images.map(getImageUrl).filter(Boolean),
+    ...(images.length > 0 ? { image: images } : {}),
     ...(data.author
       ? { author: { "@type": "Person", name: data.author.displayName } }
       : {}),
@@ -60,12 +75,8 @@ export default function RecipeJsonLd({ data }: RecipeJsonLdProps) {
     totalTime: toDuration(data.prepTimeMinutes + data.cookTimeMinutes),
     recipeYield: `${data.servings} phần`,
     recipeCategory: data.category?.name,
-    recipeIngredient: data.ingredients.map(formatIngredient),
-    recipeInstructions: data.steps.map((step) => ({
-      "@type": "HowToStep",
-      name: step.title,
-      text: step.description,
-    })),
+    recipeIngredient: ingredients,
+    recipeInstructions: instructions,
     nutrition: getNutrition(data.nutrition),
   };
 

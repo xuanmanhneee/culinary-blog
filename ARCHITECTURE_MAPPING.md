@@ -130,7 +130,7 @@ Trang `/recipes/[slug]` lấy dữ liệu qua `getRecipeForViewer(slug)`:
 
 Trang detail hiện có:
 
-- Metadata/Open Graph; JSON-LD chỉ xuất hiện với recipe công khai, không xuất hiện với bản preview.
+- Metadata/Open Graph; JSON-LD Schema.org `Recipe` chỉ xuất hiện với recipe công khai, có URL chuẩn, ảnh, tác giả, nguyên liệu và hướng dẫn được sắp thứ tự; dữ liệu được escape an toàn khi serialize.
 - Cảnh báo preview cho draft/archived và robots `noindex, nofollow`.
 - Gallery ảnh, thời gian chuẩn bị/nấu, khẩu phần, độ khó, nguyên liệu có điều chỉnh servings, dinh dưỡng, các bước và ghi chú tác giả.
 - Hành động của chủ sở hữu/Admin, chỉnh sửa và quản lý upload ảnh; hành động in/chia sẻ được giữ lại.
@@ -138,10 +138,10 @@ Trang detail hiện có:
 
 ### 3.4 Các trang công khai và mức độ tích hợp API
 
-- Trang tìm kiếm `/search` gọi API backend và hỗ trợ kết quả/phân trang theo query.
+- Trang tìm kiếm `/search` nhận `q`, `categorySlug` và `page` từ URL; lựa chọn danh mục và phân trang cập nhật URL, rồi gọi `GET /recipes/search?q=...&categorySlug=...&page=...`.
 - Trang chủ tải danh mục từ `GET /categories` và sáu công thức Published mới nhất từ `GET /recipes`, có cache/revalidate 300 giây; lỗi API được hiển thị rõ theo từng khu vực.
 - `/categories` tải danh sách danh mục từ `GET /categories`, hiển thị ảnh/miêu tả khi có. Liên kết danh mục dẫn tới `/search?categorySlug=...`.
-- `/recipes` vẫn dùng dữ liệu mẫu; bộ lọc hiển thị ở trang đó chưa được nối backend. Luồng search theo category sẽ được hoàn tất cùng Hạng mục 3.
+- `/recipes` vẫn dùng dữ liệu mẫu; bộ lọc hiển thị ở trang đó chưa được nối backend.
 
 ## 4. Luồng dữ liệu frontend ↔ backend
 
@@ -152,7 +152,7 @@ Trang detail hiện có:
 | Hồ sơ | `/account` | `/auth/me` GET/PATCH | Yêu cầu session |
 | Danh sách quản lý | `/dashboard/recipes` | `/recipes?mine=true` | Status filter + pagination |
 | Tạo/sửa | wizard dashboard | recipes, ingredients, steps | Sửa có ETag/`If-Match` |
-| Search | `/search?q=...` | `/recipes/search` | Full-text + fuzzy |
+| Search | `/search?q=...&categorySlug=...` | `/recipes/search` | PostgreSQL Vietnamese FTS + fuzzy; category filter và page |
 | Detail/preview | `/recipes/[slug]` | `/recipes/{slug}` | Public cache; fallback authenticated cho preview |
 | Upload ảnh | Detail/editor image UI | recipe image endpoints | Backend lưu metadata và object/file |
 

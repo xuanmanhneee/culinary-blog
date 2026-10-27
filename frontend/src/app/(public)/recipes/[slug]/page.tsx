@@ -71,7 +71,16 @@ export default async function RecipePage({ params }: RecipePageProps) {
           <h1 className="font-display mt-5 text-5xl leading-[1.02] font-bold tracking-[-.05em] text-[#2b2622] sm:text-7xl">{recipe.title}</h1>
           <p className="mx-auto mt-6 max-w-2xl text-base leading-8 text-[#70665e]">{recipe.description}</p>
           <div className="mt-7 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-sm text-[#665d55]">
-            {recipe.author && <span className="font-bold text-[#1f4b3f]">Bởi {recipe.author.displayName}</span>}
+            {recipe.author && (
+              <span className="inline-flex items-center gap-2 font-bold text-[#1f4b3f]">
+                <span className="relative grid size-9 place-items-center overflow-hidden rounded-full bg-[#1f4b3f] text-xs text-white">
+                  {recipe.author.avatarUrl
+                    ? <Image src={recipe.author.avatarUrl} alt="" fill unoptimized sizes="36px" className="object-cover" />
+                    : recipe.author.displayName.trim().charAt(0).toLocaleUpperCase("vi")}
+                </span>
+                Bởi {recipe.author.displayName}
+              </span>
+            )}
             {recipe.publishedAt && <span>Đăng ngày {formatDate(recipe.publishedAt)}</span>}
           </div>
           <RecipeOwnerActions recipeId={recipe.id} authorId={recipe.author?.id} />
