@@ -10,12 +10,19 @@ import { Textarea } from "@/components/ui/textarea";
 import { useRecipeFormStore } from "@/lib/stores/recipe-form-store";
 import { RECIPE_DIFFICULTY_LABELS, RecipeDifficulty, type RecipeCategoryDto } from "@/lib/types/recipe";
 import { basicInfoSchema, requiredNumber, type BasicInfoValues } from "./schemas";
+import { useServerErrors, type ServerErrors } from "./server-errors";
 import { StepActions } from "./StepActions";
 
 const difficulties = Object.values(RecipeDifficulty);
 
 /** Bước 1 – thông tin cơ bản (FR-RCP-003/004). */
-export function BasicInfoStep({ categories }: { categories: RecipeCategoryDto[] }) {
+export function BasicInfoStep({
+  categories,
+  serverErrors,
+}: {
+  categories: RecipeCategoryDto[];
+  serverErrors?: ServerErrors | null;
+}) {
   const setBasic = useRecipeFormStore((state) => state.setBasic);
   const nextStep = useRecipeFormStore((state) => state.nextStep);
 
@@ -26,6 +33,7 @@ export function BasicInfoStep({ categories }: { categories: RecipeCategoryDto[] 
     mode: "onTouched",
   });
   const { errors } = form.formState;
+  useServerErrors(form.setError, serverErrors, 0);
 
   // Tự lưu vào store khi gõ để chuyển bước/tải lại trang không mất dữ liệu.
   useEffect(() => {

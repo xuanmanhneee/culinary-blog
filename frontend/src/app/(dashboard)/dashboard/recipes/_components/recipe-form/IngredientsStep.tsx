@@ -10,10 +10,11 @@ import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { emptyIngredient, useRecipeFormStore, type IngredientDraft } from "@/lib/stores/recipe-form-store";
 import { ingredientsSchema, optionalNumber, type IngredientsValues } from "./schemas";
+import { useServerErrors, type ServerErrors } from "./server-errors";
 import { StepActions } from "./StepActions";
 
 /** Bước 2 – danh sách nguyên liệu (FR-RCP-009): tên, số lượng, đơn vị, ghi chú, thứ tự. */
-export function IngredientsStep() {
+export function IngredientsStep({ serverErrors }: { serverErrors?: ServerErrors | null }) {
   const setIngredients = useRecipeFormStore((state) => state.setIngredients);
   const nextStep = useRecipeFormStore((state) => state.nextStep);
   const previousStep = useRecipeFormStore((state) => state.previousStep);
@@ -30,6 +31,7 @@ export function IngredientsStep() {
     keyName: "fieldKey",
   });
   const errors = form.formState.errors.ingredients;
+  useServerErrors(form.setError, serverErrors, 1);
 
   useEffect(() => {
     const subscription = form.watch((values) => setIngredients((values.ingredients ?? []) as IngredientDraft[]));
