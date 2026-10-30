@@ -4,22 +4,20 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
-namespace CulinaryBlog.Infrastructure.Storage;
+namespace CulinaryBlog.Infrastructure.Modules.FileStorage;
 
-public static class StorageDependencyInjection
+internal static class FileStorageDependencyInjection
 {
-    public static IServiceCollection AddMinioStorage(this IServiceCollection services, IConfiguration configuration)
+    internal static IServiceCollection AddFileStorageModule(
+        this IServiceCollection services,
+        IConfiguration configuration)
     {
-        services.AddHttpContextAccessor();
-        services.AddScoped<ICurrentUserService, HttpCurrentUserService>();
-
         if (string.Equals(
                 configuration["Storage:Provider"],
                 "Local",
                 StringComparison.OrdinalIgnoreCase))
         {
             services.AddScoped<IFileStorageService, LocalFileStorageService>();
-            services.AddScoped<ICacheService, LoggingCacheService>();
             return services;
         }
 
@@ -35,7 +33,7 @@ public static class StorageDependencyInjection
             });
         });
         services.AddScoped<IFileStorageService, MinioFileStorageService>();
-        services.AddScoped<ICacheService, LoggingCacheService>();
         return services;
     }
+
 }

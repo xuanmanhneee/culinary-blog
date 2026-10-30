@@ -3,7 +3,7 @@ using System.Security.Claims;
 using CulinaryBlog.Application.Common.Interfaces;
 using Microsoft.AspNetCore.Http;
 
-namespace CulinaryBlog.Infrastructure.Storage;
+namespace CulinaryBlog.Infrastructure.Modules.Identity;
 
 public sealed class HttpCurrentUserService : ICurrentUserService
 {

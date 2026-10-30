@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 using CulinaryBlog.Application.Common.Interfaces;
 using Microsoft.Extensions.Logging;
 
-namespace CulinaryBlog.Infrastructure.Storage;
+namespace CulinaryBlog.Infrastructure.Modules.Cache;
 
 public sealed class LoggingCacheService : ICacheService
 {

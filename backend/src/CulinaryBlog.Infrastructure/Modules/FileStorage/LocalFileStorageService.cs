@@ -2,8 +2,9 @@ using CulinaryBlog.Application.Common.Interfaces;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 
-namespace CulinaryBlog.Infrastructure.Storage;
+namespace CulinaryBlog.Infrastructure.Modules.FileStorage;
 
+/// <summary>Lưu file vào wwwroot/uploads khi chạy local.</summary>
 public sealed class LocalFileStorageService : IFileStorageService
 {
     private static readonly IReadOnlyDictionary<string, string> ContentTypeExtensions =
@@ -33,7 +34,9 @@ public sealed class LocalFileStorageService : IFileStorageService
         CancellationToken cancellationToken)
     {
         if (!ContentTypeExtensions.TryGetValue(file.ContentType, out var extension))
+        {
             throw new InvalidDataException("Unsupported image content type.");
+        }
 
         await using var stream = file.OpenReadStream();
         return await UploadAsync(recipeId, stream, file.ContentType, extension, cancellationToken);
@@ -47,7 +50,9 @@ public sealed class LocalFileStorageService : IFileStorageService
         CancellationToken cancellationToken)
     {
         if (!ContentTypeExtensions.Values.Contains(extension, StringComparer.OrdinalIgnoreCase))
+        {
             throw new InvalidDataException("Unsupported image extension.");
+        }
 
         var relativeDirectory = Path.Combine("uploads", "recipes", recipeId.ToString("D"));
         var directory = Path.Combine(_webRoot, relativeDirectory);
@@ -82,17 +87,25 @@ public sealed class LocalFileStorageService : IFileStorageService
             : url;
         path = Uri.UnescapeDataString(path).Replace('\\', '/');
         if (!path.StartsWith("/uploads/", StringComparison.Ordinal))
+        {
             throw new InvalidDataException("The URL does not belong to local recipe storage.");
+        }
 
         var uploadsRoot = Path.GetFullPath(Path.Combine(_webRoot, "uploads"));
         var filePath = Path.GetFullPath(Path.Combine(
             _webRoot,
             path.TrimStart('/').Replace('/', Path.DirectorySeparatorChar)));
-        if (!filePath.StartsWith(uploadsRoot + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+        if (!filePath.StartsWith(
+                uploadsRoot + Path.DirectorySeparatorChar,
+                StringComparison.OrdinalIgnoreCase))
+        {
             throw new InvalidDataException("The storage path is outside the uploads directory.");
+        }
 
         if (File.Exists(filePath))
+        {
             File.Delete(filePath);
+        }
 
         return Task.CompletedTask;
     }

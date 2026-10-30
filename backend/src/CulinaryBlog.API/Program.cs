@@ -4,10 +4,7 @@ using CulinaryBlog.Application;
 using CulinaryBlog.Infrastructure;
 using CulinaryBlog.Infrastructure.Persistence;
 using CulinaryBlog.Infrastructure.Persistence.Seed;
-using CulinaryBlog.Infrastructure.Storage;
-using CulinaryBlog.Infrastructure.Jobs;
-using Hangfire;
-using Hangfire.PostgreSql;
+using CulinaryBlog.Infrastructure.Modules.BackgroundJobs;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 using CulinaryBlog.API.Extensions;
@@ -25,7 +22,6 @@ builder.Logging.AddConsole();
 builder.Services.AddApplicationServices();
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
-builder.Services.AddMinioStorage(builder.Configuration);
 
 // API versioning theo URL segment (/api/v1/...) kèm sinh tài liệu OpenAPI riêng cho mỗi phiên bản
 // (đã đăng ký JWT Bearer transformer bên trong, xem ApiVersioningExtensions).
@@ -34,21 +30,6 @@ builder.Services.AddCulinaryApiVersioning();
 builder.Services.AddFrontendCors(builder.Configuration);
 builder.Services.AddJwtAuthentication(builder.Configuration);
 builder.Services.AddCulinaryRateLimiting();
-
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-
-// 1. Đăng ký "nền": nơi lưu queue (PostgreSQL) + cách serialize job
-builder.Services.AddHangfire(config => config
-    .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
-    .UseSimpleAssemblyNameTypeSerializer()
-    .UseRecommendedSerializerSettings()
-    .UsePostgreSqlStorage(options => options.UseNpgsqlConnection(connectionString)));
-
-// 2. Đăng ký "worker": tiến trình poll queue và thực thi job
-builder.Services.AddHangfireServer();
-
-// 3. Đăng ký chính job class vào DI (để Hangfire resolve dependency của nó, ví dụ ILogger)
-builder.Services.AddScoped<PingJob>();
 
 // RFC 7807: mọi lỗi trả về application/problem+json kèm traceId và instance.
 builder.Services.AddProblemDetails(options =>
@@ -82,9 +63,9 @@ app.UseMiddleware<GlobalExceptionMiddleware>();
 // Response lỗi không có body (vd. 404 do sai route, 405) cũng trả về ProblemDetails.
 app.UseStatusCodePages();
 
-// Development uploads are served from wwwroot/uploads. Production can switch
-// Storage:Provider to MinIO without changing application code.
+// Local storage ghi vào wwwroot/uploads; MinIO tự phục vụ object qua HTTP.
 app.UseStaticFiles();
+
 
 // Trước rate limiter và authentication: preflight OPTIONS không bị 401/429,
 // và response lỗi (401, 403, 429...) vẫn có header CORS để frontend đọc được nội dung lỗi.
@@ -105,8 +86,9 @@ if (app.Environment.IsDevelopment())
                .WithTheme(ScalarTheme.Moon);
     });
 
-    app.UseHangfireDashboard("/hangfire");
 }
+
+app.UseBackgroundJobsModule();
 
 // Map các Endpoints của ứng dụng
 app.MapGet("/", () => "Culinary Blog API").ExcludeFromDescription();
@@ -124,16 +106,5 @@ app.MapRecipeImageEndpoints();
 app.MapCategoriesEndpoints();
 
 app.MapHealthEndpoints();
-
-app.Lifetime.ApplicationStarted.Register(() =>
-{
-    RecurringJob.AddOrUpdate<PingJob>(
-    recurringJobId: "ping-every-minute",
-    methodCall: j => j.Execute("scheduled ping"),
-    cronExpression: "* * * * *");
-});
-
-
-
 
 app.Run();

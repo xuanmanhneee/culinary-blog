@@ -1,10 +1,14 @@
 using CulinaryBlog.Application.Auth.Abstractions;
+using CulinaryBlog.Application.Common.Interfaces;
 using CulinaryBlog.Application.Recipes.Queries.SearchRecipes;
 using CulinaryBlog.Domain.Common;
 using CulinaryBlog.Domain.Modules.Categories;
 using CulinaryBlog.Domain.Modules.Identity;
 using CulinaryBlog.Domain.Modules.Recipes;
 using CulinaryBlog.Infrastructure.Modules.Categories;
+using CulinaryBlog.Infrastructure.Modules.Cache;
+using CulinaryBlog.Infrastructure.Modules.BackgroundJobs;
+using CulinaryBlog.Infrastructure.Modules.FileStorage;
 using CulinaryBlog.Infrastructure.Modules.Identity;
 using CulinaryBlog.Infrastructure.Modules.Recipes;
 using CulinaryBlog.Infrastructure.Persistence;
@@ -47,6 +51,9 @@ public static class DependencyInjection
             .AddEntityFrameworkStores<CulinaryBlogDbContext>()
             .AddDefaultTokenProviders();
 
+        services.AddHttpContextAccessor();
+        services.AddScoped<ICurrentUserService, HttpCurrentUserService>();
+
         // Module Categories
         services.AddScoped<ICategoryRepository, CategoryRepository>();
         // Module Recipes
@@ -58,6 +65,11 @@ public static class DependencyInjection
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+        // Các module hạ tầng độc lập được chọn và đăng ký tại composition root.
+        services.AddCacheModule();
+        services.AddFileStorageModule(configuration);
+        services.AddBackgroundJobsModule(configuration);
 
         // Seed data (dùng trong Development / lệnh seed riêng)
         services.AddScoped<IdentitySeeder>();

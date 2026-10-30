@@ -1,8 +1,8 @@
 using Microsoft.Extensions.Logging;
 
-namespace CulinaryBlog.Infrastructure.Jobs;
+namespace CulinaryBlog.Infrastructure.Modules.BackgroundJobs;
 
-public class PingJob
+public sealed class PingJob
 {
     private readonly ILogger<PingJob> _logger;
 
