@@ -1,5 +1,4 @@
 using System.Reflection;
-using CulinaryBlog.Application.Auth.Services;
 using CulinaryBlog.Application.Common.Behaviors;
 using CulinaryBlog.Application.Recipes.Services;
 using FluentValidation;
@@ -25,7 +24,6 @@ public static class DependencyInjection
 
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
-        services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<RecipeAuthorizationHandler>();
 
         return services;
