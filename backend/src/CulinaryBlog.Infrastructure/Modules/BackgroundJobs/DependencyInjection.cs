@@ -5,9 +5,9 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace CulinaryBlog.Infrastructure.Modules.BackgroundJobs;
 
-internal static class BackgroundJobsDependencyInjection
+internal static class DependencyInjection
 {
-    internal static IServiceCollection AddBackgroundJobsModule(
+    internal static IServiceCollection AddBackgroundJobs(
         this IServiceCollection services,
         IConfiguration configuration)
     {
@@ -23,7 +23,6 @@ internal static class BackgroundJobsDependencyInjection
             .UsePostgreSqlStorage(storage => storage.UseNpgsqlConnection(connectionString)));
 
         services.AddHangfireServer();
-        services.AddScoped<PingJob>();
         return services;
     }
 }

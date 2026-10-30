@@ -88,7 +88,7 @@ if (app.Environment.IsDevelopment())
 
 }
 
-app.UseBackgroundJobsModule();
+app.UseBackgroundJobs();
 
 // Map các Endpoints của ứng dụng
 app.MapGet("/", () => "Culinary Blog API").ExcludeFromDescription();

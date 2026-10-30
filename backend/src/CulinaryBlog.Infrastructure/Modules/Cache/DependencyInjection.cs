@@ -3,9 +3,9 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace CulinaryBlog.Infrastructure.Modules.Cache;
 
-internal static class CacheDependencyInjection
+internal static class DependencyInjection
 {
-    internal static IServiceCollection AddCacheModule(this IServiceCollection services)
+    internal static IServiceCollection AddCache(this IServiceCollection services)
     {
         services.AddScoped<ICacheService, LoggingCacheService>();
         return services;

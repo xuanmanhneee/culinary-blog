@@ -67,9 +67,9 @@ public static class DependencyInjection
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 
         // Các module hạ tầng độc lập được chọn và đăng ký tại composition root.
-        services.AddCacheModule();
-        services.AddFileStorageModule(configuration);
-        services.AddBackgroundJobsModule(configuration);
+        services.AddCache();
+        services.AddFileStorage(configuration);
+        services.AddBackgroundJobs(configuration);
 
         // Seed data (dùng trong Development / lệnh seed riêng)
         services.AddScoped<IdentitySeeder>();

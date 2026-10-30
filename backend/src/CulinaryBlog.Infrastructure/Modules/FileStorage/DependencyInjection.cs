@@ -6,9 +6,9 @@ using Microsoft.Extensions.Options;
 
 namespace CulinaryBlog.Infrastructure.Modules.FileStorage;
 
-internal static class FileStorageDependencyInjection
+internal static class DependencyInjection
 {
-    internal static IServiceCollection AddFileStorageModule(
+    internal static IServiceCollection AddFileStorage(
         this IServiceCollection services,
         IConfiguration configuration)
     {
