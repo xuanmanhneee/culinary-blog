@@ -5,4 +5,5 @@ using Microsoft.AspNetCore.Http;
 
 namespace CulinaryBlog.Application.Recipes.Commands.UploadRecipeImage;
 
-public record UploadRecipeImageCommand(Guid RecipeId, IFormFile File) : IRequest<RecipeImageDto>;
+public record UploadRecipeImageCommand(Guid RecipeId, IFormFile File)
+    : IRequest<RecipeImageDto>;

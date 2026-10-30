@@ -3,7 +3,8 @@ using MediatR;
 
 namespace CulinaryBlog.Application.Recipes.Queries.SearchRecipes;
 
-public class SearchRecipesQueryHandler : IRequestHandler<SearchRecipesQuery, PagedResult<RecipeSummaryDto>>
+public class SearchRecipesQueryHandler
+    : IRequestHandler<SearchRecipesQuery, PagedResult<RecipeSummaryDto>>
 {
     private readonly IRecipeSearchReader _searchReader;
 

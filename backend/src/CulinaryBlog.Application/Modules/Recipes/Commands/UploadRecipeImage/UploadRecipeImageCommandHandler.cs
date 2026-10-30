@@ -12,7 +12,8 @@ using Microsoft.Extensions.Logging;
 
 namespace CulinaryBlog.Application.Recipes.Commands.UploadRecipeImage;
 
-public sealed class UploadRecipeImageCommandHandler : IRequestHandler<UploadRecipeImageCommand, RecipeImageDto>
+public sealed class UploadRecipeImageCommandHandler
+    : IRequestHandler<UploadRecipeImageCommand, RecipeImageDto>
 {
     private readonly IRecipeRepository _recipes;
     private readonly IUnitOfWork _unitOfWork;
