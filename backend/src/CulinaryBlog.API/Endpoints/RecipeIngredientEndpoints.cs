@@ -1,6 +1,9 @@
 using CulinaryBlog.API.Extensions;
+using CulinaryBlog.Application.Recipes.Commands.AddRecipeIngredient;
+using CulinaryBlog.Application.Recipes.Commands.DeleteRecipeIngredient;
+using CulinaryBlog.Application.Recipes.Commands.UpdateRecipeIngredient;
 using CulinaryBlog.Application.Recipes.Models;
-using CulinaryBlog.Application.Recipes.Services;
+using MediatR;
 
 namespace CulinaryBlog.API.Endpoints;
 
@@ -44,10 +47,10 @@ public static class RecipeIngredientEndpoints
     private static async Task<IResult> AddAsync(
         Guid recipeId,
         CreateIngredientRequest request,
-        IRecipeIngredientService service,
+        ISender sender,
         CancellationToken cancellationToken)
     {
-        var ingredient = await service.AddAsync(recipeId, request, cancellationToken);
+        var ingredient = await sender.Send(new AddRecipeIngredientCommand(recipeId, request), cancellationToken);
         return Results.Created(
             $"{ApiVersioningExtensions.V1Path}/recipes/{recipeId}/ingredients/{ingredient.Id}",
             ingredient);
@@ -57,17 +60,17 @@ public static class RecipeIngredientEndpoints
         Guid recipeId,
         Guid ingredientId,
         UpdateIngredientRequest request,
-        IRecipeIngredientService service,
+        ISender sender,
         CancellationToken cancellationToken) =>
-        Results.Ok(await service.UpdateAsync(recipeId, ingredientId, request, cancellationToken));
+        Results.Ok(await sender.Send(new UpdateRecipeIngredientCommand(recipeId, ingredientId, request), cancellationToken));
 
     private static async Task<IResult> DeleteAsync(
         Guid recipeId,
         Guid ingredientId,
-        IRecipeIngredientService service,
+        ISender sender,
         CancellationToken cancellationToken)
     {
-        await service.DeleteAsync(recipeId, ingredientId, cancellationToken);
+        await sender.Send(new DeleteRecipeIngredientCommand(recipeId, ingredientId), cancellationToken);
         return Results.NoContent();
     }
 }

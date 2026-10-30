@@ -65,6 +65,26 @@ internal static class RecipeUseCaseSupport
         Fiber = nutrition.Fiber, Sodium = nutrition.Sodium
     };
 
+    public static void ValidateIngredient(string? name, decimal? quantity, string? unit, string? notes, int? orderIndex)
+    {
+        var errors = new Dictionary<string, string[]>();
+        RecipeValidation.ValidateIngredient(errors, string.Empty, name, quantity, unit, notes, orderIndex);
+        if (errors.Count > 0) throw new ValidationException(errors);
+    }
+
+    public static RecipeIngredientDto MapIngredient(RecipeIngredient ingredient) =>
+        new(ingredient.Id, ingredient.Name, ingredient.Quantity, ingredient.Unit, ingredient.Notes, ingredient.OrderIndex);
+
+    public static void ValidateStep(string? title, string? description, int? timerMinutes, string? imageUrl)
+    {
+        var errors = new Dictionary<string, string[]>();
+        RecipeValidation.ValidateStep(errors, string.Empty, title, description, timerMinutes, imageUrl);
+        if (errors.Count > 0) throw new ValidationException(errors);
+    }
+
+    public static RecipeStepDto MapStep(RecipeStep step) =>
+        new(step.Id, step.StepNumber, step.Title, step.Description, step.TimerMinutes, step.ImageUrl);
+
     public static RecipeListItemDto MapListItem(Recipe recipe) => new(
         recipe.Id, recipe.Title, recipe.Slug, recipe.Description, recipe.PrepTime, recipe.CookTime,
         recipe.Servings, recipe.Difficulty, recipe.Status, recipe.CreatedAt, recipe.PublishedAt,

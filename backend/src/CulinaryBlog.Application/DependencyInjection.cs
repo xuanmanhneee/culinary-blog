@@ -29,9 +29,6 @@ public static class DependencyInjection
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<ICategoryService, CategoryService>();
         services.AddScoped<RecipeAuthorizationHandler>();
-        services.AddScoped<IRecipeIngredientService, RecipeIngredientService>();
-        services.AddScoped<IRecipeStepService, RecipeStepService>();
-        services.AddScoped<IRecipeImageService, RecipeImageService>();
 
         return services;
     }
