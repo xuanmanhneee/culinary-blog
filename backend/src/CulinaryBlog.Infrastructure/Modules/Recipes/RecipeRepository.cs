@@ -1,5 +1,5 @@
 using CulinaryBlog.Domain.Modules.Recipes;
-using CulinaryBlog.Infrastructure.Persistence;
+using CulinaryBlog.Infrastructure.Modules.Persistence.PostgreSql;
 using Microsoft.EntityFrameworkCore;
 
 namespace CulinaryBlog.Infrastructure.Modules.Recipes;

@@ -2,10 +2,8 @@ using CulinaryBlog.API.Endpoints;
 using CulinaryBlog.API.Middleware;
 using CulinaryBlog.Application;
 using CulinaryBlog.Infrastructure;
-using CulinaryBlog.Infrastructure.Persistence;
-using CulinaryBlog.Infrastructure.Persistence.Seed;
 using CulinaryBlog.Infrastructure.Modules.BackgroundJobs;
-using Microsoft.EntityFrameworkCore;
+using CulinaryBlog.Infrastructure.Modules.Persistence;
 using Scalar.AspNetCore;
 using CulinaryBlog.API.Extensions;
 
@@ -45,16 +43,8 @@ var app = builder.Build();
 
 
 
-// Apply schema migrations on startup, but seed only when explicitly requested.
-using (var scope = app.Services.CreateScope())
+if (await app.InitializePersistenceAsync(args))
 {
-    var dbContext = scope.ServiceProvider.GetRequiredService<CulinaryBlogDbContext>();
-    await dbContext.Database.MigrateAsync();
-}
-
-if (args.Contains("--seed", StringComparer.OrdinalIgnoreCase))
-{
-    await app.Services.SeedCulinaryBlogDataAsync();
     return;
 }
 

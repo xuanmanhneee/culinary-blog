@@ -3,7 +3,7 @@ using CulinaryBlog.Domain.Modules.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 
-namespace CulinaryBlog.Infrastructure.Persistence.Seed;
+namespace CulinaryBlog.Infrastructure.Modules.Persistence.PostgreSql.Seed;
 
 /// <summary>
 /// Seed cho module Identity.

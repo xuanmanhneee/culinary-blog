@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Metadata;
 
-namespace CulinaryBlog.Infrastructure.Persistence.Interceptors;
+namespace CulinaryBlog.Infrastructure.Modules.Persistence.PostgreSql.Interceptors;
 
 /// <summary>
 /// EF Core SaveChanges Interceptor: tự động set CreatedAt khi Added,

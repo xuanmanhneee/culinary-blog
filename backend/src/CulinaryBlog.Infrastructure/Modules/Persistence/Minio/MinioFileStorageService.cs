@@ -9,7 +9,7 @@ using CulinaryBlog.Application.Common.Interfaces;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 
-namespace CulinaryBlog.Infrastructure.Modules.FileStorage;
+namespace CulinaryBlog.Infrastructure.Modules.Persistence.Minio;
 
 public sealed class MinioFileStorageService : IFileStorageService
 {

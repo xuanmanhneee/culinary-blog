@@ -4,7 +4,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace CulinaryBlog.Infrastructure.Persistence.Migrations
+namespace CulinaryBlog.Infrastructure.Modules.Persistence.PostgreSql.Migrations
 {
     /// <inheritdoc />
     public partial class InitialCreate : Migration

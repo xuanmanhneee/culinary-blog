@@ -2,7 +2,7 @@ using CulinaryBlog.Application.Common.Interfaces;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 
-namespace CulinaryBlog.Infrastructure.Modules.FileStorage;
+namespace CulinaryBlog.Infrastructure.Modules.Persistence.Local;
 
 /// <summary>Lưu file vào wwwroot/uploads khi chạy local.</summary>
 public sealed class LocalFileStorageService : IFileStorageService

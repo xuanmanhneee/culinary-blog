@@ -5,7 +5,7 @@ using CulinaryBlog.Domain.Modules.Recipes;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
-namespace CulinaryBlog.Infrastructure.Persistence;
+namespace CulinaryBlog.Infrastructure.Modules.Persistence.PostgreSql;
 
 public class UnitOfWork : IUnitOfWork
 {

@@ -3,7 +3,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using CulinaryBlog.Application.Recipes.Queries.SearchRecipes;
 using CulinaryBlog.Domain.Modules.Recipes;
-using CulinaryBlog.Infrastructure.Persistence;
+using CulinaryBlog.Infrastructure.Modules.Persistence.PostgreSql;
 using Microsoft.EntityFrameworkCore;
 using NpgsqlTypes;
 

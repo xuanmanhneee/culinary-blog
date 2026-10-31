@@ -1,4 +1,4 @@
-namespace CulinaryBlog.Infrastructure.Modules.FileStorage;
+namespace CulinaryBlog.Infrastructure.Modules.Persistence.Minio;
 
 public sealed class MinioOptions
 {

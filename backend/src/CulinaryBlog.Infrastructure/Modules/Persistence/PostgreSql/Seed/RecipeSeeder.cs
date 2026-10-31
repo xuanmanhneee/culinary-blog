@@ -5,7 +5,7 @@ using CulinaryBlog.Domain.Modules.Recipes;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
-namespace CulinaryBlog.Infrastructure.Persistence.Seed;
+namespace CulinaryBlog.Infrastructure.Modules.Persistence.PostgreSql.Seed;
 
 /// <summary>
 /// Sinh dữ liệu mẫu cho module Recipes bằng thư viện Bogus.

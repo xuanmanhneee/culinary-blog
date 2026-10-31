@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.Extensions.Configuration;
 
-namespace CulinaryBlog.Infrastructure.Persistence;
+namespace CulinaryBlog.Infrastructure.Modules.Persistence.PostgreSql;
 
 /// <summary>
 /// Cho phép "dotnet ef migrations add" chạy được mà KHÔNG cần build/start toàn bộ

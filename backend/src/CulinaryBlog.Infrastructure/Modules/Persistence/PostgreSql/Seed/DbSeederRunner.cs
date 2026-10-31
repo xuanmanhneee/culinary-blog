@@ -1,8 +1,7 @@
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
-namespace CulinaryBlog.Infrastructure.Persistence.Seed;
+namespace CulinaryBlog.Infrastructure.Modules.Persistence.PostgreSql.Seed;
 
 /// <summary>
 /// Điều phối việc seed dữ liệu: gọi IdentitySeeder -> CategorySeeder -> RecipeSeeder
@@ -16,11 +15,6 @@ public static class DbSeederRunner
         using var scope = services.CreateScope();
         var provider = scope.ServiceProvider;
         var logger = provider.GetRequiredService<ILogger<CulinaryBlogDbContext>>();
-
-        var context = provider.GetRequiredService<CulinaryBlogDbContext>();
-
-        // Đảm bảo migration mới nhất đã được áp dụng trước khi seed
-        await context.Database.MigrateAsync();
 
         var identitySeeder = provider.GetRequiredService<IdentitySeeder>();
         var categorySeeder = provider.GetRequiredService<CategorySeeder>();

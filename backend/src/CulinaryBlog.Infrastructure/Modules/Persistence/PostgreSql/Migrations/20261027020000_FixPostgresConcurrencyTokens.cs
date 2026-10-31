@@ -1,10 +1,10 @@
-using CulinaryBlog.Infrastructure.Persistence;
+using CulinaryBlog.Infrastructure.Modules.Persistence.PostgreSql;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace CulinaryBlog.Infrastructure.Persistence.Migrations;
+namespace CulinaryBlog.Infrastructure.Modules.Persistence.PostgreSql.Migrations;
 
 [DbContext(typeof(CulinaryBlogDbContext))]
 [Migration("20261027020000_FixPostgresConcurrencyTokens")]

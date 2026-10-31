@@ -6,7 +6,7 @@ using CulinaryBlog.Domain.Modules.Recipes;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
-namespace CulinaryBlog.Infrastructure.Persistence;
+namespace CulinaryBlog.Infrastructure.Modules.Persistence.PostgreSql;
 
 /// <summary>
 /// DbContext duy nhất của modular monolith. Mỗi module "đăng ký" DbSet + Configuration
