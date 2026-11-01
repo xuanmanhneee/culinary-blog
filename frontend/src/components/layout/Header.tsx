@@ -28,13 +28,7 @@ import { Logo } from "@/components/layout/Logo";
 import { Roles } from "@/lib/types/auth";
 import { cn } from "@/lib/utils";
 
-const publicNavigation = [
-  { href: "/recipes", label: "Tất cả món ăn" },
-  { href: "/categories", label: "Danh mục" },
-  { href: "/dashboard/recipes", label: "Bếp của tôi" },
-];
-
-const kitchenNavigation = [
+const navigationItems = [
   { href: "/recipes", label: "Tất cả món ăn" },
   { href: "/categories", label: "Danh mục" },
   { href: "/dashboard/recipes", label: "Bếp của tôi" },
@@ -87,9 +81,8 @@ export function Header() {
     roles: session.user.roles ?? [],
   } : null;
   const isAdmin = user?.roles?.includes(Roles.Admin) ?? false;
-  const isKitchen = pathname.startsWith("/dashboard");
   const loginHref = `/login?callbackUrl=${encodeURIComponent(pathname || "/")}`;
-  const navigation = (isKitchen ? kitchenNavigation : publicNavigation).map((item) =>
+  const navigation = navigationItems.map((item) =>
     item.href === "/dashboard/recipes" && !user
       ? { ...item, href: "/login?callbackUrl=%2Fdashboard%2Frecipes" }
       : item,

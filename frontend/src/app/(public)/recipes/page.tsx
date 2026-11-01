@@ -47,7 +47,11 @@ export default async function RecipesPage({ searchParams }: { searchParams: Prom
   ]);
 
   if (recipesResult.status === "rejected" || categoriesResult.status === "rejected") {
-    const reason = recipesResult.status === "rejected" ? recipesResult.reason : categoriesResult.reason;
+    const reason = recipesResult.status === "rejected"
+      ? recipesResult.reason
+      : categoriesResult.status === "rejected"
+        ? categoriesResult.reason
+        : new Error("Không tải được dữ liệu công thức.");
     return <section className="site-container py-20"><ErrorState title="Không tải được công thức" message={getErrorMessage(reason)} /></section>;
   }
 

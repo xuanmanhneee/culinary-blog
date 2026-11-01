@@ -5,7 +5,6 @@ import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useRecipeFormStore } from "@/lib/stores/recipe-form-store";
 import { RECIPE_DIFFICULTY_LABELS, RecipeDifficulty, type RecipeCategoryDto } from "@/lib/types/recipe";
@@ -79,18 +78,18 @@ export function BasicInfoStep({
               control={form.control}
               name="categoryId"
               render={({ field }) => (
-                <Select value={field.value} onValueChange={field.onChange}>
-                  <SelectTrigger id="categoryId" className="w-full" aria-invalid={!!errors.categoryId} onBlur={field.onBlur}>
-                    <SelectValue placeholder="Chọn danh mục" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((category) => (
-                      <SelectItem key={category.id} value={category.id}>
-                        {category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <select
+                  ref={field.ref}
+                  id="categoryId"
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  aria-invalid={!!errors.categoryId}
+                  className="h-9 w-full rounded-md border bg-transparent px-3 text-sm"
+                >
+                  <option value="">Chọn danh mục</option>
+                  {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
+                </select>
               )}
             />
             <FieldError errors={[errors.categoryId]} />
