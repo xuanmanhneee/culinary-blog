@@ -1,4 +1,4 @@
-import { ArrowRight, BookOpen, Search, Sparkles, UtensilsCrossed } from "lucide-react";
+import { ArrowRight, BookOpen, Dices, Search, Sparkles, UtensilsCrossed } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { RecipeCard } from "@/components/recipes/RecipeCard";
@@ -38,6 +38,9 @@ export default async function Home() {
                 <span className="text-xs font-bold uppercase tracking-[.14em] text-[#8c7e72]">hoặc</span>
                 <Button variant="outline" className="border-[#b65338]/35 bg-[#fffaf3] text-[#a3422b] shadow-[0_7px_20px_rgba(182,83,56,.12)] hover:border-[#b65338] hover:bg-[#b65338] hover:text-white" asChild>
                   <Link href="/dashboard/recipes/new"><UtensilsCrossed />Chia sẻ món ăn của bạn</Link>
+                </Button>
+                <Button variant="ghost" className="text-[#1f4b3f] hover:bg-[#e2eee7]" asChild>
+                  <Link href="/random"><Dices />Không biết ăn gì?</Link>
                 </Button>
               </div>
             </div>

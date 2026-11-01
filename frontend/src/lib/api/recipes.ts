@@ -22,6 +22,18 @@ export async function getLatestPublicRecipes(pageSize = 6): Promise<PagedResult<
   });
 }
 
+export async function getPublicRecipePool(pageSize = 50): Promise<PagedResult<RecipeListItemDto>> {
+  const query = new URLSearchParams({
+    page: "1",
+    pageSize: String(Math.min(pageSize, 50)),
+    sort: "-createdAt",
+  });
+
+  return apiFetch<PagedResult<RecipeListItemDto>>(`/recipes?${query}`, {
+    next: { revalidate: 60, tags: ["recipes"] },
+  });
+}
+
 export async function getRecipeBySlug(slug: string): Promise<RecipeDetailDto | null> {
   const response = await fetch(
     `${API_V1}/recipes/${encodeURIComponent(slug)}`,
