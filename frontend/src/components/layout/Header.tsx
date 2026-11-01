@@ -38,7 +38,6 @@ const kitchenNavigation = [
   { href: "/recipes", label: "Tất cả món ăn" },
   { href: "/categories", label: "Danh mục" },
   { href: "/dashboard/recipes", label: "Bếp của tôi" },
-  { href: "/dashboard/recipes/new", label: "Tạo công thức" },
 ];
 
 const accountNavigation = [
