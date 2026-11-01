@@ -1,7 +1,7 @@
 "use client";
 
 import { Dices, RotateCw, Sparkles } from "lucide-react";
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { RecipeCard } from "@/components/recipes/RecipeCard";
 import { Button } from "@/components/ui/button";
 import type { CategoryDto } from "@/lib/types/category";
@@ -42,6 +42,8 @@ export function RandomRecipePicker({ recipes, categories }: { recipes: RecipeLis
   const [difficulty, setDifficulty] = useState("");
   const [maxCookTime, setMaxCookTime] = useState("");
   const [recipe, setRecipe] = useState<RecipeListItemDto | null>(() => randomItem(recipes));
+  const [isSpinning, setIsSpinning] = useState(false);
+  const spinTimer = useRef<number | null>(null);
 
   const filteredRecipes = useMemo(() => recipes.filter((item) => {
     if (!matchesMeal(item, meal)) return false;
@@ -51,8 +53,33 @@ export function RandomRecipePicker({ recipes, categories }: { recipes: RecipeLis
     return true;
   }), [categoryId, difficulty, meal, maxCookTime, recipes]);
 
+  useEffect(() => () => {
+    if (spinTimer.current !== null) window.clearTimeout(spinTimer.current);
+  }, []);
+
   function chooseRecipe() {
-    setRecipe(randomItem(filteredRecipes));
+    if (!filteredRecipes.length || isSpinning) return;
+
+    setIsSpinning(true);
+    let step = 0;
+    const totalSteps = 20;
+
+    const spin = () => {
+      setRecipe(randomItem(filteredRecipes));
+      step += 1;
+
+      if (step >= totalSteps) {
+        spinTimer.current = null;
+        setIsSpinning(false);
+        return;
+      }
+
+      // Chạy nhanh lúc đầu rồi chậm dần để tạo cảm giác đang quay và sắp dừng.
+      const delay = 45 + Math.round((step / totalSteps) ** 2 * 180);
+      spinTimer.current = window.setTimeout(spin, delay);
+    };
+
+    spin();
   }
 
   return (
@@ -63,7 +90,9 @@ export function RandomRecipePicker({ recipes, categories }: { recipes: RecipeLis
         <p className="mx-auto mt-2 max-w-xl text-sm text-[#746a62]">Không biết ăn gì? Hãy để Bếp Nhà chọn giúp bạn.</p>
 
         {recipe ? (
-          <div className="mx-auto mt-5 w-full max-w-[22rem] text-left"><RecipeCard recipe={recipe} priority /></div>
+          <div className={`mx-auto mt-5 w-full max-w-[22rem] text-left transition-transform ${isSpinning ? "scale-[.985] opacity-80" : "scale-100 opacity-100"}`} aria-live="polite">
+            <RecipeCard recipe={recipe} priority />
+          </div>
         ) : (
           <p className="mx-auto mt-8 max-w-xl rounded-2xl border border-dashed border-[#d9cdbd] bg-white/70 p-7 text-center text-sm text-[#70675f]">Thử nới lỏng một bộ lọc để Bếp Nhà tìm được món cho bạn nhé.</p>
         )}
@@ -75,10 +104,10 @@ export function RandomRecipePicker({ recipes, categories }: { recipes: RecipeLis
             <Filter label="Loại món"><select value={categoryId} onChange={(event) => setCategoryId(event.target.value)}><option value="">Tất cả loại món</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></Filter>
             <Filter label="Độ khó"><select value={difficulty} onChange={(event) => setDifficulty(event.target.value)}><option value="">Mọi độ khó</option>{Object.entries(RECIPE_DIFFICULTY_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></Filter>
             <Filter label="Thời gian"><select value={maxCookTime} onChange={(event) => setMaxCookTime(event.target.value)}><option value="">Không giới hạn</option><option value="30">Tối đa 30 phút</option><option value="60">Tối đa 60 phút</option><option value="90">Tối đa 90 phút</option></select></Filter>
-            <Button type="button" onClick={chooseRecipe} disabled={!filteredRecipes.length} className="h-11 bg-[#f3d8c5] text-[#1f4b3f] hover:bg-white"><Dices />Đổi món</Button>
+            <Button type="button" onClick={chooseRecipe} disabled={!filteredRecipes.length || isSpinning} className="h-11 bg-[#f3d8c5] text-[#1f4b3f] hover:bg-white"><Dices />{isSpinning ? "Đang chọn..." : "Đổi món"}</Button>
           </div>
         </div>
-        <Button type="button" variant="ghost" className="mx-auto mt-3 flex" onClick={chooseRecipe} disabled={!filteredRecipes.length}><RotateCw />Bốc lại món khác</Button>
+        <Button type="button" variant="ghost" className="mx-auto mt-3 flex" onClick={chooseRecipe} disabled={!filteredRecipes.length || isSpinning}><RotateCw />{isSpinning ? "Đang quay món..." : "Bốc lại món khác"}</Button>
       </section>
     </main>
   );
