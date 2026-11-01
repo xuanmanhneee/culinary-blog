@@ -1,6 +1,6 @@
 "use client";
 
-import { Dices, RotateCw, Sparkles } from "lucide-react";
+import { Dices, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { RecipeCard } from "@/components/recipes/RecipeCard";
 import { Button } from "@/components/ui/button";
@@ -107,7 +107,6 @@ export function RandomRecipePicker({ recipes, categories }: { recipes: RecipeLis
             <Button type="button" onClick={chooseRecipe} disabled={!filteredRecipes.length || isSpinning} className="h-11 bg-[#f3d8c5] text-[#1f4b3f] hover:bg-white"><Dices />{isSpinning ? "Đang chọn..." : "Đổi món"}</Button>
           </div>
         </div>
-        <Button type="button" variant="ghost" className="mx-auto mt-3 flex" onClick={chooseRecipe} disabled={!filteredRecipes.length || isSpinning}><RotateCw />{isSpinning ? "Đang quay món..." : "Bốc lại món khác"}</Button>
       </section>
     </main>
   );
