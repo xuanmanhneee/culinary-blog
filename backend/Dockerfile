@@ -12,5 +12,6 @@ FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 ENV ASPNETCORE_URLS=http://+:8080
 EXPOSE 8080
+RUN mkdir -p /app/wwwroot
 COPY --from=build /app/publish .
 ENTRYPOINT ["dotnet", "CulinaryBlog.API.dll"]
