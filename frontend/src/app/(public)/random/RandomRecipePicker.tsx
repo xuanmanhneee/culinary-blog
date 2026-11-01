@@ -1,9 +1,8 @@
 "use client";
 
 import { Dices, RotateCw, Sparkles } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { RecipeCard } from "@/components/recipes/RecipeCard";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { CategoryDto } from "@/lib/types/category";
 import { RECIPE_DIFFICULTY_LABELS, type RecipeListItemDto } from "@/lib/types/recipe";
@@ -57,36 +56,34 @@ export function RandomRecipePicker({ recipes, categories }: { recipes: RecipeLis
   }
 
   return (
-    <main className="site-container py-14 sm:py-20">
-      <section className="mx-auto max-w-5xl overflow-hidden rounded-[2rem] bg-[#1f4b3f] px-6 py-10 text-white shadow-[0_24px_70px_rgba(31,75,63,.18)] sm:px-12 sm:py-14">
-        <div className="max-w-2xl">
-          <Badge className="border-white/20 bg-white/10 text-[#f6d9c5]"><Sparkles className="mr-1.5 size-3" />Góc ngẫu hứng</Badge>
-          <h1 className="font-display mt-5 text-5xl font-bold tracking-[-.05em] sm:text-7xl">Không biết ăn gì?</h1>
-          <p className="mt-5 max-w-xl text-base leading-7 text-white/75">Chọn một vài gợi ý, phần còn lại cứ để Bếp Nhà quyết định giúp bạn.</p>
-        </div>
+    <main className="site-container flex min-h-[calc(100svh-74px)] flex-col justify-center py-6 sm:py-8">
+      <section className="mx-auto w-full max-w-5xl text-center">
+        <div className="mb-4 flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-[.16em] text-[#a84f37]"><Sparkles className="size-3" />Gợi ý hôm nay</div>
+        <h1 className="font-display text-3xl font-bold tracking-[-.04em] text-[#2e2925] sm:text-4xl">Món dành cho bạn hôm nay</h1>
+        <p className="mx-auto mt-2 max-w-xl text-sm text-[#746a62]">Không biết ăn gì? Hãy để Bếp Nhà chọn giúp bạn.</p>
 
-        <div className="mt-9 grid gap-3 rounded-[1.35rem] bg-[#fffaf3] p-4 text-[#332d28] sm:grid-cols-2 lg:grid-cols-4">
-          <label className="text-sm font-semibold">Bữa ăn<select value={meal} onChange={(event) => setMeal(event.target.value as Meal)} className="mt-2 h-11 w-full rounded-xl border border-[#d9cdbd] bg-white px-3 text-sm font-normal outline-none focus:border-[#1f4b3f]">{mealOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
-          <label className="text-sm font-semibold">Loại món<select value={categoryId} onChange={(event) => setCategoryId(event.target.value)} className="mt-2 h-11 w-full rounded-xl border border-[#d9cdbd] bg-white px-3 text-sm font-normal outline-none focus:border-[#1f4b3f]"><option value="">Tất cả loại món</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label>
-          <label className="text-sm font-semibold">Độ khó<select value={difficulty} onChange={(event) => setDifficulty(event.target.value)} className="mt-2 h-11 w-full rounded-xl border border-[#d9cdbd] bg-white px-3 text-sm font-normal outline-none focus:border-[#1f4b3f]"><option value="">Mọi độ khó</option>{Object.entries(RECIPE_DIFFICULTY_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
-          <label className="text-sm font-semibold">Thời gian<select value={maxCookTime} onChange={(event) => setMaxCookTime(event.target.value)} className="mt-2 h-11 w-full rounded-xl border border-[#d9cdbd] bg-white px-3 text-sm font-normal outline-none focus:border-[#1f4b3f]"><option value="">Không giới hạn</option><option value="30">Tối đa 30 phút</option><option value="60">Tối đa 60 phút</option><option value="90">Tối đa 90 phút</option></select></label>
-        </div>
+        {recipe ? (
+          <div className="mx-auto mt-5 w-full max-w-[22rem] text-left"><RecipeCard recipe={recipe} priority /></div>
+        ) : (
+          <p className="mx-auto mt-8 max-w-xl rounded-2xl border border-dashed border-[#d9cdbd] bg-white/70 p-7 text-center text-sm text-[#70675f]">Thử nới lỏng một bộ lọc để Bếp Nhà tìm được món cho bạn nhé.</p>
+        )}
 
-        <div className="mt-8 flex flex-col items-center justify-between gap-4 sm:flex-row">
-          <p className="text-sm text-white/65">{filteredRecipes.length ? `${filteredRecipes.length} món phù hợp với lựa chọn của bạn` : "Chưa có món phù hợp với bộ lọc này"}</p>
-          <Button type="button" size="lg" onClick={chooseRecipe} disabled={!filteredRecipes.length} className="bg-[#f3d8c5] text-[#1f4b3f] hover:bg-white"><Dices />Đổi món khác</Button>
+        <div className="mx-auto mt-6 max-w-4xl rounded-[1.35rem] bg-[#1f4b3f] p-4 text-left text-white shadow-[0_18px_50px_rgba(31,75,63,.16)] sm:p-5">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2"><p className="text-sm font-semibold">Muốn đổi theo khẩu vị?</p><p className="text-xs text-white/65">{filteredRecipes.length} món phù hợp</p></div>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-[1.15fr_1.35fr_1fr_1fr_auto] lg:items-end">
+            <Filter label="Bữa ăn"><select value={meal} onChange={(event) => setMeal(event.target.value as Meal)}>{mealOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></Filter>
+            <Filter label="Loại món"><select value={categoryId} onChange={(event) => setCategoryId(event.target.value)}><option value="">Tất cả loại món</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></Filter>
+            <Filter label="Độ khó"><select value={difficulty} onChange={(event) => setDifficulty(event.target.value)}><option value="">Mọi độ khó</option>{Object.entries(RECIPE_DIFFICULTY_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></Filter>
+            <Filter label="Thời gian"><select value={maxCookTime} onChange={(event) => setMaxCookTime(event.target.value)}><option value="">Không giới hạn</option><option value="30">Tối đa 30 phút</option><option value="60">Tối đa 60 phút</option><option value="90">Tối đa 90 phút</option></select></Filter>
+            <Button type="button" onClick={chooseRecipe} disabled={!filteredRecipes.length} className="h-11 bg-[#f3d8c5] text-[#1f4b3f] hover:bg-white"><Dices />Đổi món</Button>
+          </div>
         </div>
+        <Button type="button" variant="ghost" className="mx-auto mt-3 flex" onClick={chooseRecipe} disabled={!filteredRecipes.length}><RotateCw />Bốc lại món khác</Button>
       </section>
-
-      {recipe ? (
-        <section className="mx-auto mt-12 max-w-md">
-          <p className="mb-5 text-center text-xs font-bold uppercase tracking-[.16em] text-[#a84f37]">Món dành cho bạn hôm nay</p>
-          <RecipeCard recipe={recipe} priority />
-          <Button type="button" variant="ghost" className="mx-auto mt-7 flex" onClick={chooseRecipe}><RotateCw />Bốc lại một món khác</Button>
-        </section>
-      ) : (
-        <p className="mx-auto mt-12 max-w-xl rounded-2xl border border-dashed border-[#d9cdbd] bg-white/70 p-8 text-center text-sm text-[#70675f]">Thử nới lỏng một bộ lọc để Bếp Nhà tìm được món cho bạn nhé.</p>
-      )}
     </main>
   );
+}
+
+function Filter({ label, children }: { label: string; children: ReactNode }) {
+  return <label className="text-xs font-semibold text-white/80">{label}<span className="mt-1.5 block [&>select]:h-11 [&>select]:w-full [&>select]:rounded-xl [&>select]:border [&>select]:border-[#d9cdbd] [&>select]:bg-white [&>select]:px-3 [&>select]:text-sm [&>select]:font-normal [&>select]:text-[#332d28] [&>select]:outline-none">{children}</span></label>;
 }
