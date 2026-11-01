@@ -4,6 +4,7 @@ backend/**/obj/
 *.user
 
 # Node / Next.js
+/pnpm-lock.yaml
 frontend/node_modules/
 frontend/.next/
 frontend/.pnpm-store/

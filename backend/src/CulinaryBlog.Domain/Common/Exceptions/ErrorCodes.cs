@@ -17,6 +17,7 @@ public static class ErrorCodes
     public const string CategorySlugExists = "CATEGORY_SLUG_EXISTS";
 
     public const string AuthEmailExists = "AUTH_EMAIL_EXISTS";
+    public const string AuthUserNameExists = "AUTH_USERNAME_EXISTS";
     public const string AuthInvalidCredentials = "AUTH_INVALID_CREDENTIALS";
     public const string AuthUnauthorized = "AUTH_UNAUTHORIZED";
     

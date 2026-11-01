@@ -14,7 +14,8 @@ public sealed record RecipeQuery(
     int? MinPrepTime = null,
     int? MaxCookTime = null,
     int? MinServings = null,
-    string? Sort = null);
+    string? Sort = null,
+    bool Mine = false);
 
 public sealed record UpdateRecipeImageRequest(
     string? AltText = null,

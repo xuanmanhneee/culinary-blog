@@ -40,7 +40,7 @@ internal sealed class RegisterCommandHandler : IRequestHandler<RegisterCommand, 
 
         if (await _users.FindByNameAsync(userName) is not null)
         {
-            throw new ConflictException(ErrorCodes.AuthEmailExists, "Tên đăng nhập đã được sử dụng.");
+            throw new ConflictException(ErrorCodes.AuthUserNameExists, "Tên đăng nhập đã được sử dụng.");
         }
 
         var user = ApplicationUser.Create(request.FullName.Trim(), email, userName);

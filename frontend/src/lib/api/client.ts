@@ -4,7 +4,7 @@
  * để UI hiển thị theo mã lỗi (`type`, ví dụ RECIPE_FORBIDDEN) hoặc theo field (`errors`).
  */
 
-import { API_URL } from "@/lib/config/env";
+import { API_URL, API_V1 } from "@/lib/config/env";
 import type { ProblemDetails } from "@/lib/types/api";
 
 export { API_URL };
@@ -51,27 +51,68 @@ export interface ApiResponse<T> {
   headers: Headers;
 }
 
-async function readResponseBody(response: Response): Promise<unknown> {
-  const text = await response.text();
-  if (!text) return undefined;
-
-  try {
-    return JSON.parse(text) as unknown;
-  } catch {
-    return text;
-  }
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function toProblemDetails(status: number, body: unknown): ProblemDetails {
-  if (typeof body === "object" && body !== null) {
-    return { status, ...(body as ProblemDetails) };
+async function readProblemDetails(response: Response): Promise<ProblemDetails> {
+  const problem: ProblemDetails = {
+    status: response.status,
+    title: response.statusText || "Request failed",
+  };
+  const body = await response.text();
+
+  if (!body.trim()) {
+    return problem;
   }
 
-  return {
-    status,
-    title: "Yêu cầu không thành công",
-    detail: typeof body === "string" ? body : null,
-  };
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(body);
+  } catch (parseError) {
+    if (!(parseError instanceof SyntaxError)) {
+      throw parseError;
+    }
+    problem.detail = body;
+    return problem;
+  }
+
+  if (!isRecord(parsed)) {
+    problem.detail = body;
+    return problem;
+  }
+
+  if (typeof parsed.type === "string" || parsed.type === null) {
+    problem.type = parsed.type;
+  }
+  if (typeof parsed.title === "string") {
+    problem.title = parsed.title;
+  }
+  if (typeof parsed.detail === "string" || parsed.detail === null) {
+    problem.detail = parsed.detail;
+  }
+  if (typeof parsed.instance === "string") {
+    problem.instance = parsed.instance;
+  }
+  if (typeof parsed.traceId === "string") {
+    problem.traceId = parsed.traceId;
+  }
+  if (isRecord(parsed.errors)) {
+    const errors = Object.fromEntries(
+      Object.entries(parsed.errors).flatMap(([field, messages]) => {
+        if (!Array.isArray(messages)) {
+          return [];
+        }
+        const strings = messages.filter((message): message is string => typeof message === "string");
+        return strings.length > 0 ? [[field, strings]] : [];
+      }),
+    );
+    if (Object.keys(errors).length > 0) {
+      problem.errors = errors;
+    }
+  }
+
+  return problem;
 }
 
 export async function apiFetchWithHeaders<T>(
@@ -89,23 +130,31 @@ export async function apiFetchWithHeaders<T>(
     requestHeaders.set("Content-Type", "application/json");
     requestBody = JSON.stringify(body);
   }
-
   let response: Response;
   try {
-    response = await fetch(`${API_URL}${path}`, { ...init, headers: requestHeaders, body: requestBody });
+    // Các hàm apiFetch nhận path tương đối dưới `/api/v1` (ví dụ `/recipes`).
+    response = await fetch(`${API_V1}${path}`, { ...init, headers: requestHeaders, body: requestBody });
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") throw error;
     throw new ApiNetworkError("Không thể kết nối đến máy chủ. Vui lòng kiểm tra mạng và thử lại.", error);
   }
 
-  const responseBody = await readResponseBody(response);
-
   if (!response.ok) {
-    throw new ApiError(response.status, toProblemDetails(response.status, responseBody));
+    throw new ApiError(response.status, await readProblemDetails(response));
   }
 
   // 204 No Content (DELETE) không có body.
-  return { data: responseBody as T, headers: response.headers };
+  const responseText = await response.text();
+  if (!responseText) {
+    return { data: undefined as T, headers: response.headers };
+  }
+
+  try {
+    return { data: JSON.parse(responseText) as T, headers: response.headers };
+  } catch (parseError) {
+    if (!(parseError instanceof SyntaxError)) throw parseError;
+    return { data: responseText as T, headers: response.headers };
+  }
 }
 
 export async function apiFetch<T>(path: string, options?: ApiFetchOptions): Promise<T> {
