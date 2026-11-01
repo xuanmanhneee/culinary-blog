@@ -32,7 +32,7 @@ internal sealed class SetPrimaryRecipeImageCommandHandler
 
         await _unitOfWork.SaveChangesAsync(ct);
         return recipe.Images.OrderByDescending(i => i.IsPrimary).ThenBy(i => i.OrderIndex)
-            .Select(i => new RecipeImageDto(i.Id, i.OriginalUrl, i.AltText, i.IsPrimary, i.OrderIndex))
+            .Select(i => new RecipeImageDto(i.Id, i.OriginalUrl, i.MediumUrl, i.ThumbnailUrl, i.AltText, i.IsPrimary, i.OrderIndex))
             .ToList();
     }
 }

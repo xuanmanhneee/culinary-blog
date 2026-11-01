@@ -15,7 +15,8 @@ public class SearchRecipesQueryHandler
         CancellationToken cancellationToken)
     {
         var result = await _searchReader.SearchAsync(
-            request.SearchTerm, request.Page, request.PageSize, cancellationToken);
+            request.SearchTerm, request.Page, request.PageSize, request.CategoryId,
+            request.Difficulty, request.MaxCookTime, request.MinServings, cancellationToken);
 
         return PagedResult<RecipeSummaryDto>.Create(
             result.Items.Select(hit => new RecipeSummaryDto

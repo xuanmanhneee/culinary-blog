@@ -6,6 +6,7 @@ using CulinaryBlog.Infrastructure.Modules.Persistence.Minio;
 using CulinaryBlog.Infrastructure.Modules.Persistence.PostgreSql;
 using CulinaryBlog.Infrastructure.Modules.Persistence.PostgreSql.Interceptors;
 using CulinaryBlog.Infrastructure.Modules.Persistence.PostgreSql.Seed;
+using CulinaryBlog.Infrastructure.Modules.Health;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -77,5 +78,6 @@ internal static class DependencyInjection
             });
         });
         services.AddScoped<IFileStorageService, MinioFileStorageService>();
+        services.AddHealthChecks().AddCheck<MinioHealthCheck>("minio");
     }
 }

@@ -6,4 +6,5 @@ public interface ICurrentUserService
 {
     Guid? UserId { get; }
     bool IsAdmin { get; }
+    bool IsEmailConfirmed { get; }
 }

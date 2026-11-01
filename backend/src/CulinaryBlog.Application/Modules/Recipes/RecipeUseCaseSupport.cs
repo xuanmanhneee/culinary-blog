@@ -26,7 +26,11 @@ internal static class RecipeUseCaseSupport
         if (query.Page < 1) errors["page"] = ["page phải >= 1."];
         if (query.PageSize is < 1 or > MaxPageSize) errors["pageSize"] = [$"pageSize phải trong khoảng 1–{MaxPageSize}."];
         if (query.Difficulty.HasValue && !Enum.IsDefined(query.Difficulty.Value)) errors["difficulty"] = ["difficulty không hợp lệ."];
+        if (query.MinPrepTime is < 0) errors["minPrepTime"] = ["minPrepTime không được âm."];
         if (query.MaxCookTime is < 0) errors["maxCookTime"] = ["maxCookTime không được âm."];
+        if (query.MinServings is < 0) errors["minServings"] = ["minServings không được âm."];
+        if (query.MinPrepTime.HasValue && query.MaxCookTime.HasValue && query.MinPrepTime > query.MaxCookTime)
+            errors["minPrepTime"] = ["minPrepTime không được lớn hơn maxCookTime."];
         if (query.Sort is not null && !SortOptions.Contains(query.Sort)) errors["sort"] = [$"sort chỉ nhận: {string.Join(", ", SortOptions)}."];
         if (errors.Count > 0) throw new ValidationException(errors);
     }
@@ -98,7 +102,7 @@ internal static class RecipeUseCaseSupport
         recipe.Category is null ? null : new RecipeCategoryDto(recipe.Category.Id, recipe.Category.Name, recipe.Category.Slug),
         recipe.Author is null ? null : new RecipeAuthorDto(recipe.Author.Id, recipe.Author.DisplayName, recipe.Author.AvatarUrl),
         recipe.Images.OrderByDescending(i => i.IsPrimary).ThenBy(i => i.OrderIndex)
-            .Select(i => new RecipeImageDto(i.Id, i.OriginalUrl, i.AltText, i.IsPrimary, i.OrderIndex)).ToList(),
+            .Select(i => new RecipeImageDto(i.Id, i.OriginalUrl, i.MediumUrl, i.ThumbnailUrl, i.AltText, i.IsPrimary, i.OrderIndex)).ToList(),
         new RecipeNutritionDto(recipe.Nutrition.Calories, recipe.Nutrition.Protein, recipe.Nutrition.Carbohydrates,
             recipe.Nutrition.Fat, recipe.Nutrition.Fiber, recipe.Nutrition.Sodium),
         recipe.Ingredients.OrderBy(i => i.OrderIndex)

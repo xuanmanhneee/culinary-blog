@@ -20,6 +20,7 @@ public sealed class UploadRecipeImageCommandHandler
     private readonly RecipeAuthorizationHandler _authorization;
     private readonly IFileStorageService _storage;
     private readonly ICacheService _cache;
+    private readonly IThumbnailScheduler _thumbnailScheduler;
     private readonly ILogger<UploadRecipeImageCommandHandler> _logger;
 
     public UploadRecipeImageCommandHandler(
@@ -28,6 +29,7 @@ public sealed class UploadRecipeImageCommandHandler
         RecipeAuthorizationHandler authorization,
         IFileStorageService storage,
         ICacheService cache,
+        IThumbnailScheduler thumbnailScheduler,
         ILogger<UploadRecipeImageCommandHandler> logger)
     {
         _recipes = recipes;
@@ -35,6 +37,7 @@ public sealed class UploadRecipeImageCommandHandler
         _authorization = authorization;
         _storage = storage;
         _cache = cache;
+        _thumbnailScheduler = thumbnailScheduler;
         _logger = logger;
     }
 
@@ -70,10 +73,13 @@ public sealed class UploadRecipeImageCommandHandler
             throw;
         }
         await _cache.EvictByTagAsync("recipes", cancellationToken);
+        _thumbnailScheduler.Schedule(recipe.Id, image.Id, image.OriginalUrl);
 
         return new RecipeImageDto(
             image.Id,
             image.OriginalUrl,
+            image.MediumUrl,
+            image.ThumbnailUrl,
             image.AltText,
             image.IsPrimary,
             image.OrderIndex);

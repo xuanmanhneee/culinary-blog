@@ -20,7 +20,8 @@ internal sealed class GetRecipesQueryHandler
         RecipeUseCaseSupport.ValidateQuery(query.Request);
         var request = query.Request;
         var result = await _recipes.GetPagedAsync(request.Page, request.PageSize, _authorization.IsAdmin,
-            _authorization.CurrentUserId, request.CategoryId, request.Difficulty, request.MaxCookTime, request.Sort, ct);
+            _authorization.CurrentUserId, request.CategoryId, request.Difficulty, request.MinPrepTime,
+            request.MaxCookTime, request.MinServings, request.Sort, ct);
         return PagedResult<RecipeListItemDto>.Create(result.Items.Select(RecipeUseCaseSupport.MapListItem).ToList(),
             result.TotalCount, request.Page, request.PageSize);
     }

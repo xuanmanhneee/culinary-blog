@@ -6,7 +6,9 @@ using CulinaryBlog.Application.Auth.Commands.Register;
 using CulinaryBlog.Application.Auth.Commands.UpdateCurrentUser;
 using CulinaryBlog.Application.Auth.Models;
 using CulinaryBlog.Application.Auth.Queries.GetCurrentUser;
+using CulinaryBlog.Domain.Modules.Identity;
 using MediatR;
+using Microsoft.AspNetCore.Identity;
 
 namespace CulinaryBlog.API.Endpoints;
 
@@ -34,6 +36,25 @@ public static class AuthEndpoints
         .Produces<AuthResponseDto>(StatusCodes.Status201Created)
         .ProducesValidationProblem()
         .ProducesProblem(StatusCodes.Status409Conflict);
+
+        group.MapGet("/confirm-email", async (
+            [Microsoft.AspNetCore.Mvc.FromQuery] string userId,
+            [Microsoft.AspNetCore.Mvc.FromQuery] string token,
+            UserManager<ApplicationUser> users) =>
+        {
+            var user = await users.FindByIdAsync(userId);
+            if (user is null) return Results.BadRequest(new { error = "Invalid email confirmation link." });
+
+            var result = await users.ConfirmEmailAsync(user, token);
+            return result.Succeeded
+                ? Results.Ok(new { message = "Email confirmed." })
+                : Results.BadRequest(new { error = "Invalid or expired email confirmation link." });
+        })
+        .AllowAnonymous()
+        .WithName("ConfirmEmail")
+        .WithSummary("Xác nhận email tài khoản")
+        .Produces(StatusCodes.Status200OK)
+        .Produces(StatusCodes.Status400BadRequest);
 
         // FR-AUTH-002: đăng nhập bằng email và mật khẩu.
         group.MapPost("/login", async (

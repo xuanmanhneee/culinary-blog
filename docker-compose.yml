@@ -17,6 +17,21 @@ services:
       timeout: 5s
       retries: 10
 
+  redis:
+    image: redis:7-alpine
+    container_name: culinaryblog-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - culinaryblog-redis-data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   mailhog:
     image: mailhog/mailhog
     container_name: culinary-mailhog
@@ -43,4 +58,5 @@ services:
 
 volumes:
   culinaryblog-postgres-data:
+  culinaryblog-redis-data:
   culinaryblog-minio-data:

@@ -19,6 +19,10 @@ public sealed class RecipeSearchReader : IRecipeSearchReader
         string searchTerm,
         int page,
         int pageSize,
+        Guid? categoryId = null,
+        RecipeDifficulty? difficulty = null,
+        int? maxCookTime = null,
+        int? minServings = null,
         CancellationToken cancellationToken = default)
     {
         var terms = Regex.Matches(searchTerm, @"[\p{L}\p{N}]+")
@@ -35,6 +39,11 @@ public sealed class RecipeSearchReader : IRecipeSearchReader
                 || EF.Functions.TrigramsAreWordSimilar(
                     fuzzyQuery,
                     EF.Property<string>(recipe, "SearchTextNormalized")));
+
+        if (categoryId.HasValue) query = query.Where(recipe => recipe.CategoryId == categoryId.Value);
+        if (difficulty.HasValue) query = query.Where(recipe => recipe.Difficulty == difficulty.Value);
+        if (maxCookTime.HasValue) query = query.Where(recipe => recipe.CookTime <= maxCookTime.Value);
+        if (minServings.HasValue) query = query.Where(recipe => recipe.Servings >= minServings.Value);
 
         var totalCount = await query.CountAsync(cancellationToken);
         var items = await query

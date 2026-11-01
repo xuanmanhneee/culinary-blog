@@ -10,6 +10,7 @@ using CulinaryBlog.Infrastructure.Modules.Categories;
 using CulinaryBlog.Infrastructure.Modules.Identity;
 using CulinaryBlog.Infrastructure.Modules.Persistence;
 using CulinaryBlog.Infrastructure.Modules.Persistence.PostgreSql;
+using CulinaryBlog.Infrastructure.Modules.Health;
 using CulinaryBlog.Infrastructure.Modules.Recipes;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
@@ -46,7 +47,9 @@ public static class DependencyInjection
         services.AddScoped<IJwtService, JwtService>();
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 
-        services.AddCache();
+        services.AddCache(configuration);
+        services.AddHealthChecks()
+            .AddCheck<RedisHealthCheck>("redis", tags: ["ready"]);
         services.AddBackgroundJobs(configuration);
         return services;
     }

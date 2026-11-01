@@ -13,13 +13,13 @@ internal sealed class DeleteRecipeImageCommandHandler : IRequestHandler<DeleteRe
     private readonly IRecipeRepository _recipes;
     private readonly IUnitOfWork _unitOfWork;
     private readonly RecipeAuthorizationHandler _authorization;
-    private readonly IFileStorageService _storage;
+    private readonly IFileDeletionScheduler _fileDeletionScheduler;
     private readonly ICacheService _cache;
 
     public DeleteRecipeImageCommandHandler(IRecipeRepository recipes, IUnitOfWork unitOfWork,
-        RecipeAuthorizationHandler authorization, IFileStorageService storage, ICacheService cache) =>
-        (_recipes, _unitOfWork, _authorization, _storage, _cache) =
-        (recipes, unitOfWork, authorization, storage, cache);
+        RecipeAuthorizationHandler authorization, IFileDeletionScheduler fileDeletionScheduler, ICacheService cache) =>
+        (_recipes, _unitOfWork, _authorization, _fileDeletionScheduler, _cache) =
+        (recipes, unitOfWork, authorization, fileDeletionScheduler, cache);
 
     public async Task Handle(DeleteRecipeImageCommand command, CancellationToken ct)
     {
@@ -31,7 +31,7 @@ internal sealed class DeleteRecipeImageCommandHandler : IRequestHandler<DeleteRe
 
         recipe.RemoveImage(command.ImageId);
         await _unitOfWork.SaveChangesAsync(ct);
-        await _storage.DeleteAsync(image.OriginalUrl, ct);
+        _fileDeletionScheduler.Schedule(image.OriginalUrl);
         await _cache.EvictByTagAsync("recipes", ct);
     }
 }

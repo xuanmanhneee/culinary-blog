@@ -21,7 +21,9 @@ public interface IRecipeRepository : IRepository<Recipe>
         string? ownerId = null,
         Guid? categoryId = null,
         RecipeDifficulty? difficulty = null,
+        int? minPrepTime = null,
         int? maxCookTime = null,
+        int? minServings = null,
         string? sort = null,
         CancellationToken cancellationToken = default);
 

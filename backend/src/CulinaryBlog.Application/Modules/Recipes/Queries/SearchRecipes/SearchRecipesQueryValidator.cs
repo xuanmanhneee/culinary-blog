@@ -18,6 +18,10 @@ public class SearchRecipesQueryValidator : AbstractValidator<SearchRecipesQuery>
 
         RuleFor(v => v.PageSize)
             .InclusiveBetween(1, 50).WithMessage("PageSize must be between 1 and 50.");
+
+        RuleFor(v => v.MaxCookTime).GreaterThanOrEqualTo(0).When(v => v.MaxCookTime.HasValue);
+        RuleFor(v => v.MinServings).GreaterThanOrEqualTo(0).When(v => v.MinServings.HasValue);
+        RuleFor(v => v.Difficulty).IsInEnum().When(v => v.Difficulty.HasValue);
     }
 }
 

@@ -6,4 +6,9 @@ public sealed record CategoryDto(
     string Slug,
     string? Description,
     string? ImageUrl,
-    int OrderIndex);
+    int OrderIndex,
+    int RecipeCount = 0);
+
+public sealed record CategoryDetailDto(
+    CategoryDto Category,
+    CulinaryBlog.Application.Common.Models.PagedResult<CulinaryBlog.Application.Recipes.Models.RecipeListItemDto> Recipes);

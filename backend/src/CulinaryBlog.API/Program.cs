@@ -6,13 +6,16 @@ using CulinaryBlog.Infrastructure.Modules.BackgroundJobs;
 using CulinaryBlog.Infrastructure.Modules.Persistence;
 using Scalar.AspNetCore;
 using CulinaryBlog.API.Extensions;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Keep local development logs on the console; Windows EventLog may require
 // administrator permissions and can mask the original database exception.
 builder.Logging.ClearProviders();
-builder.Logging.AddConsole();
+builder.Logging.AddJsonConsole();
 
 // Không gọi builder.Services.AddOpenApi(): AddApiVersioning().AddOpenApi() đã đăng ký dịch vụ
 // OpenAPI biết về phiên bản (AV0029).
@@ -20,6 +23,25 @@ builder.Logging.AddConsole();
 builder.Services.AddApplicationServices();
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddHttpClient("media");
+
+var telemetryEndpoint = builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"];
+var telemetryBuilder = builder.Services.AddOpenTelemetry()
+    .ConfigureResource(resource => resource.AddService("culinary-blog-api"))
+    .WithTracing(tracing =>
+    {
+        tracing.AddAspNetCoreInstrumentation()
+            .AddHttpClientInstrumentation()
+            .AddEntityFrameworkCoreInstrumentation();
+        if (!string.IsNullOrWhiteSpace(telemetryEndpoint)) tracing.AddOtlpExporter();
+    })
+    .WithMetrics(metrics =>
+    {
+        metrics.AddAspNetCoreInstrumentation()
+            .AddHttpClientInstrumentation()
+            .AddRuntimeInstrumentation();
+        if (!string.IsNullOrWhiteSpace(telemetryEndpoint)) metrics.AddOtlpExporter();
+    });
 
 // API versioning theo URL segment (/api/v1/...) kèm sinh tài liệu OpenAPI riêng cho mỗi phiên bản
 // (đã đăng ký JWT Bearer transformer bên trong, xem ApiVersioningExtensions).
@@ -49,6 +71,7 @@ if (await app.InitializePersistenceAsync(args))
 }
 
 // Đặt đầu pipeline để bắt exception từ mọi middleware/endpoint phía sau.
+app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseMiddleware<GlobalExceptionMiddleware>();
 // Response lỗi không có body (vd. 404 do sai route, 405) cũng trả về ProblemDetails.
 app.UseStatusCodePages();

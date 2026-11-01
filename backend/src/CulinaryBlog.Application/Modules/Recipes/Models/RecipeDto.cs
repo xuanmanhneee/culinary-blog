@@ -50,7 +50,14 @@ public sealed record RecipeCategoryDto(Guid Id, string Name, string Slug);
 
 public sealed record RecipeAuthorDto(string Id, string DisplayName, string? AvatarUrl);
 
-public sealed record RecipeImageDto(Guid Id, string Url, string? AltText, bool IsPrimary, int OrderIndex);
+public sealed record RecipeImageDto(
+    Guid Id,
+    string Url,
+    string? MediumUrl,
+    string? ThumbnailUrl,
+    string? AltText,
+    bool IsPrimary,
+    int OrderIndex);
 
 public sealed record RecipeNutritionDto(
     decimal? Calories,

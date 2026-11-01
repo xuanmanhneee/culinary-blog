@@ -22,4 +22,9 @@ public sealed class HttpCurrentUserService : ICurrentUserService
     }
 
     public bool IsAdmin => _accessor.HttpContext?.User.IsInRole("Admin") == true;
+
+    public bool IsEmailConfirmed =>
+        bool.TryParse(_accessor.HttpContext?.User.FindFirstValue("email_verified"), out var confirmed)
+        && confirmed;
+
 }

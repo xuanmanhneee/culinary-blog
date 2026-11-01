@@ -7,4 +7,7 @@ internal static class CategoryMappings
 {
     public static CategoryDto ToDto(Category category) =>
         new(category.Id, category.Name, category.Slug, category.Description, category.ImageUrl, category.OrderIndex);
+
+    public static CategoryDto ToDto(Category category, int recipeCount) =>
+        new(category.Id, category.Name, category.Slug, category.Description, category.ImageUrl, category.OrderIndex, recipeCount);
 }

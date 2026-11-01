@@ -1,3 +1,5 @@
+using CulinaryBlog.Domain.Modules.Recipes;
+
 namespace CulinaryBlog.Application.Recipes.Queries.SearchRecipes;
 
 /// <summary>
@@ -9,6 +11,10 @@ public interface IRecipeSearchReader
         string searchTerm,
         int page,
         int pageSize,
+        Guid? categoryId = null,
+        RecipeDifficulty? difficulty = null,
+        int? maxCookTime = null,
+        int? minServings = null,
         CancellationToken cancellationToken = default);
 }
 

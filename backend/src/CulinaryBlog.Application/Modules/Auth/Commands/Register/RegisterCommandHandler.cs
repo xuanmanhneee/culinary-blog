@@ -1,6 +1,7 @@
 using CulinaryBlog.Application.Auth.Abstractions;
 using CulinaryBlog.Application.Auth.Models;
 using CulinaryBlog.Application.Common.Exceptions;
+using CulinaryBlog.Application.Common.Interfaces;
 using CulinaryBlog.Domain.Common;
 using CulinaryBlog.Domain.Common.Exceptions;
 using CulinaryBlog.Domain.Modules.Identity;
@@ -15,13 +16,16 @@ internal sealed class RegisterCommandHandler : IRequestHandler<RegisterCommand, 
     private readonly IJwtService _jwt;
     private readonly IRefreshTokenRepository _tokens;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IWelcomeEmailScheduler _welcomeEmailScheduler;
 
     public RegisterCommandHandler(
         UserManager<ApplicationUser> users,
         IJwtService jwt,
         IRefreshTokenRepository tokens,
-        IUnitOfWork unitOfWork) =>
-        (_users, _jwt, _tokens, _unitOfWork) = (users, jwt, tokens, unitOfWork);
+        IUnitOfWork unitOfWork,
+        IWelcomeEmailScheduler welcomeEmailScheduler) =>
+        (_users, _jwt, _tokens, _unitOfWork, _welcomeEmailScheduler) =
+        (users, jwt, tokens, unitOfWork, welcomeEmailScheduler);
 
     public async Task<AuthResponseDto> Handle(RegisterCommand command, CancellationToken ct)
     {
@@ -55,6 +59,9 @@ internal sealed class RegisterCommandHandler : IRequestHandler<RegisterCommand, 
                 "Không gán được role mặc định. Kiểm tra IdentitySeeder.SeedRolesAsync đã chạy chưa: "
                 + string.Join(", ", roleResult.Errors.Select(error => error.Description)));
         }
+
+        var confirmationToken = await _users.GenerateEmailConfirmationTokenAsync(user);
+        _welcomeEmailScheduler.Schedule(user.Email!, user.DisplayName, user.Id, confirmationToken);
 
         return await AuthUseCaseSupport.IssueTokensAsync(
             user, command.IpAddress, _users, _jwt, _tokens, _unitOfWork, ct);

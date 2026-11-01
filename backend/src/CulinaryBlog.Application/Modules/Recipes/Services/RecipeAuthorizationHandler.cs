@@ -22,8 +22,14 @@ public sealed class RecipeAuthorizationHandler
     public string? CurrentUserId => _currentUser.UserId?.ToString();
 
     /// <summary>Dùng cho thao tác bắt buộc đăng nhập, ví dụ lấy AuthorId khi tạo recipe.</summary>
-    public string RequireUserId() =>
-        CurrentUserId ?? throw new UnauthorizedException(ErrorCodes.AuthUnauthorized, "Bạn cần đăng nhập.");
+    public string RequireUserId()
+    {
+        if (CurrentUserId is null)
+            throw new UnauthorizedException(ErrorCodes.AuthUnauthorized, "Bạn cần đăng nhập.");
+        if (!_currentUser.IsAdmin && !_currentUser.IsEmailConfirmed)
+            throw new ForbiddenException(ErrorCodes.RecipeForbidden, "Tài khoản cần xác nhận email trước khi tạo công thức.");
+        return CurrentUserId;
+    }
 
     public bool IsOwnerOrAdmin(Recipe recipe) =>
         _currentUser.IsAdmin ||
@@ -36,6 +42,9 @@ public sealed class RecipeAuthorizationHandler
     {
         if (!IsOwnerOrAdmin(recipe))
             throw new ForbiddenException(ErrorCodes.RecipeForbidden, "Bạn không có quyền thao tác trên công thức này.");
+        if (!_currentUser.IsAdmin && !_currentUser.IsEmailConfirmed)
+            throw new ForbiddenException(ErrorCodes.RecipeForbidden, "Tài khoản cần xác nhận email trước khi quản lý công thức.");
+
     }
 
     /// <summary>FR-RCP-002: recipe Published ai cũng xem được; Draft/Archived chỉ owner hoặc Admin.</summary>

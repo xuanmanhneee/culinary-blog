@@ -11,8 +11,15 @@ public sealed record RecipeQuery(
     int PageSize = 12,
     Guid? CategoryId = null,
     RecipeDifficulty? Difficulty = null,
+    int? MinPrepTime = null,
     int? MaxCookTime = null,
+    int? MinServings = null,
     string? Sort = null);
+
+public sealed record UpdateRecipeImageRequest(
+    string? AltText = null,
+    bool? IsPrimary = null,
+    int? OrderIndex = null);
 
 /// <summary>
 /// FR-RCP-003: body của POST /api/v1/recipes. Slug được sinh từ Title, Status luôn là Draft.

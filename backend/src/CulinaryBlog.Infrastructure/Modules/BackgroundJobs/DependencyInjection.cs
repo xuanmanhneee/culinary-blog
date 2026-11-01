@@ -1,5 +1,8 @@
 using Hangfire;
 using Hangfire.PostgreSql;
+using CulinaryBlog.Application.Common.Interfaces;
+using CulinaryBlog.Infrastructure.Modules.BackgroundJobs.Jobs;
+using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -23,6 +26,14 @@ internal static class DependencyInjection
             .UsePostgreSqlStorage(storage => storage.UseNpgsqlConnection(connectionString)));
 
         services.AddHangfireServer();
+        services.Configure<SmtpOptions>(configuration.GetSection("Smtp"));
+        services.AddScoped<WelcomeEmailJob>();
+        services.AddScoped<FileDeletionJob>();
+        services.AddScoped<ThumbnailJob>();
+        services.AddScoped<SitemapJob>();
+        services.AddScoped<IWelcomeEmailScheduler, WelcomeEmailScheduler>();
+        services.AddScoped<IFileDeletionScheduler, FileDeletionScheduler>();
+        services.AddScoped<IThumbnailScheduler, ThumbnailScheduler>();
         return services;
     }
 }

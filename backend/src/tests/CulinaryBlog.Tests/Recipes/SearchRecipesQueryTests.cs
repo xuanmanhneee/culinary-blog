@@ -3,6 +3,7 @@ using CulinaryBlog.Application.Common.Exceptions;
 using CulinaryBlog.Application.Recipes.Queries.SearchRecipes;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
+using CulinaryBlog.Domain.Modules.Recipes;
 
 namespace CulinaryBlog.Tests.Recipes;
 
@@ -71,6 +72,10 @@ public sealed class SearchRecipesQueryTests
             string searchTerm,
             int page,
             int pageSize,
+            Guid? categoryId = null,
+            RecipeDifficulty? difficulty = null,
+            int? maxCookTime = null,
+            int? minServings = null,
             CancellationToken cancellationToken = default)
         {
             CallCount++;

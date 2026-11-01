@@ -210,9 +210,14 @@ public static class RecipeEndpoints
         CancellationToken cancellationToken,
         [FromQuery(Name = "q")] string? searchTerm = null,
         [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 10) =>
+        [FromQuery] int pageSize = 10,
+        [FromQuery] Guid? categoryId = null,
+        [FromQuery] CulinaryBlog.Domain.Modules.Recipes.RecipeDifficulty? difficulty = null,
+        [FromQuery] int? maxCookTime = null,
+        [FromQuery] int? minServings = null) =>
         Results.Ok(await sender.Send(
-            new SearchRecipesQuery(searchTerm ?? string.Empty, page, pageSize),
+            new SearchRecipesQuery(searchTerm ?? string.Empty, page, pageSize, categoryId,
+                difficulty, maxCookTime, minServings),
             cancellationToken));
 
     private static async Task<IResult> GetBySlugAsync(
