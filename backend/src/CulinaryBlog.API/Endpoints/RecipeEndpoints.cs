@@ -40,7 +40,8 @@ public static class RecipeEndpoints
             .WithSummary("Danh sách công thức (phân trang, lọc, sắp xếp)")
             .WithDescription(
                 "FR-RCP-001. Không gửi token: chỉ recipe Published. Gửi token: thêm Draft/Archived của chính mình; " +
-                "Admin thấy mọi trạng thái. sort: createdAt | title | cookTime, thêm \"-\" để giảm dần (mặc định -createdAt). " +
+                "mine=true: chỉ lấy công thức của người hiện tại ở mọi trạng thái. Admin thấy mọi trạng thái khi mine=false. " +
+                "sort: createdAt | title | cookTime, thêm \"-\" để giảm dần (mặc định -createdAt). " +
                 "pageSize 1–50 (mặc định 12). categoryId không tồn tại trả danh sách rỗng.")
             .Produces<PagedResult<RecipeListItemDto>>()
             .ProducesValidationProblem();

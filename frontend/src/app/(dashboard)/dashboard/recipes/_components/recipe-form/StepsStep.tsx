@@ -15,7 +15,15 @@ import { useServerErrors, type ServerErrors } from "./server-errors";
 import { StepActions } from "./StepActions";
 
 /** Bước 3 – các bước thực hiện (FR-RCP-010). Số thứ tự theo vị trí, backend đánh lại 1, 2, 3... */
-export function StepsStep({ serverErrors }: { serverErrors?: ServerErrors | null }) {
+export function StepsStep({
+  serverErrors,
+  selectedImages = {},
+  onImageSelected,
+}: {
+  serverErrors?: ServerErrors | null;
+  selectedImages?: Record<string, File>;
+  onImageSelected?: (key: string, file: File | null) => void;
+}) {
   const setSteps = useRecipeFormStore((state) => state.setSteps);
   const nextStep = useRecipeFormStore((state) => state.nextStep);
   const previousStep = useRecipeFormStore((state) => state.previousStep);
@@ -105,6 +113,17 @@ export function StepsStep({ serverErrors }: { serverErrors?: ServerErrors | null
                     />
                     <FieldError errors={[itemErrors?.description]} />
                   </Field>
+                  <div className="rounded-md border border-dashed px-4 py-3">
+                    <label htmlFor={`step-${index}-image`} className="flex cursor-pointer items-center justify-between gap-3 text-sm hover:text-emerald-700">
+                      <span>
+                        <span className="block font-medium">Ảnh minh họa (tùy chọn)</span>
+                        <span className="text-xs text-muted-foreground">JPEG, PNG, WebP hoặc AVIF · tối đa 5 MB</span>
+                      </span>
+                      <span className="shrink-0 rounded-md border px-3 py-1.5 text-xs font-semibold">{selectedImages[field.key]?.name ? "Đổi ảnh" : "Chọn ảnh"}</span>
+                    </label>
+                    <input id={`step-${index}-image`} type="file" accept="image/jpeg,image/png,image/webp,image/avif" className="sr-only" onChange={(event) => onImageSelected?.(field.key, event.target.files?.[0] ?? null)} />
+                    {selectedImages[field.key] && <p className="mt-2 truncate text-xs text-emerald-700">{selectedImages[field.key].name}</p>}
+                  </div>
                   <div className="flex justify-end gap-1">
                     <Button
                       type="button"

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
@@ -18,12 +18,27 @@ const difficulties = Object.values(RecipeDifficulty);
 export function BasicInfoStep({
   categories,
   serverErrors,
+  selectedImage,
+  onImageSelected,
 }: {
   categories: RecipeCategoryDto[];
   serverErrors?: ServerErrors | null;
+  selectedImage: File | null;
+  onImageSelected: (file: File | null) => void;
 }) {
   const setBasic = useRecipeFormStore((state) => state.setBasic);
   const nextStep = useRecipeFormStore((state) => state.nextStep);
+  const [previewUrl, setPreviewUrl] = useState("");
+
+  useEffect(() => {
+    if (!selectedImage) {
+      setPreviewUrl("");
+      return;
+    }
+    const url = URL.createObjectURL(selectedImage);
+    setPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [selectedImage]);
 
   // Giá trị ban đầu đọc một lần khi bước được mở (component được mount lại mỗi lần đổi bước).
   const form = useForm<BasicInfoValues>({
@@ -157,6 +172,21 @@ export function BasicInfoStep({
             placeholder="Mẹo nhỏ, cách bảo quản, biến tấu..."
             {...form.register("instructions")}
           />
+        </Field>
+
+        <Field>
+          <FieldLabel htmlFor="cover-image">Ảnh đại diện</FieldLabel>
+          <label htmlFor="cover-image" className="flex cursor-pointer flex-col items-center justify-center gap-3 rounded-lg border border-dashed bg-muted/20 px-5 py-6 text-center transition hover:border-emerald-600 hover:bg-emerald-50/40">
+            {previewUrl ? (
+              <img src={previewUrl} alt="Xem trước ảnh đại diện" className="max-h-48 rounded-lg object-cover shadow-sm" />
+            ) : (
+              <span className="text-sm font-medium">Chọn ảnh món ăn</span>
+            )}
+            <span className="text-xs text-muted-foreground">JPEG, PNG, WebP hoặc AVIF · tối đa 5 MB</span>
+            {selectedImage && <span className="max-w-full truncate text-xs text-emerald-700">{selectedImage.name}</span>}
+          </label>
+          <input id="cover-image" type="file" accept="image/jpeg,image/png,image/webp,image/avif" className="sr-only" onChange={(event) => onImageSelected(event.target.files?.[0] ?? null)} />
+          <FieldDescription>Ảnh sẽ được tải lên sau khi công thức được tạo.</FieldDescription>
         </Field>
       </FieldGroup>
 

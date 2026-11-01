@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ChefHat, Clock3, Flame, Lock, UsersRound } from "lucide-react";
+import { ChefHat, Clock3, Flame, ImageOff, Lock, UsersRound } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -57,7 +57,7 @@ export default async function RecipePage({ params }: RecipePageProps) {
     <article>
       {/* Structured data chỉ cho bản công khai; bản xem trước (noindex) không cần. */}
       {!isPreview && <RecipeJsonLd data={recipe} />}
-      <div className="site-container py-10 sm:py-14">
+      <div className="site-container py-6 sm:py-14">
         <div className="text-xs font-semibold text-[#81766d]"><Link href="/" className="hover:text-[#1f4b3f]">Trang chủ</Link><span className="mx-2">/</span><Link href="/recipes" className="hover:text-[#1f4b3f]">Công thức</Link><span className="mx-2">/</span><span>{categoryName}</span></div>
 
         {isPreview && (
@@ -66,11 +66,11 @@ export default async function RecipePage({ params }: RecipePageProps) {
           </p>
         )}
 
-        <header className="mx-auto mt-10 max-w-4xl text-center">
+        <header className="mx-auto mt-7 max-w-5xl text-center sm:mt-10">
           <Badge variant="warm">{categoryName}</Badge>
-          <h1 className="font-display mt-5 text-5xl leading-[1.02] font-bold tracking-[-.05em] text-[#2b2622] sm:text-7xl">{recipe.title}</h1>
-          <p className="mx-auto mt-6 max-w-2xl text-base leading-8 text-[#70665e]">{recipe.description}</p>
-          <div className="mt-7 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-sm text-[#665d55]">
+          <h1 className="font-display mx-auto mt-5 max-w-5xl break-words text-4xl leading-[1.06] font-bold tracking-[-.05em] text-[#2b2622] sm:text-6xl lg:text-7xl">{recipe.title}</h1>
+          <p className="mx-auto mt-5 max-w-3xl text-sm leading-7 text-[#70665e] sm:mt-6 sm:text-base sm:leading-8">{recipe.description}</p>
+          <div className="mt-6 flex flex-col items-center justify-center gap-2 text-sm text-[#665d55] sm:mt-7 sm:flex-row sm:flex-wrap sm:gap-x-6 sm:gap-y-3">
             {recipe.author && (
               <span className="inline-flex items-center gap-2 font-bold text-[#1f4b3f]">
                 <span className="relative grid size-9 place-items-center overflow-hidden rounded-full bg-[#1f4b3f] text-xs text-white">
@@ -91,28 +91,46 @@ export default async function RecipePage({ params }: RecipePageProps) {
           <RecipeActions title={recipe.title} />
         </div>
 
-        <dl className="mx-auto -mt-1 grid max-w-4xl grid-cols-2 divide-x divide-y divide-[#ded3c6] rounded-b-[1.5rem] border border-[#ded3c6] bg-white px-4 py-5 shadow-[0_18px_40px_rgba(80,59,39,.07)] sm:grid-cols-4 sm:divide-y-0">
+        <dl className="mx-auto -mt-1 grid max-w-4xl grid-cols-2 divide-x divide-y divide-[#ded3c6] rounded-b-[1.5rem] border border-[#ded3c6] bg-white px-2 py-3 shadow-[0_18px_40px_rgba(80,59,39,.07)] sm:grid-cols-4 sm:divide-y-0 sm:px-4 sm:py-5">
           <Info icon={<Clock3 />} label="Chuẩn bị" value={formatMinutes(recipe.prepTimeMinutes)} />
           <Info icon={<Flame />} label="Nấu" value={formatMinutes(recipe.cookTimeMinutes)} />
           <Info icon={<UsersRound />} label="Khẩu phần" value={`${recipe.servings} người`} />
           <Info icon={<ChefHat />} label="Độ khó" value={RECIPE_DIFFICULTY_LABELS[recipe.difficulty]} />
         </dl>
 
-        <div className="mx-auto grid max-w-5xl gap-14 py-20 lg:grid-cols-[.72fr_1.28fr]">
-          <aside>
-            <div className="sticky top-28">
-              <div className="rounded-[1.5rem] bg-[#efe5d8] p-7 sm:p-8">
-                <p className="text-xs font-bold uppercase tracking-[.16em] text-[#a64e37]">Chuẩn bị</p>
-                <h2 className="font-display mt-2 text-3xl font-bold text-[#302a26]">Nguyên liệu</h2>
-                <RecipeIngredients ingredients={ingredients} servings={recipe.servings} />
-              </div>
-              <RecipeNutrition nutrition={recipe.nutrition} />
-            </div>
-          </aside>
-          <section>
+        <div className="mx-auto max-w-6xl py-14 sm:py-20">
+          <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
+            <section className="rounded-[1.5rem] bg-[#efe5d8] p-7 sm:p-8">
+              <p className="text-xs font-bold uppercase tracking-[.16em] text-[#a64e37]">Chuẩn bị</p>
+              <h2 className="font-display mt-2 text-3xl font-bold text-[#302a26]">Nguyên liệu</h2>
+              <RecipeIngredients ingredients={ingredients} servings={recipe.servings} />
+            </section>
+            <RecipeNutrition nutrition={recipe.nutrition} />
+          </div>
+
+          <section className="mt-20 min-w-0">
             <p className="text-xs font-bold uppercase tracking-[.16em] text-[#1f4b3f]">Cùng vào bếp</p>
             <h2 className="font-display mt-2 text-4xl font-bold text-[#302a26]">Cách thực hiện</h2>
-            <ol className="mt-9 space-y-9">{steps.map((step) => <li key={step.id} className="grid grid-cols-[3rem_1fr] gap-4 border-b border-[#e0d6ca] pb-9"><span className="font-display grid size-11 place-items-center rounded-full bg-[#1f4b3f] text-lg font-bold text-white">{step.stepNumber}</span><div><h3 className="font-display text-2xl font-bold text-[#332d28]">{step.title}</h3>{step.timerMinutes && <p className="mt-1 inline-flex items-center gap-1.5 text-xs font-semibold text-[#a64e37]"><Clock3 className="size-3.5" aria-hidden />{formatMinutes(step.timerMinutes)}</p>}<p className="mt-2 text-sm leading-7 whitespace-pre-line text-[#71675f]">{step.description}</p>{step.imageUrl && <div className="relative mt-4 aspect-[16/10] overflow-hidden rounded-xl bg-[#e4d8ca]"><Image src={step.imageUrl} alt={`${step.title} – minh hoạ`} fill unoptimized sizes="(max-width: 1024px) 100vw, 640px" className="object-cover" /></div>}</div></li>)}</ol>
+            <ol className="mt-9 space-y-9">
+              {steps.map((step) => (
+                <li key={step.id} className="border-b border-[#e0d6ca] pb-9">
+                  <div className="min-w-0">
+                    <h3 className="font-display text-2xl font-bold text-[#332d28]">{step.title}</h3>
+                    {step.timerMinutes && <p className="mt-1 inline-flex items-center gap-1.5 text-xs font-semibold text-[#a64e37]"><Clock3 className="size-3.5" aria-hidden />{formatMinutes(step.timerMinutes)}</p>}
+                    <p className="mt-2 text-sm leading-7 whitespace-pre-line text-[#71675f]">{step.description}</p>
+                    <div className="relative mt-4 aspect-[16/10] overflow-hidden rounded-xl bg-[#e8ded1]">
+                      {step.imageUrl ? (
+                        <Image src={step.imageUrl} alt={`${step.title} – minh hoạ`} fill unoptimized sizes="(max-width: 1024px) 100vw, 640px" className="object-cover" />
+                      ) : (
+                        <div className="grid size-full place-items-center text-[#a99a8b]">
+                          <span className="flex items-center gap-2 text-xs font-semibold"><ImageOff className="size-4" aria-hidden />Chưa có ảnh minh họa</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ol>
             {recipe.instructions.trim() && <div className="mt-10 rounded-[1.4rem] border border-[#e0cbb9] bg-[#fff6eb] p-6"><p className="font-display text-xl font-bold text-[#8e402c]">Ghi chú của tác giả</p><p className="mt-2 text-sm leading-7 whitespace-pre-line text-[#6e5e53]">{recipe.instructions}</p></div>}
           </section>
         </div>

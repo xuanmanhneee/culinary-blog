@@ -32,6 +32,7 @@ public class RecipeRepository : IRecipeRepository
         int page,
         int pageSize,
         bool includeAllStatuses = false,
+        bool mineOnly = false,
         string? ownerId = null,
         Guid? categoryId = null,
         RecipeDifficulty? difficulty = null,
@@ -43,7 +44,13 @@ public class RecipeRepository : IRecipeRepository
     {
         IQueryable<Recipe> query = _context.Recipes.AsNoTracking();
 
-        if (!includeAllStatuses)
+        if (mineOnly)
+        {
+            query = ownerId is null
+                ? query.Where(_ => false)
+                : query.Where(r => r.AuthorId == ownerId);
+        }
+        else if (!includeAllStatuses)
         {
             query = ownerId is null
                 ? query.Where(r => r.Status == RecipeStatus.Published)

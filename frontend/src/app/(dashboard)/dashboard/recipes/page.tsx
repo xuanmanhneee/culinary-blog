@@ -106,10 +106,16 @@ export default async function RecipeDashboardPage({ searchParams }: { searchPara
                 <Link key={filter.label} href={hrefFor({ status: filter.value })} aria-current={filter.value === status ? "page" : undefined} className={`rounded-full px-3 py-1.5 text-xs font-bold transition ${filter.value === status ? "bg-[#1f4b3f] text-white" : "text-[#6f655d] hover:bg-[#efe6da]"}`}>{filter.label}</Link>
               ))}</nav></div>
             {recipes.length === 0 && (
-              <p className="px-5 py-12 text-center text-sm text-[#7b7169]">
-                {status === undefined ? "Bạn chưa có công thức nào. " : "Không có công thức ở trạng thái này. "}
-                <Link href="/dashboard/recipes/new" className="font-bold text-[#1f4b3f] hover:underline">Tạo công thức</Link>
-              </p>
+              <div className="flex flex-col items-center justify-center gap-4 px-5 py-10 text-center sm:flex-row sm:gap-6 sm:py-8 sm:text-left">
+                <Image src="/empty-kitchen-capybara.png" alt="Capybara đội mũ đầu bếp đang chờ món ăn đầu tiên" width={180} height={180} className="size-36 object-contain sm:size-40" />
+                <div className="max-w-sm">
+                  <div className="relative rounded-2xl border border-[#d9cdbf] bg-[#fffaf3] px-5 py-4 text-sm text-[#655b53] shadow-sm before:absolute before:-bottom-2 before:left-1/2 before:size-4 before:-translate-x-1/2 before:rotate-45 before:border-b before:border-r before:border-[#d9cdbf] before:bg-[#fffaf3] sm:before:bottom-auto sm:before:left-[-9px] sm:before:top-1/2 sm:before:-translate-y-1/2 sm:before:rotate-[135deg]">
+                    <p className="relative font-semibold text-[#3d3732]">{status === undefined ? "Chưa có gì trong bếp cả..." : "Kệ này đang trống rồi..."}</p>
+                    <p className="relative mt-1">Nấu ăn nào!</p>
+                  </div>
+                  <Link href="/dashboard/recipes/new" className="mt-4 inline-block font-bold text-[#1f4b3f] hover:underline">Tạo công thức đầu tiên →</Link>
+                </div>
+              </div>
             )}
             <div className="divide-y divide-[#e8dfd4]">{recipes.map((recipe) => (
               <div key={recipe.id} className="grid items-center gap-4 px-5 py-4 sm:grid-cols-[72px_1fr_auto]">

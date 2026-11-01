@@ -140,6 +140,13 @@ export function deleteImage(recipeId: string, imageId: string, token: Token): Pr
   return apiFetch(`${RECIPES}/${recipeId}/images/${imageId}`, { method: "DELETE", token });
 }
 
+/** POST /recipes/{id}/images – tải ảnh đại diện sau khi recipe đã được tạo. */
+export function uploadRecipeImage(recipeId: string, file: File, token: Token): Promise<RecipeImageDto> {
+  const body = new FormData();
+  body.append("file", file);
+  return apiFetch(`${RECIPES}/${encodeURIComponent(recipeId)}/images`, { method: "POST", body, token });
+}
+
 // ---------------------------------------------------------------- Danh mục (cho form)
 
 /** GET /categories – danh sách danh mục để chọn trong form (FR-CAT-001, public). */
