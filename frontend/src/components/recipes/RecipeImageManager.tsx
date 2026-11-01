@@ -1,15 +1,17 @@
 "use client";
 
 import Image from "next/image";
+import { useSession } from "next-auth/react";
 import { useRef, useState } from "react";
 import type { ChangeEvent, DragEvent } from "react";
-import { useSession } from "next-auth/react";
 import { API_V1 } from "@/lib/config/env";
-import type { RecipeImageDto, UploadedRecipeImageDto } from "@/lib/types/recipe";
+import type { RecipeImageDto } from "@/lib/types/recipe";
 
 interface RecipeImageManagerProps {
   recipeId: string;
   images: RecipeImageDto[];
+  authorId?: string | null;
+  uploadOnly?: boolean;
 }
 
 const maxFileSize = 5 * 1024 * 1024;
@@ -49,6 +51,8 @@ function getErrorMessage(body: unknown, fallback: string): string {
 export default function RecipeImageManager({
   recipeId,
   images: initialImages,
+  authorId,
+  uploadOnly = false,
 }: RecipeImageManagerProps) {
   const { data: session } = useSession();
   const [images, setImages] = useState<RecipeImageDto[]>(initialImages);
@@ -57,9 +61,18 @@ export default function RecipeImageManager({
   const [error, setError] = useState("");
   const [isDragging, setIsDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const accessToken = session?.accessToken;
+  const isAdmin = session?.user.roles.includes("Admin") ?? false;
+  const hasAuthorRole = session?.user.roles.includes("Author") ?? false;
+  const isOwner = Boolean(authorId && session?.user.id === authorId);
+  const canUpload = Boolean(accessToken) && (isAdmin || (hasAuthorRole && isOwner));
+
+  if (uploadOnly && !canUpload) {
+    return null;
+  }
 
   async function uploadImage(file: File) {
-    if (isUploading) {
+    if (isUploading || !accessToken || !canUpload) {
       return;
     }
 
@@ -80,10 +93,13 @@ export default function RecipeImageManager({
       const formData = new FormData();
       formData.append("file", file);
 
-      if (!session?.accessToken) throw new Error("PhiÃªn Ä‘Äƒng nháº­p Ä‘Ã£ háº¿t, vui lÃ²ng Ä‘Äƒng nháº­p láº¡i.");
       const response = await fetch(
         `${API_V1}/recipes/${encodeURIComponent(recipeId)}/images`,
-        { method: "POST", body: formData, headers: { Authorization: `Bearer ${session.accessToken}` } },
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${accessToken}` },
+          body: formData,
+        },
       );
       const responseText = await response.text();
       let responseBody: unknown;
@@ -109,28 +125,28 @@ export default function RecipeImageManager({
         || responseBody === null
         || !("id" in responseBody)
         || typeof responseBody.id !== "string"
-        || (!("originalUrl" in responseBody) && !("url" in responseBody))
-        || (("originalUrl" in responseBody) && typeof responseBody.originalUrl !== "string")
-        || (("url" in responseBody) && typeof responseBody.url !== "string")
+        || !("url" in responseBody)
+        || typeof responseBody.url !== "string"
+        || !("altText" in responseBody)
+        || (responseBody.altText !== null && typeof responseBody.altText !== "string")
+        || !("isPrimary" in responseBody)
+        || typeof responseBody.isPrimary !== "boolean"
+        || !("orderIndex" in responseBody)
+        || typeof responseBody.orderIndex !== "number"
       ) {
         throw new Error("Máy chủ trả về dữ liệu ảnh không hợp lệ.");
       }
 
-      const uploaded: UploadedRecipeImageDto = {
+      const uploadedImage: RecipeImageDto = {
         id: responseBody.id,
-        originalUrl: ("url" in responseBody ? responseBody.url : responseBody.originalUrl) as string,
-        isPrimary: "isPrimary" in responseBody && responseBody.isPrimary === true,
+        url: responseBody.url,
+        altText: responseBody.altText,
+        isPrimary: responseBody.isPrimary,
+        orderIndex: responseBody.orderIndex,
       };
-      // Response upload dùng "originalUrl"; đổi sang dạng ảnh của RecipeDetailDto ("url") để hiển thị chung.
       setImages((currentImages) => [
         ...currentImages,
-        {
-          id: uploaded.id,
-          url: uploaded.originalUrl,
-          altText: null,
-          isPrimary: uploaded.isPrimary,
-          orderIndex: currentImages.length,
-        },
+        uploadedImage,
       ]);
       setMessage("Tải ảnh lên thành công!");
     } catch (uploadError) {
@@ -164,12 +180,18 @@ export default function RecipeImageManager({
   }
 
   return (
-    <section aria-labelledby="recipe-images-heading" className="mt-8">
-      <h2 id="recipe-images-heading" className="text-xl font-semibold">
-        Ảnh công thức
-      </h2>
+    <section
+      aria-label={uploadOnly ? "Tải ảnh công thức lên" : undefined}
+      aria-labelledby={uploadOnly ? undefined : "recipe-images-heading"}
+      className="mt-8"
+    >
+      {!uploadOnly && (
+        <h2 id="recipe-images-heading" className="text-xl font-semibold">
+          Ảnh công thức
+        </h2>
+      )}
 
-      {images.length > 0 ? (
+      {!uploadOnly && images.length > 0 ? (
         <ul className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
           {images.map((image, index) => {
             const imageUrl = image.url;
@@ -184,7 +206,7 @@ export default function RecipeImageManager({
               >
                 <Image
                   src={imageUrl}
-                  alt={`Ảnh công thức ${index + 1}`}
+                  alt={image.altText ?? `Ảnh công thức ${index + 1}`}
                   fill
                   unoptimized
                   className="object-cover"
@@ -199,11 +221,11 @@ export default function RecipeImageManager({
             );
           })}
         </ul>
-      ) : (
+      ) : !uploadOnly ? (
         <p className="mt-3 text-sm text-zinc-600">Công thức chưa có ảnh.</p>
-      )}
+      ) : null}
 
-      <div
+      {canUpload && <div
         onDragOver={(event) => {
           event.preventDefault();
           setIsDragging(true);
@@ -244,7 +266,7 @@ export default function RecipeImageManager({
           )}
           {isUploading ? "Đang tải ảnh lên..." : "Chọn ảnh"}
         </label>
-      </div>
+      </div>}
 
       {isUploading && (
         <p role="status" className="mt-3 text-sm text-zinc-600">

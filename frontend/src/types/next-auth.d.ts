@@ -10,15 +10,18 @@ declare module "next-auth" {
   interface User {
     accessToken: string;
     refreshToken: string;
+    accessTokenExpiresAt: number;
     roles: Role[];
   }
 
   /** Session đọc được ở server (`auth()`) và client (`useSession`). */
   interface Session {
     accessToken?: string;
+    error?: "RefreshAccessTokenError";
     user: {
       id: string;
       roles: Role[];
+      bio?: string | null;
     } & DefaultSession["user"];
   }
 }
