@@ -20,6 +20,27 @@ try {
     $health = Invoke-RestMethod "$BaseUrl/health/ready"
     Assert-True ($health.status -eq "Healthy") "readiness is not Healthy"
 
+    $categoriesResponse = Invoke-WebRequest -UseBasicParsing "$BaseUrl/api/v1/categories/"
+    $categories = $categoriesResponse.Content | ConvertFrom-Json
+    Assert-True (@($categories).Count -gt 0) "category list is empty"
+    Assert-True ($null -ne @($categories)[0].recipeCount) "category response has no recipeCount"
+    $category = @($categories)[0]
+    $categoryDetail = Invoke-RestMethod "$BaseUrl/api/v1/categories/$($category.slug)?page=1&pageSize=2"
+    Assert-True ($categoryDetail.category.slug -eq $category.slug) "category detail mismatch"
+    Assert-True (@($categoryDetail.recipes.items).Count -le 2) "category detail pagination failed"
+
+    $correlation = $categoriesResponse.Headers["X-Correlation-ID"]
+    Assert-True (-not [string]::IsNullOrWhiteSpace($correlation)) "response has no correlation id"
+
+    try {
+        Invoke-WebRequest -UseBasicParsing `
+            -Uri "$BaseUrl/api/v1/auth/confirm-email?userId=00000000-0000-0000-0000-000000000000&token=invalid" | Out-Null
+        $confirmationStatus = 200
+    } catch {
+        $confirmationStatus = [int]$_.Exception.Response.StatusCode
+    }
+    Assert-True ($confirmationStatus -eq 400) "invalid email confirmation was not rejected"
+
     $auth = Invoke-RestMethod -Method Post -Uri "$BaseUrl/api/v1/auth/login" `
         -ContentType "application/json" `
         -Body (@{ email = $Email; password = $Password } | ConvertTo-Json)
@@ -41,6 +62,8 @@ try {
 
     $search = Invoke-RestMethod "$BaseUrl/api/v1/recipes/search?q=cong%20thuc&page=1&pageSize=5"
     Assert-True ($search.totalCount -gt 0) "accent-insensitive search returned no seeded recipe"
+    $filteredSearch = Invoke-RestMethod "$BaseUrl/api/v1/recipes/search?q=cong%20thuc&page=1&pageSize=5&categoryId=$($category.id)&minServings=1"
+    Assert-True ($filteredSearch.totalCount -ge 0) "filtered search failed"
 
     [IO.File]::WriteAllBytes(
         $tempImage,

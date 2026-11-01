@@ -1,5 +1,5 @@
 using CulinaryBlog.Domain.Modules.Recipes;
-using CulinaryBlog.Infrastructure.Persistence;
+using CulinaryBlog.Infrastructure.Modules.Persistence.PostgreSql;
 using Microsoft.EntityFrameworkCore;
 
 namespace CulinaryBlog.Infrastructure.Modules.Recipes;
@@ -35,7 +35,9 @@ public class RecipeRepository : IRecipeRepository
         string? ownerId = null,
         Guid? categoryId = null,
         RecipeDifficulty? difficulty = null,
+        int? minPrepTime = null,
         int? maxCookTime = null,
+        int? minServings = null,
         string? sort = null,
         CancellationToken cancellationToken = default)
     {
@@ -49,7 +51,9 @@ public class RecipeRepository : IRecipeRepository
         }
         if (categoryId.HasValue) query = query.Where(r => r.CategoryId == categoryId.Value);
         if (difficulty.HasValue) query = query.Where(r => r.Difficulty == difficulty.Value);
+        if (minPrepTime.HasValue) query = query.Where(r => r.PrepTime >= minPrepTime.Value);
         if (maxCookTime.HasValue) query = query.Where(r => r.CookTime <= maxCookTime.Value);
+        if (minServings.HasValue) query = query.Where(r => r.Servings >= minServings.Value);
 
         var totalCount = await query.CountAsync(cancellationToken);
 

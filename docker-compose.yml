@@ -1,4 +1,41 @@
 services:
+  api:
+    image: culinaryblog-api:dev
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: culinaryblog-api
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=culinaryblog;Username=postgres;Password=postgres
+      ConnectionStrings__Redis: redis:6379
+      Jwt__Key: culinary-blog-dev-secret-key-2026
+      Storage__Provider: Minio
+      Minio__Endpoint: http://minio:9000
+      Minio__PublicEndpoint: http://localhost:9000
+      Minio__AccessKey: culinaryblog
+      Minio__SecretKey: culinaryblog-secret
+      Minio__BucketName: culinary-blog
+      Minio__UseHttps: "false"
+      Smtp__Host: mailhog
+      Smtp__Port: "1025"
+      Smtp__From: noreply@culinaryblog.local
+      Smtp__PublicApiUrl: http://localhost:5000
+      Cors__AllowedOrigins__0: http://localhost:3000
+    ports:
+      - "5000:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_started
+      mailhog:
+        condition: service_started
+
   postgres:
     image: postgres:16-alpine
     container_name: culinaryblog-postgres
@@ -17,6 +54,21 @@ services:
       timeout: 5s
       retries: 10
 
+  redis:
+    image: redis:7-alpine
+    container_name: culinaryblog-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - culinaryblog-redis-data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   mailhog:
     image: mailhog/mailhog
     container_name: culinary-mailhog
@@ -24,5 +76,24 @@ services:
       - "8025:8025"
       - "1025:1025"
 
+  minio:
+    image: culinaryblog-minio:community
+    build:
+      context: ./backend/docker/minio
+      args:
+        MINIO_VERSION: RELEASE.2025-09-07T16-13-09Z
+    container_name: culinaryblog-minio
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: culinaryblog
+      MINIO_ROOT_PASSWORD: culinaryblog-secret
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - culinaryblog-minio-data:/data
+
 volumes:
   culinaryblog-postgres-data:
+  culinaryblog-redis-data:
+  culinaryblog-minio-data:

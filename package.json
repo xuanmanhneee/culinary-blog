@@ -1,0 +1,9 @@
+{
+  "name": "culinary-blog",
+  "private": true,
+  "packageManager": "pnpm@11.12.0",
+  "scripts": {
+    "dev:frontend": "pnpm --dir frontend dev",
+    "dev:backend": "dotnet watch --project backend/src/CulinaryBlog.API/CulinaryBlog.API.csproj run"
+  }
+}

@@ -188,6 +188,18 @@ public class Recipe : BaseEntity
         return true;
     }
 
+    public bool UpdateImageMetadata(Guid imageId, string? altText, bool? isPrimary, int? orderIndex)
+    {
+        var image = FindImage(imageId);
+        if (image is null) return false;
+
+        if (isPrimary == true)
+            SetPrimaryImage(imageId);
+
+        image.UpdateMetadata(altText ?? image.AltText, orderIndex ?? image.OrderIndex);
+        return true;
+    }
+
     /// <summary>
     /// Xóa ảnh (FR-RCP-008). Nếu ảnh bị xóa là ảnh chính và còn ảnh khác thì ảnh đầu tiên
     /// còn lại (theo OrderIndex) trở thành ảnh chính.
@@ -242,6 +254,12 @@ public class Recipe : BaseEntity
         if (Status == RecipeStatus.Archived) return;
 
         Status = RecipeStatus.Archived;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void SoftDelete()
+    {
+        IsDeleted = true;
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 }

@@ -1,7 +1,9 @@
 using CulinaryBlog.API.Extensions;
+using CulinaryBlog.Application.Recipes.Commands.DeleteRecipeImage;
+using CulinaryBlog.Application.Recipes.Commands.SetPrimaryRecipeImage;
 using CulinaryBlog.Application.Recipes.Commands.UploadRecipeImage;
+using CulinaryBlog.Application.Recipes.Commands.UpdateRecipeImage;
 using CulinaryBlog.Application.Recipes.Models;
-using CulinaryBlog.Application.Recipes.Services;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
@@ -39,6 +41,12 @@ public static class RecipeImageEndpoints
             .WithDescription("FR-RCP-008. Trả toàn bộ ảnh của recipe, ảnh chính đứng đầu. Ảnh không tồn tại: 404 IMAGE_NOT_FOUND.")
             .Produces<IReadOnlyList<RecipeImageDto>>();
 
+        group.MapPatch("/{imageId:guid}", UpdateAsync)
+            .WithName("UpdateRecipeImage")
+            .WithSummary("Cập nhật metadata ảnh")
+            .Produces<RecipeImageDto>()
+            .ProducesValidationProblem();
+
         group.MapDelete("/{imageId:guid}", DeleteAsync)
             .WithName("DeleteRecipeImage")
             .WithSummary("Xóa ảnh")
@@ -51,9 +59,9 @@ public static class RecipeImageEndpoints
     private static async Task<IResult> SetPrimaryAsync(
         Guid recipeId,
         Guid imageId,
-        IRecipeImageService service,
+        ISender sender,
         CancellationToken cancellationToken) =>
-        Results.Ok(await service.SetPrimaryAsync(recipeId, imageId, cancellationToken));
+        Results.Ok(await sender.Send(new SetPrimaryRecipeImageCommand(recipeId, imageId), cancellationToken));
 
     private static async Task<IResult> UploadAsync(
         Guid recipeId,
@@ -73,10 +81,19 @@ public static class RecipeImageEndpoints
     private static async Task<IResult> DeleteAsync(
         Guid recipeId,
         Guid imageId,
-        IRecipeImageService service,
+        ISender sender,
         CancellationToken cancellationToken)
     {
-        await service.DeleteAsync(recipeId, imageId, cancellationToken);
+        await sender.Send(new DeleteRecipeImageCommand(recipeId, imageId), cancellationToken);
         return Results.NoContent();
     }
+
+    private static async Task<IResult> UpdateAsync(
+        Guid recipeId,
+        Guid imageId,
+        UpdateRecipeImageRequest request,
+        ISender sender,
+        CancellationToken cancellationToken) =>
+        Results.Ok(await sender.Send(
+            new UpdateRecipeImageCommand(recipeId, imageId, request), cancellationToken));
 }

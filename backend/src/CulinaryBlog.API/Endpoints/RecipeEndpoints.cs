@@ -1,6 +1,15 @@
 using CulinaryBlog.API.Extensions;
 using CulinaryBlog.Application.Common.Models;
+using CulinaryBlog.Application.Recipes.Commands.ArchiveRecipe;
+using CulinaryBlog.Application.Recipes.Commands.CreateRecipe;
+using CulinaryBlog.Application.Recipes.Commands.DeleteRecipe;
+using CulinaryBlog.Application.Recipes.Commands.PublishRecipe;
+using CulinaryBlog.Application.Recipes.Commands.UnpublishRecipe;
+using CulinaryBlog.Application.Recipes.Commands.UpdateRecipe;
 using CulinaryBlog.Application.Recipes.Models;
+using CulinaryBlog.Application.Recipes.Queries.GetRecipeById;
+using CulinaryBlog.Application.Recipes.Queries.GetRecipeBySlug;
+using CulinaryBlog.Application.Recipes.Queries.GetRecipes;
 using CulinaryBlog.Application.Recipes.Queries.SearchRecipes;
 using CulinaryBlog.Application.Recipes.Services;
 using MediatR;
@@ -124,33 +133,33 @@ public static class RecipeEndpoints
 
     private static async Task<IResult> DeleteAsync(
         Guid id,
-        IRecipeService service,
+        ISender sender,
         CancellationToken cancellationToken)
     {
-        await service.DeleteAsync(id, cancellationToken);
+        await sender.Send(new DeleteRecipeCommand(id), cancellationToken);
         return Results.NoContent();
     }
 
     private static async Task<IResult> PublishAsync(
         Guid id,
-        IRecipeService service,
+        ISender sender,
         HttpContext httpContext,
         CancellationToken cancellationToken) =>
-        StatusChanged(httpContext, await service.PublishAsync(id, cancellationToken));
+        StatusChanged(httpContext, await sender.Send(new PublishRecipeCommand(id), cancellationToken));
 
     private static async Task<IResult> UnpublishAsync(
         Guid id,
-        IRecipeService service,
+        ISender sender,
         HttpContext httpContext,
         CancellationToken cancellationToken) =>
-        StatusChanged(httpContext, await service.UnpublishAsync(id, cancellationToken));
+        StatusChanged(httpContext, await sender.Send(new UnpublishRecipeCommand(id), cancellationToken));
 
     private static async Task<IResult> ArchiveAsync(
         Guid id,
-        IRecipeService service,
+        ISender sender,
         HttpContext httpContext,
         CancellationToken cancellationToken) =>
-        StatusChanged(httpContext, await service.ArchiveAsync(id, cancellationToken));
+        StatusChanged(httpContext, await sender.Send(new ArchiveRecipeCommand(id), cancellationToken));
 
     private static IResult StatusChanged(HttpContext httpContext, RecipeDetailDto recipe)
     {
@@ -160,11 +169,11 @@ public static class RecipeEndpoints
 
     private static async Task<IResult> GetByIdAsync(
         Guid id,
-        IRecipeService service,
+        ISender sender,
         HttpContext httpContext,
         CancellationToken cancellationToken)
     {
-        var recipe = await service.GetByIdAsync(id, cancellationToken);
+        var recipe = await sender.Send(new GetRecipeByIdQuery(id), cancellationToken);
         SetETag(httpContext, recipe);
         return Results.Ok(recipe);
     }
@@ -172,7 +181,7 @@ public static class RecipeEndpoints
     private static async Task<IResult> UpdateAsync(
         Guid id,
         UpdateRecipeRequest request,
-        IRecipeService service,
+        ISender sender,
         HttpContext httpContext,
         CancellationToken cancellationToken)
     {
@@ -180,7 +189,9 @@ public static class RecipeEndpoints
         var ifMatch = httpContext.Request.Headers.IfMatch.ToString();
         var rowVersion = string.IsNullOrWhiteSpace(ifMatch) ? request.RowVersion : ifMatch;
 
-        var recipe = await service.UpdateAsync(id, request, rowVersion, cancellationToken);
+        var recipe = await sender.Send(
+            new UpdateRecipeCommand(id, request, rowVersion),
+            cancellationToken);
         SetETag(httpContext, recipe);
         return Results.Ok(recipe);
     }
@@ -190,26 +201,31 @@ public static class RecipeEndpoints
 
     private static async Task<IResult> GetPagedAsync(
         [AsParameters] RecipeQuery query,
-        IRecipeService service,
+        ISender sender,
         CancellationToken cancellationToken) =>
-        Results.Ok(await service.GetPagedAsync(query, cancellationToken));
+        Results.Ok(await sender.Send(new GetRecipesQuery(query), cancellationToken));
 
     private static async Task<IResult> SearchAsync(
         ISender sender,
         CancellationToken cancellationToken,
         [FromQuery(Name = "q")] string? searchTerm = null,
         [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 10) =>
+        [FromQuery] int pageSize = 10,
+        [FromQuery] Guid? categoryId = null,
+        [FromQuery] CulinaryBlog.Domain.Modules.Recipes.RecipeDifficulty? difficulty = null,
+        [FromQuery] int? maxCookTime = null,
+        [FromQuery] int? minServings = null) =>
         Results.Ok(await sender.Send(
-            new SearchRecipesQuery(searchTerm ?? string.Empty, page, pageSize),
+            new SearchRecipesQuery(searchTerm ?? string.Empty, page, pageSize, categoryId,
+                difficulty, maxCookTime, minServings),
             cancellationToken));
 
     private static async Task<IResult> GetBySlugAsync(
         string slug,
-        IRecipeService service,
+        ISender sender,
         CancellationToken cancellationToken)
     {
-        var recipe = await service.GetBySlugAsync(slug, cancellationToken);
+        var recipe = await sender.Send(new GetRecipeBySlugQuery(slug), cancellationToken);
         if (recipe is null)
         {
             return Results.Problem(
@@ -222,10 +238,12 @@ public static class RecipeEndpoints
 
     private static async Task<IResult> CreateAsync(
         CreateRecipeRequest request,
-        IRecipeService service,
+        ISender sender,
         CancellationToken cancellationToken)
     {
-        var recipe = await service.CreateAsync(request, cancellationToken);
+        var recipe = await sender.Send(
+            new CreateRecipeCommand(request),
+            cancellationToken);
         return Results.Created($"{ApiVersioningExtensions.V1Path}/recipes/{recipe.Slug}", recipe);
     }
 }

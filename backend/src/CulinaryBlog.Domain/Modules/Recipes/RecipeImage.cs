@@ -36,4 +36,18 @@ public class RecipeImage : BaseEntity
         IsPrimary = isPrimary;
         UpdatedAt = DateTimeOffset.UtcNow;
     }
+
+    internal void UpdateMetadata(string? altText, int orderIndex)
+    {
+        AltText = altText;
+        OrderIndex = orderIndex;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void SetDerivedUrls(string? mediumUrl, string? thumbnailUrl)
+    {
+        MediumUrl = mediumUrl;
+        ThumbnailUrl = thumbnailUrl;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
 }
