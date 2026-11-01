@@ -90,8 +90,8 @@ export function RandomRecipePicker({ recipes, categories }: { recipes: RecipeLis
         <p className="mx-auto mt-2 max-w-xl text-sm text-[#746a62]">Không biết ăn gì? Hãy để Bếp Nhà chọn giúp bạn.</p>
 
         {recipe ? (
-          <div className={`mx-auto mt-5 w-full max-w-[22rem] text-left transition-transform ${isSpinning ? "scale-[.985] opacity-80" : "scale-100 opacity-100"}`} aria-live="polite">
-            <RecipeCard recipe={recipe} priority />
+          <div className={`mx-auto mt-5 w-full max-w-4xl text-left transition-transform ${isSpinning ? "scale-[.985] opacity-80" : "scale-100 opacity-100"}`} aria-live="polite">
+            <RecipeCard recipe={recipe} priority featured />
           </div>
         ) : (
           <p className="mx-auto mt-8 max-w-xl rounded-2xl border border-dashed border-[#d9cdbd] bg-white/70 p-7 text-center text-sm text-[#70675f]">Thử nới lỏng một bộ lọc để Bếp Nhà tìm được món cho bạn nhé.</p>
