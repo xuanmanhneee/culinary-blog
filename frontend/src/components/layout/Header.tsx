@@ -29,12 +29,15 @@ import { Roles } from "@/lib/types/auth";
 import { cn } from "@/lib/utils";
 
 const publicNavigation = [
-  { href: "/#cong-thuc", label: "Công thức" },
-  { href: "/#danh-muc", label: "Danh mục" },
-  { href: "/#cau-chuyen", label: "Chuyện bếp" },
+  { href: "/recipes", label: "Tất cả món ăn" },
+  { href: "/categories", label: "Danh mục" },
+  { href: "/dashboard/recipes", label: "Bếp của tôi" },
 ];
 
 const kitchenNavigation = [
+  { href: "/recipes", label: "Tất cả món ăn" },
+  { href: "/categories", label: "Danh mục" },
+  { href: "/dashboard/recipes", label: "Bếp của tôi" },
   { href: "/dashboard/recipes/new", label: "Tạo công thức" },
 ];
 
@@ -73,10 +76,6 @@ function isActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-function isFeedPath(pathname: string): boolean {
-  return pathname === "/" || pathname.startsWith("/recipes") || pathname.startsWith("/search") || pathname.startsWith("/categories");
-}
-
 export function Header() {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
@@ -91,8 +90,11 @@ export function Header() {
   const isAdmin = user?.roles?.includes(Roles.Admin) ?? false;
   const isKitchen = pathname.startsWith("/dashboard");
   const loginHref = `/login?callbackUrl=${encodeURIComponent(pathname || "/")}`;
-  const navigation = isKitchen ? kitchenNavigation : publicNavigation;
-  const myRecipesHref = user ? "/dashboard/recipes" : "/login?callbackUrl=%2Fdashboard%2Frecipes";
+  const navigation = (isKitchen ? kitchenNavigation : publicNavigation).map((item) =>
+    item.href === "/dashboard/recipes" && !user
+      ? { ...item, href: "/login?callbackUrl=%2Fdashboard%2Frecipes" }
+      : item,
+  );
 
   function logOut() {
     void signOut({ callbackUrl: "/" });
@@ -102,10 +104,6 @@ export function Header() {
     <header className="sticky top-0 z-50 border-b border-[#ded3c5]/80 bg-[#fbf8f2]/90 backdrop-blur-xl">
       <div className="site-container flex h-[74px] items-center justify-between gap-5">
         <Logo />
-        <div className="hidden items-center gap-2 rounded-full border border-[#ded3c5] bg-white/60 p-1 lg:flex" aria-label="Chuyển khu vực">
-          <Link href="/" aria-current={isFeedPath(pathname) ? "page" : undefined} className={cn("rounded-full px-4 py-2 text-sm font-bold transition", isFeedPath(pathname) ? "bg-[#1f4b3f] text-white shadow-sm" : "text-[#6d6259] hover:bg-[#f1e8dc] hover:text-[#1f4b3f]")}>Khám phá</Link>
-          <Link href={myRecipesHref} aria-current={isKitchen ? "page" : undefined} className={cn("rounded-full px-4 py-2 text-sm font-bold transition", isKitchen ? "bg-[#1f4b3f] text-white shadow-sm" : "text-[#6d6259] hover:bg-[#f1e8dc] hover:text-[#1f4b3f]")}>Của tôi</Link>
-        </div>
         <nav className="hidden items-center gap-7 lg:flex" aria-label="Điều hướng chính">
           {navigation.map((item) => (
             <Link key={item.href} href={item.href} aria-current={isActive(pathname, item.href) ? "page" : undefined} className={cn("nav-link", isActive(pathname, item.href) && "text-[#1f4b3f] after:scale-x-100")}>
@@ -161,10 +159,6 @@ export function Header() {
       {isOpen && (
         <div id="mobile-navigation" className="border-t border-[#ded3c5] bg-[#fbf8f2] px-5 py-5 lg:hidden">
           <nav className="mx-auto flex max-w-7xl flex-col gap-1" aria-label="Điều hướng di động">
-            <div className="mb-3 grid grid-cols-2 gap-2 rounded-2xl border border-[#ded3c5] bg-white/60 p-1">
-              <Link href="/" onClick={() => setIsOpen(false)} className={cn("rounded-xl px-3 py-3 text-center text-sm font-bold", isFeedPath(pathname) ? "bg-[#1f4b3f] text-white" : "text-[#6d6259]")}>Khám phá</Link>
-              <Link href={myRecipesHref} onClick={() => setIsOpen(false)} className={cn("rounded-xl px-3 py-3 text-center text-sm font-bold", isKitchen ? "bg-[#1f4b3f] text-white" : "text-[#6d6259]")}>Của tôi</Link>
-            </div>
             {navigation.map((item) => (
               <Link key={item.href} href={item.href} onClick={() => setIsOpen(false)} aria-current={isActive(pathname, item.href) ? "page" : undefined} className={cn("rounded-xl px-3 py-3 font-semibold text-[#3e3833] hover:bg-[#f1e8db]", isActive(pathname, item.href) && "bg-[#dce8e1] text-[#1f4b3f]")}>
                 {item.label}
