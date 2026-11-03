@@ -11,20 +11,21 @@ public interface IRecipeRepository : IRepository<Recipe>
     /// <summary>
     /// FR-RCP-001: danh sách phân trang kèm Category, Author và ảnh chính.
     /// sort: createdAt | title | cookTime, tiền tố "-" là giảm dần; giá trị khác dùng "-createdAt".
-    /// Hiển thị: includeAllStatuses = true (Admin) lấy mọi trạng thái; ngược lại chỉ Published,
+    /// Hiển thị: mineOnly = true chỉ lấy công thức của ownerId ở mọi trạng thái;
+    /// nếu không thì includeAllStatuses = true (Admin) lấy mọi trạng thái, ngược lại chỉ Published,
     /// cộng thêm recipe của ownerId (Author xem cả Draft/Archived của mình).
-    /// Lọc thêm: authorId (chỉ recipe của tác giả đó), status (sau khi đã áp dụng quyền xem).
     /// </summary>
     Task<(IReadOnlyList<Recipe> Items, int TotalCount)> GetPagedAsync(
         int page,
         int pageSize,
         bool includeAllStatuses = false,
+        bool mineOnly = false,
         string? ownerId = null,
-        string? authorId = null,
-        RecipeStatus? status = null,
         Guid? categoryId = null,
         RecipeDifficulty? difficulty = null,
+        int? minPrepTime = null,
         int? maxCookTime = null,
+        int? minServings = null,
         string? sort = null,
         CancellationToken cancellationToken = default);
 

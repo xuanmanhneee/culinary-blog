@@ -2,12 +2,14 @@
 
 import {
   BookOpenText,
+  FolderTree,
   ChevronDown,
   CircleHelp,
   LogOut,
   Menu,
   Settings,
   UserRound,
+  UsersRound,
   X,
 } from "lucide-react";
 import Image from "next/image";
@@ -28,17 +30,10 @@ import { Logo } from "@/components/layout/Logo";
 import { Roles } from "@/lib/types/auth";
 import { cn } from "@/lib/utils";
 
-const publicNavigation = [
-  { href: "/#cong-thuc", label: "Công thức" },
-  { href: "/#danh-muc", label: "Danh mục" },
-  { href: "/#cau-chuyen", label: "Chuyện bếp" },
+const navigationItems = [
+  { href: "/recipes", label: "Tất cả món ăn" },
+  { href: "/categories", label: "Danh mục" },
   { href: "/dashboard/recipes", label: "Bếp của tôi" },
-];
-
-const kitchenNavigation = [
-  { href: "/", label: "Khám phá món ăn" },
-  { href: "/dashboard/recipes", label: "Công thức của tôi" },
-  { href: "/dashboard/recipes/new", label: "Tạo công thức" },
 ];
 
 const accountNavigation = [
@@ -46,6 +41,11 @@ const accountNavigation = [
   { href: "/dashboard/recipes", label: "Bếp của tôi", icon: BookOpenText },
   { href: "/account#settings", label: "Cài đặt tài khoản", icon: Settings },
   { href: "/account#help", label: "Trợ giúp", icon: CircleHelp },
+] as const;
+
+const adminNavigation = [
+  { href: "/dashboard/users", label: "Quản lý người dùng", icon: UsersRound },
+  { href: "/dashboard/categories", label: "Quản lý danh mục", icon: FolderTree },
 ] as const;
 
 function getInitials(name: string, email: string): string {
@@ -88,9 +88,9 @@ export function Header() {
     roles: session.user.roles ?? [],
   } : null;
   const isAdmin = user?.roles?.includes(Roles.Admin) ?? false;
-  const isKitchen = pathname.startsWith("/dashboard");
+  const accountItems = isAdmin ? [...accountNavigation, ...adminNavigation] : accountNavigation;
   const loginHref = `/login?callbackUrl=${encodeURIComponent(pathname || "/")}`;
-  const navigation = (isKitchen ? kitchenNavigation : publicNavigation).map((item) =>
+  const navigation = navigationItems.map((item) =>
     item.href === "/dashboard/recipes" && !user
       ? { ...item, href: "/login?callbackUrl=%2Fdashboard%2Frecipes" }
       : item,
@@ -131,7 +131,7 @@ export function Header() {
                   <span className="min-w-0 flex-1 truncate text-sm font-bold text-[#302a26]">{user.fullName || "Tài khoản"}</span>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                {accountNavigation.map((item) => {
+                {accountItems.map((item) => {
                   const Icon = item.icon;
                   return (
                     <DropdownMenuItem key={item.href} asChild className="cursor-pointer gap-2.5 rounded-lg px-2.5 py-2.5 focus:bg-[#edf3ef]">
@@ -172,7 +172,7 @@ export function Header() {
                   <span className="min-w-0 truncate text-sm font-bold">{user.fullName || "Tài khoản"}</span>
                 </div>
                 <div className="mt-2 flex flex-col gap-1 border-t border-[#e6ddd2] pt-2">
-                  {accountNavigation.map((item) => {
+                  {accountItems.map((item) => {
                     const Icon = item.icon;
                     return <Link key={item.href} href={item.href} onClick={() => setIsOpen(false)} className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold text-[#4a433d] hover:bg-[#edf3ef] hover:text-[#1f4b3f]"><Icon className="size-4" />{item.label}</Link>;
                   })}

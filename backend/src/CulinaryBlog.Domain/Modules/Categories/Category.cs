@@ -18,21 +18,36 @@ public class Category : BaseEntity
 
     private Category() { } // EF Core
 
-    public static Category Create(string name, string slug, string? description = null, int orderIndex = 0)
+    public static Category Create(
+        string name,
+        string slug,
+        string? description = null,
+        int orderIndex = 0,
+        string? imageUrl = null)
     {
         return new Category
         {
             Name = name,
             Slug = slug,
             Description = description,
+            ImageUrl = imageUrl,
             OrderIndex = orderIndex
         };
     }
 
-    public void Update(string name, string? description)
+    public void Update(string name, string slug, string? description, string? imageUrl, int orderIndex)
     {
         Name = name;
+        Slug = slug;
         Description = description;
+        ImageUrl = imageUrl;
+        OrderIndex = orderIndex;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void SoftDelete()
+    {
+        IsDeleted = true;
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 }

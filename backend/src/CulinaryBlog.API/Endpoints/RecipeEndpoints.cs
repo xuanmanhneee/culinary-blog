@@ -1,10 +1,18 @@
 using CulinaryBlog.API.Extensions;
 using CulinaryBlog.Application.Common.Models;
+using CulinaryBlog.Application.Recipes.Commands.ArchiveRecipe;
+using CulinaryBlog.Application.Recipes.Commands.CreateRecipe;
+using CulinaryBlog.Application.Recipes.Commands.DeleteRecipe;
+using CulinaryBlog.Application.Recipes.Commands.PublishRecipe;
+using CulinaryBlog.Application.Recipes.Commands.UnpublishRecipe;
+using CulinaryBlog.Application.Recipes.Commands.UpdateRecipe;
 using CulinaryBlog.Application.Recipes.Models;
-using CulinaryBlog.Application.Common.Exceptions;
-using CulinaryBlog.Application.Recipes.Commands.UploadRecipeImage;
+using CulinaryBlog.Application.Recipes.Queries.GetRecipeById;
+using CulinaryBlog.Application.Recipes.Queries.GetRecipeBySlug;
+using CulinaryBlog.Application.Recipes.Queries.GetRecipes;
 using CulinaryBlog.Application.Recipes.Queries.SearchRecipes;
 using CulinaryBlog.Application.Recipes.Services;
+using CulinaryBlog.Application.Common.Exceptions;
 using CulinaryBlog.Domain.Common.Exceptions;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
@@ -16,7 +24,6 @@ namespace CulinaryBlog.API.Endpoints;
 /// FR-RCP-002: GET /api/v1/recipes/{slug}
 /// FR-RCP-003: POST /api/v1/recipes
 /// FR-SEARCH-001: GET /api/v1/recipes/search?q={query}
-/// FR-FILE-001: POST /api/v1/recipes/{id}/images
 /// FR-RCP-004: GET /api/v1/recipes/by-id/{id:guid} (trang edit, trả ETag), PUT /api/v1/recipes/{id:guid} (If-Match)
 /// FR-RCP-005: PATCH /api/v1/recipes/{id:guid}/publish | /unpublish
 /// FR-RCP-006: PATCH /api/v1/recipes/{id:guid}/archive
@@ -36,17 +43,16 @@ public static class RecipeEndpoints
             .WithSummary("Danh sách công thức (phân trang, lọc, sắp xếp)")
             .WithDescription(
                 "FR-RCP-001. Không gửi token: chỉ recipe Published. Gửi token: thêm Draft/Archived của chính mình; " +
-                "Admin thấy mọi trạng thái. sort: createdAt | title | cookTime, thêm \"-\" để giảm dần (mặc định -createdAt). " +
-                "pageSize 1–50 (mặc định 12). categoryId không tồn tại trả danh sách rỗng. " +
-                "mine=true: chỉ công thức của người đang đăng nhập, mọi trạng thái (401 nếu chưa đăng nhập). " +
-                "status=0|1|2: lọc Draft/Published/Archived sau khi áp dụng quyền xem.")
+                "mine=true: chỉ lấy công thức của người hiện tại ở mọi trạng thái. Admin thấy mọi trạng thái khi mine=false. " +
+                "sort: createdAt | title | cookTime, thêm \"-\" để giảm dần (mặc định -createdAt). " +
+                "pageSize 1–50 (mặc định 12). categoryId không tồn tại trả danh sách rỗng.")
             .Produces<PagedResult<RecipeListItemDto>>()
             .ProducesValidationProblem();
 
         group.MapGet("/search", SearchAsync)
             .WithName("SearchRecipes")
             .WithSummary("Tìm kiếm toàn văn công thức đã xuất bản")
-            .WithDescription("FR-SEARCH-001. Tìm theo từ khóa q (tối thiểu 2 ký tự), lọc categorySlug tùy chọn, hỗ trợ phân trang bằng page và pageSize (1–50).")
+            .WithDescription("FR-SEARCH-001. Tìm theo từ khóa q (tối thiểu 2 ký tự), lọc categoryId tùy chọn, hỗ trợ phân trang bằng page và pageSize (1–50).")
             .Produces<PagedResult<RecipeSummaryDto>>()
             .ProducesValidationProblem();
 
@@ -65,16 +71,6 @@ public static class RecipeEndpoints
         var authorized = group.MapGroup(string.Empty)
             .RequireAuthorization(AuthServiceCollectionExtensions.AuthorPolicy)
             .ProducesAuthProblems();
-
-        authorized.MapPost("/{id:guid}/images", UploadImageAsync)
-            .WithName("UploadRecipeImage")
-            .WithSummary("Tải ảnh công thức lên")
-            .WithDescription("FR-FILE-001. Chỉ owner hoặc Admin. Gửi file qua multipart/form-data với field name 'file'.")
-            .Accepts<IFormFile>("multipart/form-data")
-            .Produces<RecipeImageDto>(StatusCodes.Status201Created)
-            .ProducesValidationProblem()
-            .ProducesNotFoundProblem()
-            .DisableAntiforgery();
 
         // {id:guid} khai báo riêng để không bị route {slug} bắt mất.
         authorized.MapGet("/by-id/{id:guid}", GetByIdAsync)
@@ -131,8 +127,8 @@ public static class RecipeEndpoints
 
         authorized.MapDelete("/{id:guid}", DeleteAsync)
             .WithName("DeleteRecipe")
-            .WithSummary("Xóa vĩnh viễn công thức")
-            .WithDescription("FR-RCP-007. Hard delete; nguyên liệu, bước, ảnh bị xóa theo (cascade).")
+            .WithSummary("Xóa mềm công thức")
+            .WithDescription("FR-RCP-007. Đánh dấu công thức đã xóa và ẩn khỏi các truy vấn; file ảnh được dọn bằng background job.")
             .Produces(StatusCodes.Status204NoContent)
             .ProducesNotFoundProblem();
 
@@ -141,43 +137,33 @@ public static class RecipeEndpoints
 
     private static async Task<IResult> DeleteAsync(
         Guid id,
-        IRecipeService service,
-        CancellationToken cancellationToken)
-    {
-        await service.DeleteAsync(id, cancellationToken);
-        return Results.NoContent();
-    }
-
-    private static async Task<IResult> UploadImageAsync(
-        Guid id,
-        [FromForm(Name = "file")] IFormFile file,
         ISender sender,
         CancellationToken cancellationToken)
     {
-        var result = await sender.Send(new UploadRecipeImageCommand(id, file), cancellationToken);
-        return Results.Created($"/api/v1/recipes/{id}/images/{result.Id}", result);
+        await sender.Send(new DeleteRecipeCommand(id), cancellationToken);
+        return Results.NoContent();
     }
 
     private static async Task<IResult> PublishAsync(
         Guid id,
-        IRecipeService service,
+        ISender sender,
         HttpContext httpContext,
         CancellationToken cancellationToken) =>
-        StatusChanged(httpContext, await service.PublishAsync(id, cancellationToken));
+        StatusChanged(httpContext, await sender.Send(new PublishRecipeCommand(id), cancellationToken));
 
     private static async Task<IResult> UnpublishAsync(
         Guid id,
-        IRecipeService service,
+        ISender sender,
         HttpContext httpContext,
         CancellationToken cancellationToken) =>
-        StatusChanged(httpContext, await service.UnpublishAsync(id, cancellationToken));
+        StatusChanged(httpContext, await sender.Send(new UnpublishRecipeCommand(id), cancellationToken));
 
     private static async Task<IResult> ArchiveAsync(
         Guid id,
-        IRecipeService service,
+        ISender sender,
         HttpContext httpContext,
         CancellationToken cancellationToken) =>
-        StatusChanged(httpContext, await service.ArchiveAsync(id, cancellationToken));
+        StatusChanged(httpContext, await sender.Send(new ArchiveRecipeCommand(id), cancellationToken));
 
     private static IResult StatusChanged(HttpContext httpContext, RecipeDetailDto recipe)
     {
@@ -187,11 +173,11 @@ public static class RecipeEndpoints
 
     private static async Task<IResult> GetByIdAsync(
         Guid id,
-        IRecipeService service,
+        ISender sender,
         HttpContext httpContext,
         CancellationToken cancellationToken)
     {
-        var recipe = await service.GetByIdAsync(id, cancellationToken);
+        var recipe = await sender.Send(new GetRecipeByIdQuery(id), cancellationToken);
         SetETag(httpContext, recipe);
         return Results.Ok(recipe);
     }
@@ -199,7 +185,7 @@ public static class RecipeEndpoints
     private static async Task<IResult> UpdateAsync(
         Guid id,
         UpdateRecipeRequest request,
-        IRecipeService service,
+        ISender sender,
         HttpContext httpContext,
         CancellationToken cancellationToken)
     {
@@ -207,7 +193,9 @@ public static class RecipeEndpoints
         var ifMatch = httpContext.Request.Headers.IfMatch.ToString();
         var rowVersion = string.IsNullOrWhiteSpace(ifMatch) ? request.RowVersion : ifMatch;
 
-        var recipe = await service.UpdateAsync(id, request, rowVersion, cancellationToken);
+        var recipe = await sender.Send(
+            new UpdateRecipeCommand(id, request, rowVersion),
+            cancellationToken);
         SetETag(httpContext, recipe);
         return Results.Ok(recipe);
     }
@@ -217,9 +205,9 @@ public static class RecipeEndpoints
 
     private static async Task<IResult> GetPagedAsync(
         [AsParameters] RecipeQuery query,
-        IRecipeService service,
+        ISender sender,
         CancellationToken cancellationToken) =>
-        Results.Ok(await service.GetPagedAsync(query, cancellationToken));
+        Results.Ok(await sender.Send(new GetRecipesQuery(query), cancellationToken));
 
     private static async Task<IResult> SearchAsync(
         ISender sender,
@@ -227,21 +215,21 @@ public static class RecipeEndpoints
         [FromQuery(Name = "q")] string? searchTerm = null,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 10,
-        [FromQuery] string? categorySlug = null) =>
+        [FromQuery] Guid? categoryId = null,
+        [FromQuery] CulinaryBlog.Domain.Modules.Recipes.RecipeDifficulty? difficulty = null,
+        [FromQuery] int? maxCookTime = null,
+        [FromQuery] int? minServings = null) =>
         Results.Ok(await sender.Send(
-            new SearchRecipesQuery(
-                searchTerm ?? string.Empty,
-                page,
-                pageSize,
-                string.IsNullOrWhiteSpace(categorySlug) ? null : categorySlug.Trim()),
+            new SearchRecipesQuery(searchTerm ?? string.Empty, page, pageSize, categoryId,
+                difficulty, maxCookTime, minServings),
             cancellationToken));
 
     private static async Task<IResult> GetBySlugAsync(
         string slug,
-        IRecipeService service,
+        ISender sender,
         CancellationToken cancellationToken)
     {
-        var recipe = await service.GetBySlugAsync(slug, cancellationToken);
+        var recipe = await sender.Send(new GetRecipeBySlugQuery(slug), cancellationToken);
         if (recipe is null)
         {
             throw new NotFoundException(ErrorCodes.RecipeNotFound, $"Recipe with slug '{slug}' was not found.");
@@ -252,10 +240,12 @@ public static class RecipeEndpoints
 
     private static async Task<IResult> CreateAsync(
         CreateRecipeRequest request,
-        IRecipeService service,
+        ISender sender,
         CancellationToken cancellationToken)
     {
-        var recipe = await service.CreateAsync(request, cancellationToken);
+        var recipe = await sender.Send(
+            new CreateRecipeCommand(request),
+            cancellationToken);
         return Results.Created($"{ApiVersioningExtensions.V1Path}/recipes/{recipe.Slug}", recipe);
     }
 }

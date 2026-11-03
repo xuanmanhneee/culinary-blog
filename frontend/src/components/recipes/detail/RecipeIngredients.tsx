@@ -27,7 +27,7 @@ export function RecipeIngredients({ ingredients, servings }: { ingredients: Reci
       {ingredients.length === 0 ? (
         <p className="mt-7 text-sm text-[#766b62]">Công thức chưa có nguyên liệu.</p>
       ) : (
-        <ul className="mt-7 space-y-4">{ingredients.map((ingredient) => <li key={ingredient.id} className="flex gap-3 text-sm leading-6 text-[#4e4741]"><span className="mt-2 size-1.5 shrink-0 rounded-full bg-[#b65338]" /><span>{formatIngredient(ingredient, ratio)}{ingredient.notes && <span className="text-[#8a7f76]"> – {ingredient.notes}</span>}</span></li>)}</ul>
+        <ul className="mt-7 grid gap-x-6 gap-y-3 lg:grid-cols-2">{ingredients.map((ingredient) => <li key={ingredient.id} className="flex gap-3 text-sm leading-6 text-[#4e4741]"><span className="mt-2 size-1.5 shrink-0 rounded-full bg-[#b65338]" /><span>{formatIngredient(ingredient, ratio)}{ingredient.notes && <span className="text-[#8a7f76]"> – {ingredient.notes}</span>}</span></li>)}</ul>
       )}
     </>
   );

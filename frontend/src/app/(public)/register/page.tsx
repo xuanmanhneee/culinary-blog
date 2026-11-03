@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { type FormEvent, type ReactNode, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { registerAccount } from "@/lib/api/auth";
+import { getErrorMessage, getFieldErrors } from "@/lib/errors";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -27,18 +29,35 @@ export default function RegisterPage() {
     }
 
     setIsSubmitting(true);
+    const registration = {
+      fullName: String(form.get("fullName") ?? "").trim(),
+      userName: String(form.get("userName") ?? "").trim(),
+      email: String(form.get("email") ?? "").trim(),
+      password,
+    };
+
+    try {
+      // Gọi API trực tiếp để giữ lại Problem Details từ backend thay vì để Auth.js
+      // biến mọi lỗi đăng ký thành CredentialsSignin.
+      await registerAccount(registration);
+    } catch (registrationError) {
+      const fieldErrors = getFieldErrors(registrationError);
+      setError(
+        Object.values(fieldErrors).join(" ") || getErrorMessage(registrationError),
+      );
+      setIsSubmitting(false);
+      return;
+    }
+
     const result = await signIn("credentials", {
-      action: "register",
-      fullName: String(form.get("fullName") ?? ""),
-      userName: String(form.get("userName") ?? ""),
-      email: String(form.get("email") ?? ""),
+      email: registration.email,
       password,
       redirect: false,
     });
     setIsSubmitting(false);
 
     if (!result || result.error) {
-      setError("Không thể tạo tài khoản. Email hoặc tên đăng nhập có thể đã được sử dụng.");
+      setError("Tài khoản đã được tạo nhưng chưa thể đăng nhập tự động. Hãy thử đăng nhập lại.");
       return;
     }
 

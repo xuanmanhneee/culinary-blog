@@ -1,6 +1,9 @@
 using CulinaryBlog.API.Extensions;
+using CulinaryBlog.Application.Recipes.Commands.AddRecipeStep;
+using CulinaryBlog.Application.Recipes.Commands.DeleteRecipeStep;
+using CulinaryBlog.Application.Recipes.Commands.UpdateRecipeStep;
 using CulinaryBlog.Application.Recipes.Models;
-using CulinaryBlog.Application.Recipes.Services;
+using MediatR;
 
 namespace CulinaryBlog.API.Endpoints;
 
@@ -44,10 +47,10 @@ public static class RecipeStepEndpoints
     private static async Task<IResult> AddAsync(
         Guid recipeId,
         CreateStepRequest request,
-        IRecipeStepService service,
+        ISender sender,
         CancellationToken cancellationToken)
     {
-        var step = await service.AddAsync(recipeId, request, cancellationToken);
+        var step = await sender.Send(new AddRecipeStepCommand(recipeId, request), cancellationToken);
         return Results.Created(
             $"{ApiVersioningExtensions.V1Path}/recipes/{recipeId}/steps/{step.Id}",
             step);
@@ -57,17 +60,17 @@ public static class RecipeStepEndpoints
         Guid recipeId,
         Guid stepId,
         UpdateStepRequest request,
-        IRecipeStepService service,
+        ISender sender,
         CancellationToken cancellationToken) =>
-        Results.Ok(await service.UpdateAsync(recipeId, stepId, request, cancellationToken));
+        Results.Ok(await sender.Send(new UpdateRecipeStepCommand(recipeId, stepId, request), cancellationToken));
 
     private static async Task<IResult> DeleteAsync(
         Guid recipeId,
         Guid stepId,
-        IRecipeStepService service,
+        ISender sender,
         CancellationToken cancellationToken)
     {
-        await service.DeleteAsync(recipeId, stepId, cancellationToken);
+        await sender.Send(new DeleteRecipeStepCommand(recipeId, stepId), cancellationToken);
         return Results.NoContent();
     }
 }

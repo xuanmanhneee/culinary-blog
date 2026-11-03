@@ -17,7 +17,7 @@ export function RecipeNutrition({ nutrition }: { nutrition: RecipeNutritionDto }
   if (rows.length === 0) return null;
 
   return (
-    <div className="mt-6 rounded-[1.5rem] border border-[#ded3c6] bg-white p-7 sm:p-8">
+    <div className="rounded-[1.5rem] border border-[#ded3c6] bg-white p-7 sm:p-8">
       <h2 className="font-display text-2xl font-bold text-[#302a26]">Dinh dưỡng</h2>
       <p className="mt-1 text-xs text-[#8a8077]">Ước tính cho mỗi khẩu phần</p>
       <dl className="mt-5 divide-y divide-[#ece3d8] text-sm">

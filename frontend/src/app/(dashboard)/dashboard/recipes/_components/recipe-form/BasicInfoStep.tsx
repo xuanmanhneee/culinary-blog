@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useRecipeFormStore } from "@/lib/stores/recipe-form-store";
 import { RECIPE_DIFFICULTY_LABELS, RecipeDifficulty, type RecipeCategoryDto } from "@/lib/types/recipe";
@@ -19,12 +18,28 @@ const difficulties = Object.values(RecipeDifficulty);
 export function BasicInfoStep({
   categories,
   serverErrors,
+  selectedImage,
+  onImageSelected,
 }: {
   categories: RecipeCategoryDto[];
   serverErrors?: ServerErrors | null;
+  /** Chỉ dùng khi tạo mới; trang sửa quản lý ảnh ở RecipeImagesPanel. Bỏ trống thì ẩn ô chọn ảnh. */
+  selectedImage?: File | null;
+  onImageSelected?: (file: File | null) => void;
 }) {
   const setBasic = useRecipeFormStore((state) => state.setBasic);
   const nextStep = useRecipeFormStore((state) => state.nextStep);
+  const [previewUrl, setPreviewUrl] = useState("");
+
+  useEffect(() => {
+    if (!selectedImage) {
+      setPreviewUrl("");
+      return;
+    }
+    const url = URL.createObjectURL(selectedImage);
+    setPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [selectedImage]);
 
   // Giá trị ban đầu đọc một lần khi bước được mở (component được mount lại mỗi lần đổi bước).
   const form = useForm<BasicInfoValues>({
@@ -79,18 +94,18 @@ export function BasicInfoStep({
               control={form.control}
               name="categoryId"
               render={({ field }) => (
-                <Select value={field.value} onValueChange={field.onChange}>
-                  <SelectTrigger id="categoryId" className="w-full" aria-invalid={!!errors.categoryId} onBlur={field.onBlur}>
-                    <SelectValue placeholder="Chọn danh mục" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((category) => (
-                      <SelectItem key={category.id} value={category.id}>
-                        {category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <select
+                  ref={field.ref}
+                  id="categoryId"
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  aria-invalid={!!errors.categoryId}
+                  className="h-9 w-full rounded-md border bg-transparent px-3 text-sm"
+                >
+                  <option value="">Chọn danh mục</option>
+                  {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
+                </select>
               )}
             />
             <FieldError errors={[errors.categoryId]} />
@@ -159,6 +174,21 @@ export function BasicInfoStep({
             {...form.register("instructions")}
           />
         </Field>
+
+        {onImageSelected && <Field>
+          <FieldLabel htmlFor="cover-image">Ảnh đại diện</FieldLabel>
+          <label htmlFor="cover-image" className="flex cursor-pointer flex-col items-center justify-center gap-3 rounded-lg border border-dashed bg-muted/20 px-5 py-6 text-center transition hover:border-emerald-600 hover:bg-emerald-50/40">
+            {previewUrl ? (
+              <img src={previewUrl} alt="Xem trước ảnh đại diện" className="max-h-48 rounded-lg object-cover shadow-sm" />
+            ) : (
+              <span className="text-sm font-medium">Chọn ảnh món ăn</span>
+            )}
+            <span className="text-xs text-muted-foreground">JPEG, PNG, WebP hoặc AVIF · tối đa 5 MB</span>
+            {selectedImage && <span className="max-w-full truncate text-xs text-emerald-700">{selectedImage.name}</span>}
+          </label>
+          <input id="cover-image" type="file" accept="image/jpeg,image/png,image/webp,image/avif" className="sr-only" onChange={(event) => onImageSelected(event.target.files?.[0] ?? null)} />
+          <FieldDescription>Ảnh sẽ được tải lên sau khi công thức được tạo.</FieldDescription>
+        </Field>}
       </FieldGroup>
 
       <StepActions />

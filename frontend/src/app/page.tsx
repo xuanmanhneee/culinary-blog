@@ -1,4 +1,4 @@
-import { ArrowRight, BookOpen, Search, Sparkles, UtensilsCrossed } from "lucide-react";
+import { ArrowRight, BookOpen, Dices, Search, Sparkles, UtensilsCrossed } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { RecipeCard } from "@/components/recipes/RecipeCard";
@@ -39,6 +39,9 @@ export default async function Home() {
                 <Button variant="outline" className="border-[#b65338]/35 bg-[#fffaf3] text-[#a3422b] shadow-[0_7px_20px_rgba(182,83,56,.12)] hover:border-[#b65338] hover:bg-[#b65338] hover:text-white" asChild>
                   <Link href="/dashboard/recipes/new"><UtensilsCrossed />Chia sẻ món ăn của bạn</Link>
                 </Button>
+                <Button variant="ghost" className="text-[#1f4b3f] hover:bg-[#e2eee7]" asChild>
+                  <Link href="/random"><Dices />Không biết ăn gì?</Link>
+                </Button>
               </div>
             </div>
             <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-3 text-sm font-semibold text-[#655c54]">
@@ -71,18 +74,19 @@ export default async function Home() {
         {categoriesResult.status === "rejected" ? (
           <div className="mt-8"><ErrorState title="Không tải được danh mục" message={getErrorMessage(categoriesResult.reason)} /></div>
         ) : categories?.length ? (
-          <div className="mt-11 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-            {categories.map((category, index) => (
-              <Link key={category.id} href={`/search?categorySlug=${encodeURIComponent(category.slug)}`} className="category-card group">
-                <span className="grid aspect-square w-full place-items-center overflow-hidden rounded-full bg-[#e3eee7] transition duration-500 group-hover:-translate-y-1 group-hover:rotate-3">
-                  {category.imageUrl ? (
-                    <Image src={category.imageUrl} alt="" width={240} height={240} unoptimized className="size-full object-cover" />
-                  ) : (
-                    <span className="font-display text-4xl font-bold text-[#1f4b3f]">{category.name.charAt(0) || index + 1}</span>
-                  )}
+          <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="flex min-h-44 flex-col justify-between rounded-[1.5rem] bg-[#1f4b3f] p-6 text-white shadow-[0_16px_35px_rgba(31,75,63,.14)]">
+              <div><span className="font-display text-5xl font-bold">{categories.length}</span><p className="mt-1 text-sm text-white/70">danh mục đang chờ bạn khám phá</p></div>
+              <Link href="/categories" className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[#f3d8c5] hover:text-white">Khám phá tất cả <ArrowRight className="size-4" /></Link>
+            </div>
+            {categories.slice(0, 3).map((category, index) => (
+              <Link key={category.id} href={`/search?categoryId=${encodeURIComponent(category.id)}`} className="group flex min-h-44 items-end overflow-hidden rounded-[1.5rem] border border-[#ded3c6] bg-[#e3eee7] p-5 shadow-[0_10px_25px_rgba(75,57,41,.05)] transition hover:-translate-y-1 hover:shadow-[0_16px_35px_rgba(75,57,41,.10)]">
+                <span className="flex w-full items-center gap-4">
+                  <span className="grid size-16 shrink-0 place-items-center overflow-hidden rounded-full bg-white/70 text-[#1f4b3f]">
+                    {category.imageUrl ? <Image src={category.imageUrl} alt="" width={96} height={96} unoptimized className="size-full object-cover" /> : <span className="font-display text-3xl font-bold">{category.name.charAt(0) || index + 1}</span>}
+                  </span>
+                  <span><span className="block text-xs font-bold uppercase tracking-[.14em] text-[#759181]">Gợi ý {String(index + 1).padStart(2, "0")}</span><span className="font-display mt-1 block text-xl font-bold text-[#332d28]">{category.name}</span><span className="mt-1 block text-xs text-[#82786f]">Khám phá công thức</span></span>
                 </span>
-                <span className="font-display mt-4 text-lg font-bold text-[#332d28]">{category.name}</span>
-                <span className="mt-1 text-xs text-[#82786f]">Khám phá công thức</span>
               </Link>
             ))}
           </div>
@@ -109,23 +113,11 @@ export default async function Home() {
         </div>
       </section>
 
-      <section id="cau-chuyen" className="site-container py-20 sm:py-28">
-        <div className="grid overflow-hidden rounded-[2rem] bg-[#1f4b3f] text-white lg:grid-cols-2">
-          <div className="relative min-h-[420px]"><Image src="https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&w=1200&q=88" alt="Cùng nhau chuẩn bị bữa cơm trong căn bếp" fill sizes="(max-width: 1024px) 100vw, 50vw" className="object-cover" /><div className="absolute inset-0 bg-gradient-to-t from-[#173d33]/35 to-transparent" /></div>
-          <div className="flex flex-col justify-center px-7 py-12 sm:px-12 lg:px-16">
-            <p className="text-xs font-bold uppercase tracking-[.18em] text-[#d8b9a4]">Chuyện bếp tháng này</p>
-            <blockquote className="font-display mt-6 text-3xl leading-tight font-bold tracking-[-.025em] sm:text-4xl">“Có những hương vị chỉ cần nếm lại là thấy mình đang ở nhà.”</blockquote>
-            <p className="mt-6 leading-7 text-white/72">Cùng Bếp Nhà ghé thăm căn bếp nhỏ của cô Mai ở Hội An — nơi công thức cao lầu đã đi qua ba thế hệ.</p>
-            <Link href="#" className="mt-8 inline-flex items-center gap-2 text-sm font-bold text-[#f3d8c5] hover:text-white">Đọc câu chuyện <ArrowRight className="size-4" /></Link>
-          </div>
-        </div>
-      </section>
-
       <section className="border-t border-[#e1d5c7] bg-[#f1e5d7] py-20">
         <div className="site-container flex flex-col items-center text-center">
           <span className="text-4xl">💌</span>
           <h2 className="font-display mt-5 text-4xl font-bold tracking-[-.04em] text-[#2e2925]">Thư ngon gửi từ căn bếp</h2>
-          <p className="mt-3 max-w-xl text-sm leading-7 text-[#6d635b]">Mỗi tuần một thực đơn nhỏ, một câu chuyện ấm và vài mẹo bếp hữu ích. Không quảng cáo, chỉ có món ngon.</p>
+          <p className="mt-3 max-w-xl text-sm leading-7 text-[#6d635b]">Mỗi tuần một thực đơn nhỏ, một câu chuyện ấm và vài mẹo bếp hữu ích. <br /> Không quảng cáo, chỉ có món ngon.</p>
           <form className="mt-7 flex w-full max-w-lg flex-col gap-2 sm:flex-row" action="#">
             <label htmlFor="newsletter-email" className="sr-only">Địa chỉ email</label>
             <input id="newsletter-email" type="email" required placeholder="ban@email.com" className="h-12 min-w-0 flex-1 rounded-full border border-[#cfc0ae] bg-white/85 px-5 text-sm outline-none focus:border-[#1f4b3f] focus:ring-2 focus:ring-[#1f4b3f]/15" />

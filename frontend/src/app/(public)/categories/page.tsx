@@ -38,7 +38,7 @@ export default async function CategoriesPage() {
           {categories.map((category, index) => (
             <li key={category.id}>
               <Link
-                href={`/search?categorySlug=${encodeURIComponent(category.slug)}`}
+                href={`/search?categoryId=${encodeURIComponent(category.id)}`}
                 className="group relative block min-h-64 overflow-hidden rounded-[1.5rem] border border-[#ddd1c3] bg-[#e3eee7] shadow-[0_12px_35px_rgba(75,57,41,.07)]"
               >
                 {category.imageUrl ? (

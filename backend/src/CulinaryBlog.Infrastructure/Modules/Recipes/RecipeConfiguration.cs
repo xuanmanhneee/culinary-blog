@@ -22,17 +22,6 @@ public class RecipeConfiguration : IEntityTypeConfiguration<Recipe>
 
         builder.Property(r => r.Description).IsRequired();
         builder.Property(r => r.Instructions).IsRequired();
-        builder.Property<NpgsqlTypes.NpgsqlTsVector>("SearchVector")
-            .HasColumnType("tsvector")
-            // The vietnamese configuration is installed by AddRecipeFullTextSearch and
-            // maps words through the unaccent dictionary before simple tokenization.
-            .HasComputedColumnSql(
-                "to_tsvector('vietnamese'::regconfig, COALESCE(\"Title\", '') || ' ' || COALESCE(\"Description\", '') || ' ' || COALESCE(\"Instructions\", ''))",
-                stored: true);
-        builder.HasIndex("SearchVector")
-            .HasDatabaseName("IDX_Recipe_SearchVector")
-            .HasMethod("GIN");
-
         builder.Property(r => r.PrepTime).IsRequired();
         builder.Property(r => r.CookTime).IsRequired();
         builder.Property(r => r.Servings).IsRequired();
@@ -78,6 +67,11 @@ public class RecipeConfiguration : IEntityTypeConfiguration<Recipe>
         builder.Property(r => r.RowVersion)
             .IsConcurrencyToken()
             .ValueGeneratedNever();
+
+        // Full-text search uses PostgreSQL's built-in simple configuration.
+        builder.Property<NpgsqlTypes.NpgsqlTsVector>("SearchVector")
+            .IsGeneratedTsVectorColumn("simple", "Title", "Description");
+        builder.HasIndex("SearchVector").HasDatabaseName("IDX_Recipe_SearchVector").HasMethod("gin");
 
         // Chuỗi đã bỏ dấu/lowercase dành cho pg_trgm: hỗ trợ không dấu và lỗi chính tả.
         builder.Property<string>("SearchTextNormalized")

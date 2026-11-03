@@ -13,7 +13,7 @@ export function RecipeGallery({ images, title }: { images: RecipeImageDto[]; tit
   const active = sorted.find((image) => image.id === activeId) ?? sorted[0];
 
   return (
-    <div className="relative mt-12 aspect-[16/8.2] min-h-[360px] overflow-hidden rounded-[2rem] bg-[#e4d8ca]">
+    <div className="relative mx-auto mt-8 aspect-[4/3] max-h-[560px] max-w-6xl overflow-hidden rounded-[1.5rem] bg-[#e4d8ca] sm:mt-12 sm:aspect-[16/7] sm:min-h-[360px] sm:rounded-[2rem]">
       {active ? (
         // Ảnh nằm trên MinIO/thư mục upload của backend (host đổi theo môi trường) nên không qua bộ tối ưu ảnh.
         <Image key={active.id} src={active.url} alt={active.altText ?? title} fill priority unoptimized sizes="(max-width: 1280px) 100vw, 1200px" className="object-cover" />

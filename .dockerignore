@@ -1,0 +1,12 @@
+.git
+.github
+.vscode
+node_modules
+frontend/node_modules
+frontend/.next
+frontend/.env
+backend/src/**/bin
+backend/src/**/obj
+backend/src/CulinaryBlog.API/wwwroot/uploads
+*.user
+*.suo

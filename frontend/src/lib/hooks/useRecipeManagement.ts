@@ -15,6 +15,7 @@ import {
   updateRecipe,
   type MyRecipesQuery,
   type RecipeStatusAction,
+  type RecipeWithEtag,
 } from "@/lib/api/recipe-management";
 import { saveRecipeEdit } from "@/lib/api/recipe-sync";
 import { useAccessToken } from "@/lib/hooks/useAccessToken";
@@ -90,6 +91,8 @@ export function useChangeRecipeStatus() {
     mutationFn: ({ id, action }: { id: string; action: RecipeStatusAction }) => changeRecipeStatus(id, action, token),
     onSuccess: (recipe) => {
       void queryClient.invalidateQueries({ queryKey: recipeKeys.mine() });
+      // Trang sửa thấy trạng thái mới ngay (kèm RowVersion mới), rồi tải lại để chắc chắn khớp server.
+      queryClient.setQueryData<RecipeWithEtag>(recipeKeys.detail(recipe.id), { recipe, etag: `"${recipe.rowVersion}"` });
       void queryClient.invalidateQueries({ queryKey: recipeKeys.detail(recipe.id) });
     },
   });

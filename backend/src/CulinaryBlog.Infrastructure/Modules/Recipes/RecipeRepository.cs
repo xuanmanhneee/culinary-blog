@@ -1,5 +1,5 @@
 using CulinaryBlog.Domain.Modules.Recipes;
-using CulinaryBlog.Infrastructure.Persistence;
+using CulinaryBlog.Infrastructure.Modules.Persistence.PostgreSql;
 using Microsoft.EntityFrameworkCore;
 
 namespace CulinaryBlog.Infrastructure.Modules.Recipes;
@@ -32,28 +32,35 @@ public class RecipeRepository : IRecipeRepository
         int page,
         int pageSize,
         bool includeAllStatuses = false,
+        bool mineOnly = false,
         string? ownerId = null,
-        string? authorId = null,
-        RecipeStatus? status = null,
         Guid? categoryId = null,
         RecipeDifficulty? difficulty = null,
+        int? minPrepTime = null,
         int? maxCookTime = null,
+        int? minServings = null,
         string? sort = null,
         CancellationToken cancellationToken = default)
     {
         IQueryable<Recipe> query = _context.Recipes.AsNoTracking();
 
-        if (!includeAllStatuses)
+        if (mineOnly)
+        {
+            query = ownerId is null
+                ? query.Where(_ => false)
+                : query.Where(r => r.AuthorId == ownerId);
+        }
+        else if (!includeAllStatuses)
         {
             query = ownerId is null
                 ? query.Where(r => r.Status == RecipeStatus.Published)
                 : query.Where(r => r.Status == RecipeStatus.Published || r.AuthorId == ownerId);
         }
-        if (authorId is not null) query = query.Where(r => r.AuthorId == authorId);
-        if (status.HasValue) query = query.Where(r => r.Status == status.Value);
         if (categoryId.HasValue) query = query.Where(r => r.CategoryId == categoryId.Value);
         if (difficulty.HasValue) query = query.Where(r => r.Difficulty == difficulty.Value);
+        if (minPrepTime.HasValue) query = query.Where(r => r.PrepTime >= minPrepTime.Value);
         if (maxCookTime.HasValue) query = query.Where(r => r.CookTime <= maxCookTime.Value);
+        if (minServings.HasValue) query = query.Where(r => r.Servings >= minServings.Value);
 
         var totalCount = await query.CountAsync(cancellationToken);
 
@@ -104,8 +111,10 @@ public class RecipeRepository : IRecipeRepository
     public void AddStep(RecipeStep step) =>
         _context.Entry(step).State = EntityState.Added;
 
+    // IgnoreQueryFilters: unique index IDX_Recipe_Slug vẫn tính recipe đã xóa mềm, nên phải kiểm tra cả chúng
+    // (không thì tạo lại tiêu đề trùng recipe đã xóa sẽ lỗi 500 thay vì 409 RECIPE_SLUG_EXISTS).
     public async Task<bool> SlugExistsAsync(string slug, CancellationToken cancellationToken = default) =>
-        await _context.Recipes.AnyAsync(r => r.Slug == slug, cancellationToken);
+        await _context.Recipes.IgnoreQueryFilters().AnyAsync(r => r.Slug == slug, cancellationToken);
 
     public async Task AddAsync(Recipe entity, CancellationToken cancellationToken = default) =>
         await _context.Recipes.AddAsync(entity, cancellationToken);

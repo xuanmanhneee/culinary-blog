@@ -3,7 +3,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using CulinaryBlog.Application.Recipes.Queries.SearchRecipes;
 using CulinaryBlog.Domain.Modules.Recipes;
-using CulinaryBlog.Infrastructure.Persistence;
+using CulinaryBlog.Infrastructure.Modules.Persistence.PostgreSql;
 using Microsoft.EntityFrameworkCore;
 using NpgsqlTypes;
 
@@ -19,7 +19,10 @@ public sealed class RecipeSearchReader : IRecipeSearchReader
         string searchTerm,
         int page,
         int pageSize,
-        string? categorySlug = null,
+        Guid? categoryId = null,
+        RecipeDifficulty? difficulty = null,
+        int? maxCookTime = null,
+        int? minServings = null,
         CancellationToken cancellationToken = default)
     {
         var terms = Regex.Matches(searchTerm, @"[\p{L}\p{N}]+")
@@ -31,20 +34,22 @@ public sealed class RecipeSearchReader : IRecipeSearchReader
         var query = _context.Recipes.AsNoTracking()
             .Where(recipe => recipe.Status == RecipeStatus.Published)
             .Where(recipe =>
-                categorySlug == null
-                || recipe.Category != null && recipe.Category.Slug == categorySlug)
-            .Where(recipe =>
                 EF.Property<NpgsqlTsVector>(recipe, "SearchVector")!
-                    .Matches(EF.Functions.ToTsQuery("vietnamese", queryText))
+                    .Matches(EF.Functions.ToTsQuery("simple", queryText))
                 || EF.Functions.TrigramsAreWordSimilar(
                     fuzzyQuery,
                     EF.Property<string>(recipe, "SearchTextNormalized")));
+
+        if (categoryId.HasValue) query = query.Where(recipe => recipe.CategoryId == categoryId.Value);
+        if (difficulty.HasValue) query = query.Where(recipe => recipe.Difficulty == difficulty.Value);
+        if (maxCookTime.HasValue) query = query.Where(recipe => recipe.CookTime <= maxCookTime.Value);
+        if (minServings.HasValue) query = query.Where(recipe => recipe.Servings >= minServings.Value);
 
         var totalCount = await query.CountAsync(cancellationToken);
         var items = await query
             .OrderByDescending(recipe =>
                 EF.Property<NpgsqlTsVector>(recipe, "SearchVector")!
-                    .Rank(EF.Functions.ToTsQuery("vietnamese", queryText))
+                    .Rank(EF.Functions.ToTsQuery("simple", queryText))
                 + EF.Functions.TrigramsWordSimilarity(
                     fuzzyQuery,
                     EF.Property<string>(recipe, "SearchTextNormalized")))
@@ -62,7 +67,7 @@ public sealed class RecipeSearchReader : IRecipeSearchReader
                     .Select(image => image.OriginalUrl)
                     .FirstOrDefault(),
                 EF.Property<NpgsqlTsVector>(recipe, "SearchVector")!
-                    .Rank(EF.Functions.ToTsQuery("vietnamese", queryText))
+                    .Rank(EF.Functions.ToTsQuery("simple", queryText))
                 + EF.Functions.TrigramsWordSimilarity(
                     fuzzyQuery,
                     EF.Property<string>(recipe, "SearchTextNormalized"))))

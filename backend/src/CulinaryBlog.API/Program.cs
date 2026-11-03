@@ -2,22 +2,27 @@ using CulinaryBlog.API.Endpoints;
 using CulinaryBlog.API.Middleware;
 using CulinaryBlog.Application;
 using CulinaryBlog.Infrastructure;
-using CulinaryBlog.Infrastructure.Persistence;
-using CulinaryBlog.Infrastructure.Persistence.Seed;
-using CulinaryBlog.Infrastructure.Storage;
-using CulinaryBlog.Infrastructure.Jobs;
-using Hangfire;
-using Hangfire.PostgreSql;
-using Microsoft.EntityFrameworkCore;
+using CulinaryBlog.Infrastructure.Modules.BackgroundJobs;
+using CulinaryBlog.Infrastructure.Modules.Persistence;
 using Scalar.AspNetCore;
 using CulinaryBlog.API.Extensions;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Keep local development logs on the console; Windows EventLog may require
 // administrator permissions and can mask the original database exception.
 builder.Logging.ClearProviders();
-builder.Logging.AddConsole();
+// Timestamp (UTC, ISO 8601) + scope (CorrelationId, RequestPath, UserId từ CorrelationIdMiddleware) trong mọi
+// dòng log – audit log yêu cầu userId + timestamp (CONS-010).
+builder.Logging.AddJsonConsole(options =>
+{
+    options.IncludeScopes = true;
+    options.TimestampFormat = "yyyy-MM-ddTHH:mm:ss.fffZ";
+    options.UseUtcTimestamp = true;
+});
 
 // Không gọi builder.Services.AddOpenApi(): AddApiVersioning().AddOpenApi() đã đăng ký dịch vụ
 // OpenAPI biết về phiên bản (AV0029).
@@ -25,7 +30,27 @@ builder.Logging.AddConsole();
 builder.Services.AddApplicationServices();
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
-builder.Services.AddMinioStorage(builder.Configuration);
+builder.Services.Configure<CulinaryBlog.Application.Auth.Models.GoogleAuthOptions>(
+    builder.Configuration.GetSection(CulinaryBlog.Application.Auth.Models.GoogleAuthOptions.SectionName));
+builder.Services.AddHttpClient("media");
+
+var telemetryEndpoint = builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"];
+var telemetryBuilder = builder.Services.AddOpenTelemetry()
+    .ConfigureResource(resource => resource.AddService("culinary-blog-api"))
+    .WithTracing(tracing =>
+    {
+        tracing.AddAspNetCoreInstrumentation()
+            .AddHttpClientInstrumentation()
+            .AddEntityFrameworkCoreInstrumentation();
+        if (!string.IsNullOrWhiteSpace(telemetryEndpoint)) tracing.AddOtlpExporter();
+    })
+    .WithMetrics(metrics =>
+    {
+        metrics.AddAspNetCoreInstrumentation()
+            .AddHttpClientInstrumentation()
+            .AddRuntimeInstrumentation();
+        if (!string.IsNullOrWhiteSpace(telemetryEndpoint)) metrics.AddOtlpExporter();
+    });
 
 // API versioning theo URL segment (/api/v1/...) kèm sinh tài liệu OpenAPI riêng cho mỗi phiên bản
 // (đã đăng ký JWT Bearer transformer bên trong, xem ApiVersioningExtensions).
@@ -34,21 +59,6 @@ builder.Services.AddCulinaryApiVersioning();
 builder.Services.AddFrontendCors(builder.Configuration);
 builder.Services.AddJwtAuthentication(builder.Configuration);
 builder.Services.AddCulinaryRateLimiting();
-
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-
-// 1. Đăng ký "nền": nơi lưu queue (PostgreSQL) + cách serialize job
-builder.Services.AddHangfire(config => config
-    .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
-    .UseSimpleAssemblyNameTypeSerializer()
-    .UseRecommendedSerializerSettings()
-    .UsePostgreSqlStorage(options => options.UseNpgsqlConnection(connectionString)));
-
-// 2. Đăng ký "worker": tiến trình poll queue và thực thi job
-builder.Services.AddHangfireServer();
-
-// 3. Đăng ký chính job class vào DI (để Hangfire resolve dependency của nó, ví dụ ILogger)
-// builder.Services.AddScoped<PingJob>();
 
 // RFC 7807: mọi lỗi trả về application/problem+json kèm traceId và instance.
 builder.Services.AddProblemDetails(options =>
@@ -64,27 +74,20 @@ var app = builder.Build();
 
 
 
-// Apply schema migrations on startup, but seed only when explicitly requested.
-using (var scope = app.Services.CreateScope())
+if (await app.InitializePersistenceAsync(args))
 {
-    var dbContext = scope.ServiceProvider.GetRequiredService<CulinaryBlogDbContext>();
-    await dbContext.Database.MigrateAsync();
-}
-
-if (args.Contains("--seed", StringComparer.OrdinalIgnoreCase))
-{
-    await app.Services.SeedCulinaryBlogDataAsync();
     return;
 }
 
 // Đặt đầu pipeline để bắt exception từ mọi middleware/endpoint phía sau.
+app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseMiddleware<GlobalExceptionMiddleware>();
 // Response lỗi không có body (vd. 404 do sai route, 405) cũng trả về ProblemDetails.
 app.UseStatusCodePages();
 
-// Development uploads are served from wwwroot/uploads. Production can switch
-// Storage:Provider to MinIO without changing application code.
+// Local storage ghi vào wwwroot/uploads; MinIO tự phục vụ object qua HTTP.
 app.UseStaticFiles();
+
 
 // Trước rate limiter và authentication: preflight OPTIONS không bị 401/429,
 // và response lỗi (401, 403, 429...) vẫn có header CORS để frontend đọc được nội dung lỗi.
@@ -105,8 +108,9 @@ if (app.Environment.IsDevelopment())
                .WithTheme(ScalarTheme.Moon);
     });
 
-    app.UseHangfireDashboard("/hangfire");
 }
+
+app.UseBackgroundJobs();
 
 // Map các Endpoints của ứng dụng
 app.MapGet("/", () => "Culinary Blog API").ExcludeFromDescription();
@@ -123,13 +127,8 @@ app.MapRecipeImageEndpoints();
 
 app.MapCategoriesEndpoints();
 
+app.MapUserEndpoints();
+
 app.MapHealthEndpoints();
-
-// PingJob chỉ dùng để kiểm tra Hangfire khi cần; tạm thời không đăng ký recurring job.
-// Xóa bản ghi cũ trong storage để job không tiếp tục chạy sau khi deploy/restart.
-RecurringJob.RemoveIfExists("ping-every-minute");
-
-
-
 
 app.Run();
