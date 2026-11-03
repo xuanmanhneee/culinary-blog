@@ -24,8 +24,13 @@ internal sealed class DeleteRecipeCommandHandler
         var recipe = await _recipes.GetByIdWithDetailsAsync(command.RecipeId, ct)
             ?? throw RecipeUseCaseSupport.RecipeNotFound(command.RecipeId);
         _authorization.EnsureCanModify(recipe);
-        foreach (var image in recipe.Images)
-            _fileDeletionScheduler.Schedule(image.OriginalUrl);
+        foreach (var url in recipe.Images
+                     .SelectMany(image => new[] { image.OriginalUrl, image.MediumUrl, image.ThumbnailUrl })
+                     .Where(url => !string.IsNullOrWhiteSpace(url))
+                     .Distinct(StringComparer.Ordinal))
+        {
+            _fileDeletionScheduler.Schedule(url!);
+        }
 
         recipe.SoftDelete();
         await _unitOfWork.SaveChangesAsync(ct);

@@ -31,7 +31,17 @@ internal sealed class DeleteRecipeImageCommandHandler : IRequestHandler<DeleteRe
 
         recipe.RemoveImage(command.ImageId);
         await _unitOfWork.SaveChangesAsync(ct);
-        _fileDeletionScheduler.Schedule(image.OriginalUrl);
+        ScheduleImageFiles(image);
         await _cache.EvictByTagAsync("recipes", ct);
+    }
+
+    private void ScheduleImageFiles(RecipeImage image)
+    {
+        foreach (var url in new[] { image.OriginalUrl, image.MediumUrl, image.ThumbnailUrl }
+                     .Where(url => !string.IsNullOrWhiteSpace(url))
+                     .Distinct(StringComparer.Ordinal))
+        {
+            _fileDeletionScheduler.Schedule(url!);
+        }
     }
 }
