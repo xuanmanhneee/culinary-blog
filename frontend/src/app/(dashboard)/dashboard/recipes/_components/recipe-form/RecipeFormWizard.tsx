@@ -9,14 +9,16 @@ import { ErrorState } from "@/components/common/ErrorState";
 import { RecipeStatusBadge } from "@/components/recipes/RecipeStatusBadge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { refreshPublicRecipes } from "@/lib/actions/recipe-cache";
 import { ApiError } from "@/lib/api/client";
 import { getRecipeErrorMessage } from "@/lib/api/problem";
 import { updateStep, uploadRecipeImage, type RecipeWithEtag } from "@/lib/api/recipe-management";
 import { useCategories, useCreateRecipe, useRecipeForEdit, useSaveRecipeEdit } from "@/lib/hooks/useRecipeManagement";
 import { useAccessToken } from "@/lib/hooks/useAccessToken";
 import { RECIPE_FORM_STEPS, toCreateRecipeRequest, useRecipeFormStore, type StepDraft } from "@/lib/stores/recipe-form-store";
-import type { RecipeCategoryDto } from "@/lib/types/recipe";
-import type { RecipeStepDto } from "@/lib/types/recipe";
+import type { RecipeCategoryDto, RecipeDetailDto, RecipeStepDto } from "@/lib/types/recipe";
+import { RecipeImagesPanel } from "../RecipeImagesPanel";
+import { RecipeStatusPanel } from "../RecipeStatusPanel";
 import { BasicInfoStep } from "./BasicInfoStep";
 import { IngredientsStep } from "./IngredientsStep";
 import { ReviewStep } from "./ReviewStep";
@@ -126,6 +128,7 @@ export function RecipeFormWizard({ mode, recipeId }: RecipeFormWizardProps) {
           }
         }
         await uploadStepImages(created.id, created.steps, draft.steps, stepImages, token);
+        await refreshPublicRecipes();
         useRecipeFormStore.getState().reset();
         router.push(`/dashboard/recipes?notice=created&title=${encodeURIComponent(created.title)}`);
       } catch (error) {
@@ -137,6 +140,9 @@ export function RecipeFormWizard({ mode, recipeId }: RecipeFormWizardProps) {
     if (!base.current) return;
     try {
       const saved = await saveEdit.mutateAsync({ original: base.current.recipe, draft, etag: base.current.etag });
+      // Ảnh của các bước chọn trong form sửa: tải lên sau khi đã đồng bộ các bước.
+      await uploadStepImages(saved.recipe.id, saved.recipe.steps, draft.steps, stepImages, token);
+      await refreshPublicRecipes();
       router.push(`/dashboard/recipes?notice=updated&title=${encodeURIComponent(saved.recipe.title)}`);
     } catch (error) {
       if (error instanceof ApiError && error.code === "RECIPE_CONCURRENCY_CONFLICT") {
@@ -170,6 +176,16 @@ export function RecipeFormWizard({ mode, recipeId }: RecipeFormWizardProps) {
         />
       </div>
     );
+  }
+
+  /** Đổi trạng thái làm RowVersion mới: cập nhật bản gốc để lần lưu form sau không bị báo xung đột. */
+  function handleStatusChanged(updated: RecipeDetailDto) {
+    if (base.current) {
+      base.current = {
+        recipe: { ...base.current.recipe, status: updated.status, publishedAt: updated.publishedAt, rowVersion: updated.rowVersion },
+        etag: `"${updated.rowVersion}"`,
+      };
+    }
   }
 
   const stepLabel = RECIPE_FORM_STEPS[currentStep]?.label;
@@ -211,6 +227,13 @@ export function RecipeFormWizard({ mode, recipeId }: RecipeFormWizardProps) {
         </p>
       )}
 
+      {mode === "edit" && recipe && (
+        <>
+          <RecipeStatusPanel recipe={recipe} onStatusChanged={handleStatusChanged} />
+          <RecipeImagesPanel recipeId={recipe.id} title={recipe.title} images={recipe.images} />
+        </>
+      )}
+
       <StepIndicator currentStep={currentStep} completedSteps={completedSteps} onSelect={goToStep} />
 
       <div className="rounded-xl border bg-background p-4 sm:p-6">
@@ -223,7 +246,7 @@ export function RecipeFormWizard({ mode, recipeId }: RecipeFormWizardProps) {
         ) : (
           // key: mount lại form của bước để defaultValues lấy đúng dữ liệu mới nhất trong store.
           <div key={`${currentStep}-${formVersion}`}>
-            {currentStep === 0 && <BasicInfoStep categories={categories} serverErrors={serverErrors} selectedImage={coverImage} onImageSelected={setCoverImage} />}
+            {currentStep === 0 && <BasicInfoStep categories={categories} serverErrors={serverErrors} {...(mode === "create" ? { selectedImage: coverImage, onImageSelected: setCoverImage } : {})} />}
             {currentStep === 1 && <IngredientsStep serverErrors={serverErrors} />}
             {currentStep === 2 && <StepsStep serverErrors={serverErrors} selectedImages={stepImages} onImageSelected={(key, file) => setStepImages((current) => ({ ...current, ...(file ? { [key]: file } : {}) }))} />}
             {currentStep === 3 && (
