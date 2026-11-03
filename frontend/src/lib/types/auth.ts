@@ -44,6 +44,19 @@ export interface UserProfileDto {
   createdAt: IsoDateTime;
 }
 
+/** Một dòng trong danh sách người dùng chỉ dành cho quản trị viên. */
+export interface AdminUserListItem {
+  id: string;
+  fullName: string;
+  email: string;
+  userName: string;
+  avatarUrl: string | null;
+  roles: Role[];
+  emailConfirmed: boolean;
+  isActive: boolean;
+  createdAt: IsoDateTime;
+}
+
 /** POST /api/v1/auth/register. Password ≥ 8 ký tự, có hoa + thường + số + ký tự đặc biệt. */
 export interface RegisterRequest {
   fullName: string;

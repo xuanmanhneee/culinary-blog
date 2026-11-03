@@ -20,20 +20,20 @@ public sealed class CorrelationIdMiddleware
 
         context.Response.Headers[HeaderName] = correlationId;
         var stopwatch = Stopwatch.StartNew();
-        var userId = context.User.FindFirstValue("sub")
-            ?? context.User.FindFirstValue(ClaimTypes.NameIdentifier)
-            ?? "anonymous";
         using (_logger.BeginScope(new Dictionary<string, object>
         {
             ["CorrelationId"] = correlationId,
-            ["RequestPath"] = context.Request.Path.ToString(),
-            ["UserId"] = userId
+            ["RequestPath"] = context.Request.Path.ToString()
         }))
         {
             await _next(context);
-            _logger.LogInformation("HTTP {Method} {Path} completed with {StatusCode} in {ElapsedMs} ms",
+            // Authentication runs inside _next, so resolve the user only after the pipeline has populated HttpContext.User.
+            var userId = context.User.FindFirstValue("sub")
+                ?? context.User.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? "anonymous";
+            _logger.LogInformation("HTTP {Method} {Path} completed with {StatusCode} in {ElapsedMs} ms for user {UserId}",
                 context.Request.Method, context.Request.Path, context.Response.StatusCode,
-                stopwatch.ElapsedMilliseconds);
+                stopwatch.ElapsedMilliseconds, userId);
         }
     }
 }

@@ -35,13 +35,15 @@ public sealed class RecipeAuditBehavior<TRequest, TResponse> : IPipelineBehavior
     /// <summary>Các command (trừ CreateRecipe) đều có property RecipeId; đọc một lần cho mỗi kiểu command.</summary>
     private static readonly PropertyInfo? RecipeIdProperty = typeof(TRequest).GetProperty("RecipeId", typeof(Guid));
 
-    private readonly ICurrentUserService _currentUser;
+    private readonly ICurrentUserService? _currentUser;
     private readonly ILogger<RecipeAuditBehavior<TRequest, TResponse>> _logger;
 
-    public RecipeAuditBehavior(ICurrentUserService currentUser, ILogger<RecipeAuditBehavior<TRequest, TResponse>> logger)
+    public RecipeAuditBehavior(
+        ILogger<RecipeAuditBehavior<TRequest, TResponse>> logger,
+        ICurrentUserService? currentUser = null)
     {
-        _currentUser = currentUser;
         _logger = logger;
+        _currentUser = currentUser;
     }
 
     public async Task<TResponse> Handle(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
@@ -49,7 +51,7 @@ public sealed class RecipeAuditBehavior<TRequest, TResponse> : IPipelineBehavior
         if (!IsRecipeCommand)
             return await next();
 
-        var userId = _currentUser.UserId?.ToString() ?? "anonymous";
+        var userId = _currentUser?.UserId?.ToString() ?? "anonymous";
         var recipeId = RecipeIdProperty?.GetValue(request) as Guid?;
         var stopwatch = Stopwatch.StartNew();
 

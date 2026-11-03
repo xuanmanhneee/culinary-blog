@@ -92,7 +92,7 @@ export function changeRecipeStatus(id: string, action: RecipeStatusAction, token
   return apiFetch(`${RECIPES}/${id}/${action}`, { method: "PATCH", token });
 }
 
-/** DELETE /recipes/{id} – xóa vĩnh viễn (FR-RCP-007). */
+/** DELETE /recipes/{id} – xóa mềm (FR-RCP-007). */
 export function deleteRecipe(id: string, token: Token): Promise<void> {
   return apiFetch(`${RECIPES}/${id}`, { method: "DELETE", token });
 }
@@ -138,6 +138,15 @@ export function setPrimaryImage(recipeId: string, imageId: string, token: Token)
 
 export function deleteImage(recipeId: string, imageId: string, token: Token): Promise<void> {
   return apiFetch(`${RECIPES}/${recipeId}/images/${imageId}`, { method: "DELETE", token });
+}
+
+export function updateImageMetadata(
+  recipeId: string,
+  imageId: string,
+  body: { altText: string | null; orderIndex: number },
+  token: Token,
+): Promise<RecipeImageDto> {
+  return apiFetch(`${RECIPES}/${recipeId}/images/${imageId}`, { method: "PATCH", body, token });
 }
 
 /** POST /recipes/{id}/images – tải ảnh đại diện sau khi recipe đã được tạo. */

@@ -1,5 +1,6 @@
 using CulinaryBlog.API.Extensions;
 using CulinaryBlog.Application.Auth.Commands.Login;
+using CulinaryBlog.Application.Auth.Commands.GoogleLogin;
 using CulinaryBlog.Application.Auth.Commands.Logout;
 using CulinaryBlog.Application.Auth.Commands.RefreshToken;
 using CulinaryBlog.Application.Auth.Commands.Register;
@@ -72,6 +73,21 @@ public static class AuthEndpoints
         .Produces<AuthResponseDto>()
         .ProducesValidationProblem()
         .ProducesProblem(StatusCodes.Status401Unauthorized);
+
+        // FR-AUTH-003: xác minh Google ID token, tạo/liên kết tài khoản và phát JWT nội bộ.
+        group.MapPost("/google", async (
+            GoogleLoginRequest request,
+            ISender sender,
+            HttpContext http,
+            CancellationToken ct) =>
+            Results.Ok(await sender.Send(new GoogleLoginCommand(request, http.GetClientIp()), ct)))
+        .AllowAnonymous()
+        .WithName("GoogleLogin")
+        .WithSummary("Đăng nhập hoặc đăng ký bằng Google")
+        .Produces<AuthResponseDto>()
+        .ProducesValidationProblem()
+        .ProducesProblem(StatusCodes.Status401Unauthorized)
+        .ProducesProblem(StatusCodes.Status409Conflict);
 
         // FR-AUTH-004: luân chuyển refresh token.
         group.MapPost("/refresh", async (

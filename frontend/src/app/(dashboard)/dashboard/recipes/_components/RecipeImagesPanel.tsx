@@ -1,14 +1,16 @@
 "use client";
 
 import Image from "next/image";
-import { useRef, useState, type ChangeEvent } from "react";
+import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { ImagePlus, Loader2, Star, Trash2 } from "lucide-react";
+import { ImagePlus, Loader2, Save, Star, Trash2 } from "lucide-react";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { refreshPublicRecipes } from "@/lib/actions/recipe-cache";
 import { getRecipeErrorMessage } from "@/lib/api/problem";
-import { deleteImage, setPrimaryImage, uploadRecipeImage } from "@/lib/api/recipe-management";
+import { deleteImage, setPrimaryImage, updateImageMetadata, uploadRecipeImage } from "@/lib/api/recipe-management";
 import { useAccessToken } from "@/lib/hooks/useAccessToken";
 import { recipeKeys } from "@/lib/hooks/useRecipeManagement";
 import type { RecipeImageDto } from "@/lib/types/recipe";
@@ -73,6 +75,21 @@ export function RecipeImagesPanel({ recipeId, title, images }: RecipeImagesPanel
       // Tải lần lượt để giữ thứ tự ảnh như người dùng chọn.
       for (const file of files) await uploadRecipeImage(recipeId, file, token);
       return files.length === 1 ? "Đã tải ảnh lên." : `Đã tải ${files.length} ảnh lên.`;
+    });
+  }
+
+  function handleMetadata(event: FormEvent<HTMLFormElement>, image: RecipeImageDto) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const altText = String(form.get("altText") ?? "").trim();
+    const orderIndex = Number(form.get("orderIndex"));
+
+    void run(`metadata-${image.id}`, async () => {
+      await updateImageMetadata(recipeId, image.id, {
+        altText: altText || null,
+        orderIndex: Number.isInteger(orderIndex) && orderIndex >= 0 ? orderIndex : image.orderIndex,
+      }, token);
+      return "Đã cập nhật mô tả và thứ tự ảnh.";
     });
   }
 
@@ -152,6 +169,35 @@ export function RecipeImagesPanel({ recipeId, title, images }: RecipeImagesPanel
                   {busy === `delete-${image.id}` ? <Loader2 className="animate-spin" /> : <Trash2 />}
                 </Button>
               </div>
+              <form className="space-y-2 border-t p-2" onSubmit={(event) => handleMetadata(event, image)}>
+                <Label htmlFor={`alt-${image.id}`} className="text-xs">Mô tả ảnh</Label>
+                <Input
+                  id={`alt-${image.id}`}
+                  name="altText"
+                  defaultValue={image.altText ?? ""}
+                  maxLength={300}
+                  placeholder="Ví dụ: Tô phở bò hoàn chỉnh"
+                  disabled={busy !== null}
+                />
+                <div className="flex items-end gap-2">
+                  <div className="min-w-0 flex-1">
+                    <Label htmlFor={`order-${image.id}`} className="mb-1 text-xs">Thứ tự</Label>
+                    <Input
+                      id={`order-${image.id}`}
+                      name="orderIndex"
+                      type="number"
+                      min={0}
+                      step={1}
+                      defaultValue={image.orderIndex}
+                      disabled={busy !== null}
+                    />
+                  </div>
+                  <Button type="submit" size="sm" variant="outline" disabled={busy !== null} aria-label={`Lưu thông tin ảnh ${index + 1}`}>
+                    {busy === `metadata-${image.id}` ? <Loader2 className="animate-spin" /> : <Save />}
+                    Lưu
+                  </Button>
+                </div>
+              </form>
             </li>
           ))}
         </ul>

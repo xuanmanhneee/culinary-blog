@@ -30,6 +30,8 @@ builder.Logging.AddJsonConsole(options =>
 builder.Services.AddApplicationServices();
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.Configure<CulinaryBlog.Application.Auth.Models.GoogleAuthOptions>(
+    builder.Configuration.GetSection(CulinaryBlog.Application.Auth.Models.GoogleAuthOptions.SectionName));
 builder.Services.AddHttpClient("media");
 
 var telemetryEndpoint = builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"];
@@ -124,6 +126,8 @@ app.MapRecipeStepEndpoints();
 app.MapRecipeImageEndpoints();
 
 app.MapCategoriesEndpoints();
+
+app.MapUserEndpoints();
 
 app.MapHealthEndpoints();
 

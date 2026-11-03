@@ -1,5 +1,6 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
+import Google from "next-auth/providers/google";
 
 import { API_V1 } from "@/lib/config/env";
 import type { AuthResponseDto, Role } from "@/lib/types/auth";
@@ -104,6 +105,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         };
       },
     }),
+    ...(process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET
+      ? [Google({
+          clientId: process.env.AUTH_GOOGLE_ID,
+          clientSecret: process.env.AUTH_GOOGLE_SECRET,
+        })]
+      : []),
   ],
   events: {
     async signOut(message) {
@@ -127,7 +134,30 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
   },
   callbacks: {
-    async jwt({ token, user, trigger, session }) {
+    async jwt({ token, user, account, trigger, session }) {
+      if (account?.provider === "google" && account.id_token) {
+        const response = await fetch(`${API_V1}/auth/google`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ idToken: account.id_token }),
+          cache: "no-store",
+        });
+        if (!response.ok) throw new Error("Không thể xác thực tài khoản Google với máy chủ.");
+        const result = (await response.json()) as AuthResponseDto;
+        return {
+          ...token,
+          sub: result.user.id,
+          name: result.user.fullName,
+          email: result.user.email,
+          picture: result.user.avatarUrl,
+          accessToken: result.accessToken,
+          refreshToken: result.refreshToken,
+          accessTokenExpiresAt: new Date(result.expiresAt).getTime(),
+          roles: result.user.roles,
+          error: undefined,
+        };
+      }
+
       // `user` chỉ có ở lần đăng nhập đầu tiên; các request sau token đã mang sẵn giá trị.
       if (user) {
         token.accessToken = user.accessToken;

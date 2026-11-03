@@ -4,6 +4,14 @@ public record RegisterRequest(string FullName, string Email, string UserName, st
 
 public record LoginRequest(string Email, string Password);
 
+public record GoogleLoginRequest(string IdToken);
+
+public sealed class GoogleAuthOptions
+{
+    public const string SectionName = "Google";
+    public string ClientId { get; init; } = string.Empty;
+}
+
 public record RefreshRequest(string RefreshToken);
 
 public record LogoutRequest(string RefreshToken);

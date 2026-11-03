@@ -13,6 +13,7 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const callbackFallback = "/";
+  const googleEnabled = process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED === "true";
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -61,7 +62,17 @@ export default function LoginPage() {
           {error && <p role="alert" className="text-sm text-red-700">{error}</p>}<Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>{isSubmitting ? "Đang đăng nhập..." : "Đăng nhập"} <ArrowRight /></Button>
         </form>
         <div className="my-5 flex items-center gap-3 text-xs text-[#9a9087]"><span className="h-px flex-1 bg-[#ded3c5]" /><span>HOẶC</span><span className="h-px flex-1 bg-[#ded3c5]" /></div>
-        <Button type="button" variant="outline" className="h-12 w-full bg-white" disabled title="Google OAuth chưa được cấu hình"><span className="grid size-6 place-items-center rounded-full border border-[#ded3c5] font-bold text-sm text-[#4285f4]">G</span>Đăng nhập bằng Google</Button>
+        <Button
+          type="button"
+          variant="outline"
+          className="h-12 w-full bg-white"
+          disabled={!googleEnabled}
+          title={googleEnabled ? undefined : "Google OAuth chưa được cấu hình"}
+          onClick={() => void signIn("google", { redirectTo: getCallbackUrl(callbackFallback) })}
+        >
+          <span className="grid size-6 place-items-center rounded-full border border-[#ded3c5] text-sm font-bold text-[#4285f4]">G</span>
+          Đăng nhập bằng Google
+        </Button>
         <p className="mt-5 text-center text-sm text-[#746a62]">Chưa có tài khoản? <Link href="/register" onClick={(event) => { event.preventDefault(); router.push(`/register?callbackUrl=${encodeURIComponent(getCallbackUrl(callbackFallback))}`); }} className="font-bold text-[#b65338]">Đăng ký miễn phí</Link></p>
       </div>
     </section>
