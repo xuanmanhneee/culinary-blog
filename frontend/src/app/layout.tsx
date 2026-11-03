@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Toaster } from "sonner";
 import { AuthSessionProvider } from "@/components/providers/AuthSessionProvider";
 import { Header } from "@/components/layout/Header";
 import "./globals.css";
@@ -15,7 +16,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="vi" className="h-full scroll-smooth antialiased" data-scroll-behavior="smooth">
-      <body className="min-h-full"><AuthSessionProvider><div className="min-h-screen overflow-x-clip"><Header />{children}</div></AuthSessionProvider></body>
+      <body className="min-h-full"><AuthSessionProvider><div className="min-h-screen overflow-x-clip"><Header />{children}</div><Toaster position="bottom-right" richColors /></AuthSessionProvider></body>
     </html>
   );
 }

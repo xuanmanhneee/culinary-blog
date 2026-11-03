@@ -1,16 +1,14 @@
-import { Search, ShieldCheck, UsersRound } from "lucide-react";
+import { Search } from "lucide-react";
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { auth } from "@/auth";
-import { Pagination } from "@/components/common/Pagination";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { listUsers } from "@/lib/api/users";
 import { Roles, type Role } from "@/lib/types/auth";
+import { UserManagementTable } from "./UserManagementTable";
 
 export const metadata: Metadata = { title: "Quản lý người dùng" };
 
@@ -45,11 +43,7 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
         <div>
           <p className="text-xs font-bold uppercase tracking-[.15em] text-[#a84f37]">Quản trị hệ thống</p>
           <h1 className="font-display mt-2 text-4xl font-bold tracking-[-.04em] text-[#29231f]">Người dùng</h1>
-          <p className="mt-2 text-sm text-[#786e66]">Xem tài khoản quản trị viên và tác giả đang sử dụng hệ thống.</p>
-        </div>
-        <div className="rounded-2xl border border-[#d8cbbc] bg-[#f1e7da] px-5 py-3">
-          <span className="text-xs font-semibold text-[#776d65]">Tổng tài khoản</span>
-          <strong className="ml-3 font-display text-2xl text-[#1f4b3f]">{result.totalCount}</strong>
+          <p className="mt-2 text-sm text-[#786e66]">Quản lý tài khoản, vai trò và quyền truy cập của người dùng.</p>
         </div>
       </header>
 
@@ -58,6 +52,7 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
           <RoleLink href={hrefFor({ search })} active={!role}>Tất cả</RoleLink>
           <RoleLink href={hrefFor({ role: Roles.Admin, search })} active={role === Roles.Admin}>Admin</RoleLink>
           <RoleLink href={hrefFor({ role: Roles.Author, search })} active={role === Roles.Author}>Tác giả</RoleLink>
+          <RoleLink href={hrefFor({ role: Roles.Reader, search })} active={role === Roles.Reader}>Reader</RoleLink>
         </nav>
         <form className="flex w-full gap-2 sm:max-w-md" action="/dashboard/users">
           {role && <input type="hidden" name="role" value={role} />}
@@ -69,45 +64,16 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
         </form>
       </div>
 
-      <div className="overflow-hidden rounded-[1.5rem] border border-[#ddd1c3] bg-[#fffdf9] shadow-[0_16px_45px_rgba(75,57,41,.06)]">
-        {result.items.length === 0 ? (
-          <div className="grid min-h-64 place-items-center px-6 text-center">
-            <div>
-              <UsersRound className="mx-auto size-10 text-[#9d9187]" />
-              <h2 className="font-display mt-3 text-xl font-bold">Không tìm thấy người dùng</h2>
-              <p className="mt-1 text-sm text-[#786e66]">Thử thay đổi vai trò hoặc từ khóa tìm kiếm.</p>
-            </div>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[760px] text-left text-sm">
-              <thead className="border-b border-[#e1d7cb] bg-[#f6efe6] text-xs uppercase tracking-wide text-[#746b63]">
-                <tr><th className="px-5 py-3">Người dùng</th><th className="px-5 py-3">Vai trò</th><th className="px-5 py-3">Xác thực</th><th className="px-5 py-3">Trạng thái</th><th className="px-5 py-3">Ngày tham gia</th></tr>
-              </thead>
-              <tbody className="divide-y divide-[#ebe3d9]">
-                {result.items.map((user) => (
-                  <tr key={user.id} className="hover:bg-[#fbf7f1]">
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-3">
-                        <span className="relative grid size-10 shrink-0 place-items-center overflow-hidden rounded-full bg-[#1f4b3f] font-bold text-white">
-                          {user.avatarUrl ? <Image src={user.avatarUrl} alt="" fill sizes="40px" unoptimized className="object-cover" /> : initials(user.fullName, user.email)}
-                        </span>
-                        <span><strong className="block text-[#342e29]">{user.fullName}</strong><span className="block text-xs text-[#81776f]">{user.email} · @{user.userName}</span></span>
-                      </div>
-                    </td>
-                    <td className="px-5 py-4"><div className="flex flex-wrap gap-1">{user.roles.map((item) => <Badge key={item} variant={item === Roles.Admin ? "default" : "outline"}>{item === Roles.Admin ? <ShieldCheck /> : null}{item}</Badge>)}</div></td>
-                    <td className="px-5 py-4">{user.emailConfirmed ? <span className="text-emerald-700">Đã xác nhận</span> : <span className="text-amber-700">Chưa xác nhận</span>}</td>
-                    <td className="px-5 py-4"><Badge variant={user.isActive ? "outline" : "warm"}>{user.isActive ? "Hoạt động" : "Đã khóa"}</Badge></td>
-                    <td className="px-5 py-4 text-[#6f665e]">{formatDate(user.createdAt)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      <Pagination currentPage={result.page} totalPages={result.totalPages} hrefForPage={(nextPage) => hrefFor({ page: nextPage, role, search })} />
+      <UserManagementTable
+        key={JSON.stringify(result.items)}
+        initialUsers={result.items}
+        totalCount={result.totalCount}
+        currentPage={result.page}
+        totalPages={result.totalPages}
+        role={role}
+        search={search}
+        token={session.accessToken}
+      />
     </section>
   );
 }
@@ -117,13 +83,5 @@ function RoleLink({ href, active, children }: { href: string; active: boolean; c
 }
 
 function parseRole(value?: string): Role | undefined {
-  return value === Roles.Admin || value === Roles.Author ? value : undefined;
-}
-
-function initials(name: string, email: string): string {
-  return (name.trim() || email.split("@")[0] || "U").split(/\s+/).slice(-2).map((part) => part[0]).join("").toUpperCase();
-}
-
-function formatDate(value: string): string {
-  return new Intl.DateTimeFormat("vi-VN", { dateStyle: "medium", timeZone: "Asia/Bangkok" }).format(new Date(value));
+  return value === Roles.Admin || value === Roles.Author || value === Roles.Reader ? value : undefined;
 }

@@ -8,6 +8,7 @@ import type { IsoDateTime } from "./api";
 export const Roles = {
   Admin: "Admin",
   Author: "Author",
+  Reader: "Reader",
 } as const;
 export type Role = (typeof Roles)[keyof typeof Roles];
 
@@ -54,6 +55,7 @@ export interface AdminUserListItem {
   roles: Role[];
   emailConfirmed: boolean;
   isActive: boolean;
+  isLocked: boolean;
   createdAt: IsoDateTime;
 }
 

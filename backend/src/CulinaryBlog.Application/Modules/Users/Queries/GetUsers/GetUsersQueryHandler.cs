@@ -57,6 +57,7 @@ internal sealed class GetUsersQueryHandler
                 roles.OrderBy(role => role, StringComparer.Ordinal).ToArray(),
                 user.EmailConfirmed,
                 user.IsActive,
+                await _users.IsLockedOutAsync(user),
                 user.CreatedAt));
         }
 

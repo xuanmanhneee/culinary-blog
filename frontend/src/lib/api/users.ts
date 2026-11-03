@@ -17,3 +17,26 @@ export function listUsers(query: UserDirectoryQuery, token: string): Promise<Pag
   if (query.search) params.set("search", query.search);
   return apiFetch(`/users?${params}`, { token, cache: "no-store" });
 }
+
+export function updateUserRole(id: string, role: Role, token: string): Promise<void> {
+  return apiFetch(`/users/${encodeURIComponent(id)}/role`, {
+    method: "PATCH",
+    token,
+    body: { role },
+  });
+}
+
+export function updateUserStatus(id: string, isLocked: boolean, token: string): Promise<void> {
+  return apiFetch(`/users/${encodeURIComponent(id)}/status`, {
+    method: "PATCH",
+    token,
+    body: { isLocked },
+  });
+}
+
+export function deleteUser(id: string, token: string): Promise<void> {
+  return apiFetch(`/users/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    token,
+  });
+}
