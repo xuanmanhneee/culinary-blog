@@ -125,6 +125,8 @@ app.MapRecipeImageEndpoints();
 
 app.MapCategoriesEndpoints();
 
+app.MapUserEndpoints();
+
 app.MapHealthEndpoints();
 
 app.Run();
