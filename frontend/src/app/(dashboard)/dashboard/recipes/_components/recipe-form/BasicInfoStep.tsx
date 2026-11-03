@@ -23,8 +23,9 @@ export function BasicInfoStep({
 }: {
   categories: RecipeCategoryDto[];
   serverErrors?: ServerErrors | null;
-  selectedImage: File | null;
-  onImageSelected: (file: File | null) => void;
+  /** Chỉ dùng khi tạo mới; trang sửa quản lý ảnh ở RecipeImagesPanel. Bỏ trống thì ẩn ô chọn ảnh. */
+  selectedImage?: File | null;
+  onImageSelected?: (file: File | null) => void;
 }) {
   const setBasic = useRecipeFormStore((state) => state.setBasic);
   const nextStep = useRecipeFormStore((state) => state.nextStep);
@@ -174,7 +175,7 @@ export function BasicInfoStep({
           />
         </Field>
 
-        <Field>
+        {onImageSelected && <Field>
           <FieldLabel htmlFor="cover-image">Ảnh đại diện</FieldLabel>
           <label htmlFor="cover-image" className="flex cursor-pointer flex-col items-center justify-center gap-3 rounded-lg border border-dashed bg-muted/20 px-5 py-6 text-center transition hover:border-emerald-600 hover:bg-emerald-50/40">
             {previewUrl ? (
@@ -187,7 +188,7 @@ export function BasicInfoStep({
           </label>
           <input id="cover-image" type="file" accept="image/jpeg,image/png,image/webp,image/avif" className="sr-only" onChange={(event) => onImageSelected(event.target.files?.[0] ?? null)} />
           <FieldDescription>Ảnh sẽ được tải lên sau khi công thức được tạo.</FieldDescription>
-        </Field>
+        </Field>}
       </FieldGroup>
 
       <StepActions />
