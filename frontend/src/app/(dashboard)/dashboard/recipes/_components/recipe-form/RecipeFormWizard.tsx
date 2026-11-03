@@ -9,14 +9,15 @@ import { ErrorState } from "@/components/common/ErrorState";
 import { RecipeStatusBadge } from "@/components/recipes/RecipeStatusBadge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { refreshPublicRecipes } from "@/lib/actions/recipe-cache";
 import { ApiError } from "@/lib/api/client";
 import { getRecipeErrorMessage } from "@/lib/api/problem";
 import { updateStep, uploadRecipeImage, type RecipeWithEtag } from "@/lib/api/recipe-management";
 import { useCategories, useCreateRecipe, useRecipeForEdit, useSaveRecipeEdit } from "@/lib/hooks/useRecipeManagement";
 import { useAccessToken } from "@/lib/hooks/useAccessToken";
 import { RECIPE_FORM_STEPS, toCreateRecipeRequest, useRecipeFormStore, type StepDraft } from "@/lib/stores/recipe-form-store";
-import type { RecipeCategoryDto } from "@/lib/types/recipe";
-import type { RecipeStepDto } from "@/lib/types/recipe";
+import type { RecipeCategoryDto, RecipeDetailDto, RecipeStepDto } from "@/lib/types/recipe";
+import { RecipeStatusPanel } from "../RecipeStatusPanel";
 import { BasicInfoStep } from "./BasicInfoStep";
 import { IngredientsStep } from "./IngredientsStep";
 import { ReviewStep } from "./ReviewStep";
@@ -54,6 +55,8 @@ export function RecipeFormWizard({ mode, recipeId }: RecipeFormWizardProps) {
   // Bản gốc + ETag tại thời điểm nạp vào form: dùng khi lưu để If-Match và phép đồng bộ khớp đúng
   // dữ liệu người dùng đang sửa (không dùng bản tải lại ở nền, tránh đè thay đổi của người khác).
   const base = useRef<RecipeWithEtag | null>(null);
+  // Bản mới nhất sau khi đổi trạng thái ở RecipeStatusPanel (hiện ngay, không chờ tải lại).
+  const [statusUpdate, setStatusUpdate] = useState<RecipeDetailDto | null>(null);
 
   const currentStep = useRecipeFormStore((state) => state.currentStep);
   const completedSteps = useRecipeFormStore((state) => state.completedSteps);
@@ -86,7 +89,8 @@ export function RecipeFormWizard({ mode, recipeId }: RecipeFormWizardProps) {
   }, [mode]);
 
   // Sửa: nạp dữ liệu server vào form một lần, chỉ khi đã tải bản mới (không dùng cache cũ).
-  const recipe = recipeQuery.data?.recipe;
+  const loadedRecipe = recipeQuery.data?.recipe;
+  const recipe = statusUpdate && loadedRecipe ? { ...loadedRecipe, ...statusUpdate } : loadedRecipe;
   const freshData = recipeQuery.isFetchedAfterMount ? recipeQuery.data : undefined;
   useEffect(() => {
     if (mode !== "edit" || !freshData || base.current !== null) return;
@@ -126,6 +130,7 @@ export function RecipeFormWizard({ mode, recipeId }: RecipeFormWizardProps) {
           }
         }
         await uploadStepImages(created.id, created.steps, draft.steps, stepImages, token);
+        await refreshPublicRecipes();
         useRecipeFormStore.getState().reset();
         router.push(`/dashboard/recipes?notice=created&title=${encodeURIComponent(created.title)}`);
       } catch (error) {
@@ -137,6 +142,7 @@ export function RecipeFormWizard({ mode, recipeId }: RecipeFormWizardProps) {
     if (!base.current) return;
     try {
       const saved = await saveEdit.mutateAsync({ original: base.current.recipe, draft, etag: base.current.etag });
+      await refreshPublicRecipes();
       router.push(`/dashboard/recipes?notice=updated&title=${encodeURIComponent(saved.recipe.title)}`);
     } catch (error) {
       if (error instanceof ApiError && error.code === "RECIPE_CONCURRENCY_CONFLICT") {
@@ -151,6 +157,7 @@ export function RecipeFormWizard({ mode, recipeId }: RecipeFormWizardProps) {
     const result = await recipeQuery.refetch();
     if (result.data) {
       base.current = result.data;
+      setStatusUpdate(null);
       useRecipeFormStore.getState().loadFromRecipe(result.data.recipe);
       setServerErrors(null);
       setFormVersion((version) => version + 1);
@@ -170,6 +177,17 @@ export function RecipeFormWizard({ mode, recipeId }: RecipeFormWizardProps) {
         />
       </div>
     );
+  }
+
+  /** Đổi trạng thái làm RowVersion mới: cập nhật bản gốc để lần lưu form sau không bị báo xung đột. */
+  function handleStatusChanged(updated: RecipeDetailDto) {
+    setStatusUpdate(updated);
+    if (base.current) {
+      base.current = {
+        recipe: { ...base.current.recipe, status: updated.status, publishedAt: updated.publishedAt, rowVersion: updated.rowVersion },
+        etag: `"${updated.rowVersion}"`,
+      };
+    }
   }
 
   const stepLabel = RECIPE_FORM_STEPS[currentStep]?.label;
@@ -210,6 +228,8 @@ export function RecipeFormWizard({ mode, recipeId }: RecipeFormWizardProps) {
           {notice.text}
         </p>
       )}
+
+      {mode === "edit" && recipe && <RecipeStatusPanel recipe={recipe} onStatusChanged={handleStatusChanged} />}
 
       <StepIndicator currentStep={currentStep} completedSteps={completedSteps} onSelect={goToStep} />
 

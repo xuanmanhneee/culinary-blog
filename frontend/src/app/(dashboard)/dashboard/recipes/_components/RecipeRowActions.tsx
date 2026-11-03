@@ -12,6 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { refreshPublicRecipes } from "@/lib/actions/recipe-cache";
 import { getRecipeErrorMessage } from "@/lib/api/problem";
 import { useChangeRecipeStatus, useDeleteRecipe } from "@/lib/hooks/useRecipeManagement";
 import { RecipeStatus, type RecipeListItemDto } from "@/lib/types/recipe";
@@ -44,6 +45,7 @@ export function RecipeRowActions({ recipe }: { recipe: RecipeListItemDto }) {
     try {
       if (action === "delete") await deleteRecipe.mutateAsync(recipe.id);
       else await changeStatus.mutateAsync({ id: recipe.id, action });
+      await refreshPublicRecipes();
 
       const params = new URLSearchParams(window.location.search);
       params.set("notice", noticeOf[action]);
