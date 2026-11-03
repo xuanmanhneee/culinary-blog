@@ -16,6 +16,8 @@ public static class DependencyInjection
         services.AddMediatR(cfg =>
         {
             cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly());
+            // Audit đứng trước (bọc ngoài) Validation để ghi cả thao tác Recipe bị từ chối.
+            cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(RecipeAuditBehavior<,>));
             cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
         });
 

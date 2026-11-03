@@ -111,8 +111,10 @@ public class RecipeRepository : IRecipeRepository
     public void AddStep(RecipeStep step) =>
         _context.Entry(step).State = EntityState.Added;
 
+    // IgnoreQueryFilters: unique index IDX_Recipe_Slug vẫn tính recipe đã xóa mềm, nên phải kiểm tra cả chúng
+    // (không thì tạo lại tiêu đề trùng recipe đã xóa sẽ lỗi 500 thay vì 409 RECIPE_SLUG_EXISTS).
     public async Task<bool> SlugExistsAsync(string slug, CancellationToken cancellationToken = default) =>
-        await _context.Recipes.AnyAsync(r => r.Slug == slug, cancellationToken);
+        await _context.Recipes.IgnoreQueryFilters().AnyAsync(r => r.Slug == slug, cancellationToken);
 
     public async Task AddAsync(Recipe entity, CancellationToken cancellationToken = default) =>
         await _context.Recipes.AddAsync(entity, cancellationToken);

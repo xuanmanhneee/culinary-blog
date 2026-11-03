@@ -15,7 +15,14 @@ var builder = WebApplication.CreateBuilder(args);
 // Keep local development logs on the console; Windows EventLog may require
 // administrator permissions and can mask the original database exception.
 builder.Logging.ClearProviders();
-builder.Logging.AddJsonConsole();
+// Timestamp (UTC, ISO 8601) + scope (CorrelationId, RequestPath, UserId từ CorrelationIdMiddleware) trong mọi
+// dòng log – audit log yêu cầu userId + timestamp (CONS-010).
+builder.Logging.AddJsonConsole(options =>
+{
+    options.IncludeScopes = true;
+    options.TimestampFormat = "yyyy-MM-ddTHH:mm:ss.fffZ";
+    options.UseUtcTimestamp = true;
+});
 
 // Không gọi builder.Services.AddOpenApi(): AddApiVersioning().AddOpenApi() đã đăng ký dịch vụ
 // OpenAPI biết về phiên bản (AV0029).
