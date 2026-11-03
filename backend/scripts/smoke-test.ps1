@@ -14,6 +14,7 @@ function Assert-True {
 $imageId = $null
 $recipeId = $null
 $headers = $null
+$thumbnailUrl = $null
 $tempImage = Join-Path ([IO.Path]::GetTempPath()) "culinary-blog-smoke.png"
 
 try {
@@ -80,12 +81,30 @@ try {
     $download = Invoke-WebRequest -UseBasicParsing $upload.url
     Assert-True ($download.StatusCode -eq 200) "uploaded image is not publicly readable"
 
+    for ($attempt = 0; $attempt -lt 20; $attempt++) {
+        Start-Sleep -Milliseconds 500
+        $updatedRecipe = Invoke-RestMethod `
+            -Uri "$BaseUrl/api/v1/recipes/by-id/$recipeId" `
+            -Headers $headers
+        $processedImage = @($updatedRecipe.images) | Where-Object { $_.id -eq $imageId } | Select-Object -First 1
+        if (-not [string]::IsNullOrWhiteSpace($processedImage.thumbnailUrl) -and
+            -not [string]::IsNullOrWhiteSpace($processedImage.mediumUrl)) {
+            $thumbnailUrl = $processedImage.thumbnailUrl
+            break
+        }
+    }
+    Assert-True (-not [string]::IsNullOrWhiteSpace($thumbnailUrl)) "thumbnail job did not finish within 10 seconds"
+
+    $thumbnailDownload = Invoke-WebRequest -UseBasicParsing $thumbnailUrl
+    Assert-True ($thumbnailDownload.StatusCode -eq 200) "generated thumbnail is not publicly readable"
+
     Write-Host "PASS backend smoke test" -ForegroundColor Green
     [pscustomobject]@{
         health = $health.status
         recipeId = $recipeId
         searchResults = $search.totalCount
         imageDownloadStatus = $download.StatusCode
+        thumbnailDownloadStatus = $thumbnailDownload.StatusCode
     } | ConvertTo-Json
 }
 finally {
