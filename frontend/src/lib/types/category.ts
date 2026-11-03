@@ -13,6 +13,7 @@ export interface CategoryDto {
   imageUrl: string | null;
   /** Thứ tự hiển thị mong muốn. */
   orderIndex: number;
+  recipeCount: number;
 }
 
 /** POST /api/v1/categories (FR-CAT-003) — chỉ Admin; trùng tên/slug trả 409. */
@@ -22,5 +23,13 @@ export interface CreateCategoryRequest {
   /** URL-friendly, backend tự lowercase; trùng thì 409 CATEGORY_SLUG_EXISTS. */
   slug: string;
   description?: string | null;
+  orderIndex?: number;
+  imageUrl?: string | null;
+}
+
+export interface UpdateCategoryRequest {
+  name: string;
+  description?: string | null;
+  imageUrl?: string | null;
   orderIndex?: number;
 }

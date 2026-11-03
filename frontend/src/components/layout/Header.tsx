@@ -2,6 +2,7 @@
 
 import {
   BookOpenText,
+  FolderTree,
   ChevronDown,
   CircleHelp,
   LogOut,
@@ -42,7 +43,10 @@ const accountNavigation = [
   { href: "/account#help", label: "Trợ giúp", icon: CircleHelp },
 ] as const;
 
-const adminNavigation = { href: "/dashboard/users", label: "Quản lý người dùng", icon: UsersRound } as const;
+const adminNavigation = [
+  { href: "/dashboard/users", label: "Quản lý người dùng", icon: UsersRound },
+  { href: "/dashboard/categories", label: "Quản lý danh mục", icon: FolderTree },
+] as const;
 
 function getInitials(name: string, email: string): string {
   const source = name.trim() || email.split("@")[0] || "BN";
@@ -84,7 +88,7 @@ export function Header() {
     roles: session.user.roles ?? [],
   } : null;
   const isAdmin = user?.roles?.includes(Roles.Admin) ?? false;
-  const accountItems = isAdmin ? [...accountNavigation, adminNavigation] : accountNavigation;
+  const accountItems = isAdmin ? [...accountNavigation, ...adminNavigation] : accountNavigation;
   const loginHref = `/login?callbackUrl=${encodeURIComponent(pathname || "/")}`;
   const navigation = navigationItems.map((item) =>
     item.href === "/dashboard/recipes" && !user
