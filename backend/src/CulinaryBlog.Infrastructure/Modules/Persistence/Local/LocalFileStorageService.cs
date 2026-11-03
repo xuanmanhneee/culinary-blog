@@ -82,6 +82,30 @@ public sealed class LocalFileStorageService : IFileStorageService
     {
         cancellationToken.ThrowIfCancellationRequested();
 
+        var filePath = ResolveFilePath(url);
+        if (File.Exists(filePath))
+        {
+            File.Delete(filePath);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    public Task<Stream> OpenReadAsync(string url, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        Stream stream = new FileStream(
+            ResolveFilePath(url),
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.Read,
+            bufferSize: 81920,
+            useAsync: true);
+        return Task.FromResult(stream);
+    }
+
+    private string ResolveFilePath(string url)
+    {
         var path = Uri.TryCreate(url, UriKind.Absolute, out var absoluteUri)
             ? absoluteUri.AbsolutePath
             : url;
@@ -102,11 +126,6 @@ public sealed class LocalFileStorageService : IFileStorageService
             throw new InvalidDataException("The storage path is outside the uploads directory.");
         }
 
-        if (File.Exists(filePath))
-        {
-            File.Delete(filePath);
-        }
-
-        return Task.CompletedTask;
+        return filePath;
     }
 }

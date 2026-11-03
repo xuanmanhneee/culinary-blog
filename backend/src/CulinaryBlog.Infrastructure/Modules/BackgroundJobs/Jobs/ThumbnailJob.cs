@@ -9,16 +9,13 @@ namespace CulinaryBlog.Infrastructure.Modules.BackgroundJobs.Jobs;
 
 public sealed class ThumbnailJob
 {
-    private readonly IHttpClientFactory _httpClientFactory;
     private readonly IFileStorageService _storage;
     private readonly CulinaryBlogDbContext _db;
 
     public ThumbnailJob(
-        IHttpClientFactory httpClientFactory,
         IFileStorageService storage,
         CulinaryBlogDbContext db)
     {
-        _httpClientFactory = httpClientFactory;
         _storage = storage;
         _db = db;
     }
@@ -26,8 +23,7 @@ public sealed class ThumbnailJob
     [AutomaticRetry(Attempts = 3, DelaysInSeconds = [60, 300, 1800])]
     public async Task ProcessAsync(Guid recipeId, Guid imageId, string originalUrl, CancellationToken ct)
     {
-        var client = _httpClientFactory.CreateClient("media");
-        await using var source = await client.GetStreamAsync(originalUrl, ct);
+        await using var source = await _storage.OpenReadAsync(originalUrl, ct);
         using var image = await Image.LoadAsync(source, ct);
 
         var mediumUrl = await UploadVariantAsync(image, recipeId, 800, 600, ct);

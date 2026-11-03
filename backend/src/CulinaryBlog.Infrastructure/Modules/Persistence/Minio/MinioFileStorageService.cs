@@ -63,7 +63,31 @@ public sealed class MinioFileStorageService : IFileStorageService
         return $"{endpoint}/{Uri.EscapeDataString(_options.BucketName)}/{Uri.EscapeDataString(key).Replace("%2F", "/", StringComparison.OrdinalIgnoreCase)}";
     }
 
+    public async Task<Stream> OpenReadAsync(string url, CancellationToken cancellationToken)
+    {
+        var key = GetObjectKey(url);
+        using var response = await _client.GetObjectAsync(new GetObjectRequest
+        {
+            BucketName = _options.BucketName,
+            Key = key
+        }, cancellationToken);
+
+        var output = new MemoryStream();
+        await response.ResponseStream.CopyToAsync(output, cancellationToken);
+        output.Position = 0;
+        return output;
+    }
+
     public async Task DeleteAsync(string url, CancellationToken cancellationToken)
+    {
+        await _client.DeleteObjectAsync(new DeleteObjectRequest
+        {
+            BucketName = _options.BucketName,
+            Key = GetObjectKey(url)
+        }, cancellationToken);
+    }
+
+    private string GetObjectKey(string url)
     {
         if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
             throw new InvalidDataException("Invalid object storage URL.");
@@ -75,11 +99,7 @@ public sealed class MinioFileStorageService : IFileStorageService
             throw new InvalidDataException("The URL does not belong to the configured object storage bucket.");
         }
 
-        await _client.DeleteObjectAsync(new DeleteObjectRequest
-        {
-            BucketName = _options.BucketName,
-            Key = Uri.UnescapeDataString(segments[1])
-        }, cancellationToken);
+        return Uri.UnescapeDataString(segments[1]);
     }
 
     private async Task EnsureBucketExistsAsync(CancellationToken cancellationToken)
