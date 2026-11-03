@@ -203,3 +203,4 @@ Các mục dưới đây được xác nhận từ log người dùng gửi ho�
 - Log terminal ở mục 5.1 là bằng chứng runtime người dùng cung cấp; chúng xác nhận cấu hình Auth.js thiếu secret và frontend không kết nối được backend tại thời điểm chạy thử.
 - Các mục 5.2–5.3 là rà soát tĩnh mã nguồn/cấu hình và thiếu endpoint/route; chưa chạy từng tích hợp với Google, SMTP, PostgreSQL, Redis hay MinIO trong môi trường thực tế.
 - Các thay đổi endpoint và logging backend trong LAB 8 đã build thành công với 0 warning/0 error; 2 backend tests hiện có đều pass. Chưa chạy kiểm thử tích hợp các endpoints với PostgreSQL/Identity trong môi trường thực tế.
+ 
