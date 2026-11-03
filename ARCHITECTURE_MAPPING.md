@@ -52,6 +52,7 @@ HTTP request
 ```
 
 - `Program.cs` đăng ký API versioning theo URL segment, JWT, CORS, rate limiting, OpenAPI/Scalar (Development) và OpenTelemetry; nhóm API phiên bản 1 dùng prefix `/api/v1`.
+- Serilog ghi log có cấu trúc ra console và file rolling theo ngày trong `backend/src/CulinaryBlog.API/logs` (giữ tối đa 14 file); các sự kiện auth, đổi role/khóa user, chuyển trạng thái recipe, upload ảnh và exception được ghi kèm các trường ngữ cảnh.
 - Middleware xử lý correlation ID, exception thành ProblemDetails và status-code errors; CORS chạy trước rate limiting/authentication để response lỗi vẫn có CORS headers.
 - `InitializePersistenceAsync` áp dụng EF Core migrations lúc khởi động. Chạy API với `--seed` để seed dữ liệu rồi kết thúc tiến trình.
 - Local storage phục vụ file từ web root; MinIO trả public URL theo cấu hình. Provider được chọn rõ bằng `Storage:Provider=Local|Minio`.
@@ -66,7 +67,7 @@ Các endpoint dùng prefix `/api/v1`.
 | Nhóm | Endpoint/chức năng |
 |---|---|
 | Auth | `POST /auth/register`, `/auth/login`, `/auth/google`, `/auth/refresh`, `/auth/logout`; `GET /auth/confirm-email`; `GET/PATCH /auth/me` |
-| Users | `GET /users` — danh sách người dùng phân trang, chỉ Admin |
+| Users | `GET /users` — danh sách phân trang; `PATCH /users/{id}/role` — đổi role Admin/Author/Reader; `PATCH /users/{id}/status` — khóa/mở khóa; `DELETE /users/{id}` — xóa tài khoản. Tất cả chỉ Admin |
 | Recipe public | `GET /recipes`, `GET /recipes/search` (q, categoryId, difficulty, thời gian, khẩu phần), `GET /recipes/{slug}` |
 | Recipe management | `GET /recipes/by-id/{id}`, `POST /recipes`, `PUT /recipes/{id}`, publish/unpublish/archive và xóa |
 | Recipe ingredients | Thêm, sửa, xóa ingredient theo recipe |
@@ -166,10 +167,39 @@ Trang detail hiện có:
 
 API client dùng prefix `/api/v1`, gắn access token cho request xác thực, giải mã ProblemDetails và phân biệt lỗi HTTP với lỗi mạng.
 
-## 5. Các giới hạn đã xác nhận
+## 5. Lỗi, giới hạn và chức năng chưa hoàn chỉnh đã rà soát
 
-- Google OAuth phụ thuộc vào credentials/configuration môi trường.
-- Favorite/“Món đã lưu” chưa được nối với API; tab hiện chỉ là placeholder.
-- API đổi mật khẩu và quên/đặt lại mật khẩu chưa được triển khai.
-- Email xác nhận được gửi nhưng hiện không ngăn đăng nhập trước khi xác nhận.
-- Một số lối tắt tài khoản như cài đặt/trợ giúp hiển thị điều hướng UI; không đồng nghĩa đã có backend workflow tương ứng.
+Các mục dưới đây được xác nhận từ log người dùng gửi hoặc đối chiếu trực tiếp mã nguồn. Đây là danh sách phát hiện trong lần rà soát này, không phải cam kết rằng mọi lỗi có thể có đã được loại trừ.
+
+### 5.1 Lỗi chạy được thấy trong terminal
+
+| Mức ảnh hưởng | Phát hiện | Tác động / diễn giải |
+|---|---|---|
+| Chặn đăng nhập và session | Auth.js báo `MissingSecret`; `GET /api/auth/session` trả `500` và trình duyệt báo `ClientFetchError`. | `AUTH_SECRET` chưa được cấu hình. Trong workspace rà soát không có `frontend/.env.local` hay `frontend/.env`; `.env.example` để `AUTH_SECRET` trống. Các màn cần session, đăng nhập/đăng ký qua Auth.js, account và dashboard có thể lỗi hoặc không xác thực được. |
+| Chặn dữ liệu từ backend | `ApiNetworkError` với `ECONNREFUSED` ở `GET /random`, stack trỏ tới `RandomRecipePage` khi gọi `/recipes` và `/categories`. | Frontend không kết nối được API tại URL đang cấu hình (mặc định `http://localhost:5000`). Thường là backend chưa chạy hoặc URL/port không khớp. `/random` tải cả hai API bằng `Promise.all`, nên một request lỗi làm cả trang thất bại; status `200` của request trang trong log dev không chứng minh dữ liệu đã tải thành công. |
+| Lỗi kéo theo | Nhiều `MissingSecret`, `GET /api/auth/session 500` và `ClientFetchError` lặp lại. | Các lỗi lặp là nhiều lần gọi session của Auth.js bị cùng một cấu hình thiếu secret chặn, không phải nhiều lỗi độc lập. |
+
+### 5.2 Chức năng có giao diện nhưng chưa hoàn chỉnh
+
+- **Google login:** luồng đã có ở frontend và backend, nhưng không bật mặc định. `.env.example` để trống `AUTH_GOOGLE_ID`/`AUTH_GOOGLE_SECRET` và đặt `NEXT_PUBLIC_GOOGLE_AUTH_ENABLED=false`; backend cũng cần `Google:ClientId`. Vì chưa có file env trong workspace, Google login hiện chưa sẵn sàng chạy. Cờ hiển thị nút và cấu hình provider là hai điều kiện riêng: bật cờ mà thiếu credentials vẫn không đăng ký provider.
+- **Yêu thích / “Món đã lưu”:** tab trong dashboard chỉ hiển thị trạng thái rỗng tĩnh; chưa có thao tác lưu/bỏ lưu, API hay lưu trữ favorites.
+- **Đổi / quên mật khẩu:** API đổi mật khẩu, quên mật khẩu và đặt lại mật khẩu chưa có trong backend hiện tại. “Quên mật khẩu?” trên login chỉ là chữ, không điều hướng; form đổi mật khẩu đã không còn trong account.
+- **Ghi nhớ đăng nhập:** checkbox “Ghi nhớ tôi” trên login không có tên hoặc xử lý state; không thay đổi thời hạn session.
+- **Newsletter:** form ở trang chủ dùng `action="#"`, input không có `name` và không nối API/dịch vụ gửi email; gửi form không đăng ký nhận thư.
+- **Cài đặt tài khoản:** thông báo, ngôn ngữ và bảo mật đều ghi “Sắp có”, chưa có workflow hoặc lưu cấu hình.
+- **Quản lý người dùng:** backend có endpoint Admin để đổi role, khóa/mở khóa và xóa tài khoản; trang Admin frontend hiện vẫn chỉ đọc/tìm/lọc danh sách nên chưa có UI gọi các thao tác này.
+- **Xác nhận email:** hệ thống tạo email xác nhận và có endpoint xác nhận, nhưng đăng nhập backend không kiểm tra `EmailConfirmed`; tài khoản có thể đăng nhập trước khi xác nhận.
+- **Đề xuất món ngẫu nhiên:** bộ chọn lấy tối đa 50 công thức mới nhất rồi chọn ngẫu nhiên trong tập đó, không đại diện cho toàn bộ công thức khi có hơn 50 món.
+
+### 5.3 Vấn đề tích hợp / độ tin cậy cần lưu ý
+
+- **Sitemap:** Hangfire sinh URL `/categories/{slug}`, nhưng frontend hiện chỉ có route `/categories`, không có trang chi tiết danh mục theo slug; các URL danh mục sinh ra sẽ không có route tương ứng. Job ghi `sitemap.xml` vào web root của backend, trong khi website chạy bằng Next.js riêng và không có route sitemap Next.js; cần xác minh cách public sitemap trên domain website trước khi dựa vào nó cho SEO.
+- **Cấu hình API trong Docker:** chú thích `frontend/.env.example` gợi ý `API_URL=http://api:5000`; service API trong Docker Compose lắng nghe port `8080` bên trong container và chỉ publish thành `localhost:5000` trên host. Frontend chạy trong cùng Docker network phải dùng port nội bộ `8080`; nếu dùng ví dụ `api:5000` sẽ không kết nối được.
+- **Không có frontend test suite trong repository;** backend hiện chỉ có 2 test và đều kiểm tra handler/validation của search. Chưa có kiểm thử tích hợp API/database, Auth/Google, UI hoặc end-to-end để xác nhận các luồng chính.
+- `README.md` còn nội dung không khớp implementation hiện tại (ví dụ cấu trúc thư mục/API và mô tả Redis cache), nên không nên dùng riêng README làm nguồn chuẩn khi dựng hoặc đánh giá hệ thống.
+
+## 6. Phân biệt phạm vi kiểm tra
+
+- Log terminal ở mục 5.1 là bằng chứng runtime người dùng cung cấp; chúng xác nhận cấu hình Auth.js thiếu secret và frontend không kết nối được backend tại thời điểm chạy thử.
+- Các mục 5.2–5.3 là rà soát tĩnh mã nguồn/cấu hình và thiếu endpoint/route; chưa chạy từng tích hợp với Google, SMTP, PostgreSQL, Redis hay MinIO trong môi trường thực tế.
+- Các thay đổi endpoint và logging backend trong LAB 8 đã build thành công với 0 warning/0 error; 2 backend tests hiện có đều pass. Chưa chạy kiểm thử tích hợp các endpoints với PostgreSQL/Identity trong môi trường thực tế.

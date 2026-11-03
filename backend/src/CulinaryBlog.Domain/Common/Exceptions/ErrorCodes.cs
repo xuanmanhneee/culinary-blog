@@ -20,6 +20,7 @@ public static class ErrorCodes
     public const string AuthUserNameExists = "AUTH_USERNAME_EXISTS";
     public const string AuthInvalidCredentials = "AUTH_INVALID_CREDENTIALS";
     public const string AuthUnauthorized = "AUTH_UNAUTHORIZED";
+    public const string UserNotFound = "USER_NOT_FOUND";
     
     public const string IngredientNotFound = "INGREDIENT_NOT_FOUND";
     public const string IngredientNameRequired = "INGREDIENT_NAME_REQUIRED";

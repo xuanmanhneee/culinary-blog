@@ -148,26 +148,50 @@ public static class RecipeEndpoints
         Guid id,
         ISender sender,
         HttpContext httpContext,
+        ILoggerFactory loggerFactory,
         CancellationToken cancellationToken) =>
-        StatusChanged(httpContext, await sender.Send(new PublishRecipeCommand(id), cancellationToken));
+        StatusChanged(
+            httpContext,
+            await sender.Send(new PublishRecipeCommand(id), cancellationToken),
+            loggerFactory.CreateLogger("CulinaryBlog.API.Endpoints.RecipeEndpoints"),
+            "published");
 
     private static async Task<IResult> UnpublishAsync(
         Guid id,
         ISender sender,
         HttpContext httpContext,
+        ILoggerFactory loggerFactory,
         CancellationToken cancellationToken) =>
-        StatusChanged(httpContext, await sender.Send(new UnpublishRecipeCommand(id), cancellationToken));
+        StatusChanged(
+            httpContext,
+            await sender.Send(new UnpublishRecipeCommand(id), cancellationToken),
+            loggerFactory.CreateLogger("CulinaryBlog.API.Endpoints.RecipeEndpoints"),
+            "unpublished");
 
     private static async Task<IResult> ArchiveAsync(
         Guid id,
         ISender sender,
         HttpContext httpContext,
+        ILoggerFactory loggerFactory,
         CancellationToken cancellationToken) =>
-        StatusChanged(httpContext, await sender.Send(new ArchiveRecipeCommand(id), cancellationToken));
+        StatusChanged(
+            httpContext,
+            await sender.Send(new ArchiveRecipeCommand(id), cancellationToken),
+            loggerFactory.CreateLogger("CulinaryBlog.API.Endpoints.RecipeEndpoints"),
+            "archived");
 
-    private static IResult StatusChanged(HttpContext httpContext, RecipeDetailDto recipe)
+    private static IResult StatusChanged(
+        HttpContext httpContext,
+        RecipeDetailDto recipe,
+        ILogger logger,
+        string status)
     {
         SetETag(httpContext, recipe);
+        logger.LogInformation(
+            "Recipe {RecipeId} {Status} by user {UserId}",
+            recipe.Id,
+            status,
+            httpContext.User.GetUserId());
         return Results.Ok(recipe);
     }
 

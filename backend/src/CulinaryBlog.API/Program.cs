@@ -9,19 +9,29 @@ using CulinaryBlog.API.Extensions;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
+using Serilog;
+using Serilog.Events;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Keep local development logs on the console; Windows EventLog may require
-// administrator permissions and can mask the original database exception.
 builder.Logging.ClearProviders();
-// Timestamp (UTC, ISO 8601) + scope (CorrelationId, RequestPath, UserId từ CorrelationIdMiddleware) trong mọi
-// dòng log – audit log yêu cầu userId + timestamp (CONS-010).
-builder.Logging.AddJsonConsole(options =>
+builder.Host.UseSerilog((context, services, loggerConfiguration) =>
 {
-    options.IncludeScopes = true;
-    options.TimestampFormat = "yyyy-MM-ddTHH:mm:ss.fffZ";
-    options.UseUtcTimestamp = true;
+    var outputTemplate =
+        "{Timestamp:yyyy-MM-ddTHH:mm:ss.fffzzz} [{Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}";
+    loggerConfiguration
+        .MinimumLevel.Information()
+        .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+        .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Warning)
+        .Enrich.FromLogContext()
+        .Enrich.WithProperty("Application", "CulinaryBlog.API")
+        .WriteTo.Console(outputTemplate: outputTemplate)
+        .WriteTo.File(
+            path: Path.Combine(context.HostingEnvironment.ContentRootPath, "logs", "culinary-blog-.log"),
+            rollingInterval: RollingInterval.Day,
+            retainedFileCountLimit: 14,
+            shared: true,
+            outputTemplate: outputTemplate);
 });
 
 // Không gọi builder.Services.AddOpenApi(): AddApiVersioning().AddOpenApi() đã đăng ký dịch vụ
