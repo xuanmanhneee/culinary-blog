@@ -1,9 +1,9 @@
 "use client";
 
 import Image from "next/image";
-import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { ImagePlus, Loader2, Save, Star, Trash2 } from "lucide-react";
+import { ImagePlus, Loader2, Save, Star, Trash2, Upload, X } from "lucide-react";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,17 +13,9 @@ import { getRecipeErrorMessage } from "@/lib/api/problem";
 import { deleteImage, setPrimaryImage, updateImageMetadata, uploadRecipeImage } from "@/lib/api/recipe-management";
 import { useAccessToken } from "@/lib/hooks/useAccessToken";
 import { recipeKeys } from "@/lib/hooks/useRecipeManagement";
+import { validateRecipeImageFile } from "@/lib/recipe-image";
 import type { RecipeImageDto } from "@/lib/types/recipe";
-
-const MAX_FILE_SIZE = 5 * 1024 * 1024;
-const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/avif"];
-
-/** Kiểm tra phía client giống backend (FR-RCP-008) để báo lỗi ngay, không cần gửi file lên. */
-function validateFile(file: File): string | null {
-  if (!ACCEPTED_TYPES.includes(file.type)) return `"${file.name}": chỉ hỗ trợ ảnh JPEG, PNG, WebP hoặc AVIF.`;
-  if (file.size > MAX_FILE_SIZE) return `"${file.name}": ảnh không được vượt quá 5 MB.`;
-  return null;
-}
+import type { SelectedRecipeImage } from "./recipe-form/RecipeImageFilePicker";
 
 interface RecipeImagesPanelProps {
   recipeId: string;
@@ -40,23 +32,42 @@ export function RecipeImagesPanel({ recipeId, title, images }: RecipeImagesPanel
   const queryClient = useQueryClient();
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const [pendingFiles, setPendingFiles] = useState<SelectedRecipeImage[]>([]);
+  const objectUrls = useRef(new Set<string>());
   const [toDelete, setToDelete] = useState<RecipeImageDto | null>(null);
   const [message, setMessage] = useState<{ tone: "error" | "info"; text: string } | null>(null);
   const sorted = [...images].sort((a, b) => Number(b.isPrimary) - Number(a.isPrimary) || a.orderIndex - b.orderIndex);
+
+  useEffect(() => () => {
+    for (const url of objectUrls.current) URL.revokeObjectURL(url);
+    objectUrls.current.clear();
+  }, []);
 
   /** Chạy thao tác rồi tải lại chi tiết (danh sách ảnh mới) và làm mới trang công khai. */
   async function run(key: string, action: () => Promise<string>) {
     setBusy(key);
     setMessage(null);
+    let actionSucceeded = false;
     try {
       const text = await action();
+      actionSucceeded = true;
       setMessage({ tone: "info", text });
     } catch (error) {
       setMessage({ tone: "error", text: getRecipeErrorMessage(error) });
     } finally {
-      await queryClient.invalidateQueries({ queryKey: recipeKeys.detail(recipeId) });
-      await refreshPublicRecipes();
-      setBusy(null);
+      try {
+        await queryClient.invalidateQueries({ queryKey: recipeKeys.detail(recipeId) });
+        await refreshPublicRecipes();
+      } catch (error) {
+        setMessage((current) => ({
+          tone: "error",
+          text: actionSucceeded
+            ? `Thao tác ảnh đã hoàn tất nhưng không làm mới được dữ liệu: ${getRecipeErrorMessage(error)}`
+            : `${current?.text ?? "Thao tác ảnh thất bại."} Không làm mới được dữ liệu: ${getRecipeErrorMessage(error)}`,
+        }));
+      } finally {
+        setBusy(null);
+      }
     }
   }
 
@@ -65,16 +76,39 @@ export function RecipeImagesPanel({ recipeId, title, images }: RecipeImagesPanel
     event.target.value = "";
     if (files.length === 0) return;
 
-    const invalid = files.map(validateFile).filter((error): error is string => error !== null);
+    const invalid = files.map(validateRecipeImageFile).filter((error): error is string => error !== null);
     if (invalid.length > 0) {
       setMessage({ tone: "error", text: invalid.join(" ") });
       return;
     }
 
+    const selected = files.map((file) => {
+      const previewUrl = URL.createObjectURL(file);
+      objectUrls.current.add(previewUrl);
+      return { file, previewUrl };
+    });
+    setPendingFiles((current) => [...current, ...selected]);
+    setMessage(null);
+  }
+
+  function removePendingFile(selection: SelectedRecipeImage) {
+    URL.revokeObjectURL(selection.previewUrl);
+    objectUrls.current.delete(selection.previewUrl);
+    setPendingFiles((current) => current.filter((item) => item !== selection));
+  }
+
+  function uploadPendingFiles() {
+    if (pendingFiles.length === 0) return;
+
     void run("upload", async () => {
-      // Tải lần lượt để giữ thứ tự ảnh như người dùng chọn.
-      for (const file of files) await uploadRecipeImage(recipeId, file, token);
-      return files.length === 1 ? "Đã tải ảnh lên." : `Đã tải ${files.length} ảnh lên.`;
+      const selected = [...pendingFiles];
+      let uploadedCount = 0;
+      for (const selection of selected) {
+        await uploadRecipeImage(recipeId, selection.file, token);
+        uploadedCount += 1;
+        removePendingFile(selection);
+      }
+      return uploadedCount === 1 ? "Đã tải ảnh lên." : `Đã tải ${uploadedCount} ảnh lên.`;
     });
   }
 
@@ -102,7 +136,7 @@ export function RecipeImagesPanel({ recipeId, title, images }: RecipeImagesPanel
             Ảnh chính hiển thị đầu tiên trên trang công khai. JPEG, PNG, WebP hoặc AVIF, tối đa 5 MB mỗi ảnh.
           </p>
         </div>
-        <Button size="sm" variant="outline" disabled={busy !== null} onClick={() => inputRef.current?.click()}>
+        <Button size="sm" variant="outline" disabled={busy !== null || !token} onClick={() => inputRef.current?.click()}>
           {busy === "upload" ? <Loader2 className="animate-spin" /> : <ImagePlus />}
           Thêm ảnh
         </Button>
@@ -110,12 +144,47 @@ export function RecipeImagesPanel({ recipeId, title, images }: RecipeImagesPanel
           ref={inputRef}
           type="file"
           multiple
-          accept={ACCEPTED_TYPES.join(",")}
+          accept="image/jpeg,image/png,image/webp,image/avif"
           className="sr-only"
           aria-label="Chọn ảnh để tải lên"
           onChange={handleFiles}
         />
       </div>
+
+      {pendingFiles.length > 0 && (
+        <div className="mt-4 rounded-lg border border-dashed p-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-sm font-medium">Xem trước {pendingFiles.length} ảnh đang chờ tải lên</p>
+            <Button type="button" size="sm" disabled={busy !== null || !token} onClick={uploadPendingFiles}>
+              {busy === "upload" ? <Loader2 className="animate-spin" /> : <Upload />}
+              Tải ảnh lên
+            </Button>
+          </div>
+          <ul className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            {pendingFiles.map((selection) => (
+              <li key={selection.previewUrl} className="overflow-hidden rounded-lg border bg-background">
+                <div className="relative aspect-[4/3] bg-muted">
+                  <Image src={selection.previewUrl} alt={`Xem trước ${selection.file.name}`} fill unoptimized className="object-cover" />
+                </div>
+                <div className="flex items-center justify-between gap-2 p-2">
+                  <span className="min-w-0 truncate text-xs" title={selection.file.name}>{selection.file.name}</span>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="size-8 shrink-0"
+                    disabled={busy !== null}
+                    aria-label={`Bỏ ${selection.file.name} khỏi danh sách tải lên`}
+                    onClick={() => removePendingFile(selection)}
+                  >
+                    <X />
+                  </Button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {sorted.length === 0 ? (
         <p className="mt-4 rounded-lg border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">

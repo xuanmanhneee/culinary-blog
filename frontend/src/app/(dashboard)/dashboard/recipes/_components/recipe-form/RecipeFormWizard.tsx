@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, RotateCcw } from "lucide-react";
+import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { ErrorState } from "@/components/common/ErrorState";
 import { RecipeStatusBadge } from "@/components/recipes/RecipeStatusBadge";
@@ -19,6 +20,7 @@ import { RECIPE_FORM_STEPS, toCreateRecipeRequest, useRecipeFormStore, type Step
 import type { RecipeCategoryDto, RecipeDetailDto, RecipeStepDto } from "@/lib/types/recipe";
 import { RecipeImagesPanel } from "../RecipeImagesPanel";
 import { RecipeStatusPanel } from "../RecipeStatusPanel";
+import type { SelectedRecipeImage } from "./RecipeImageFilePicker";
 import { BasicInfoStep } from "./BasicInfoStep";
 import { IngredientsStep } from "./IngredientsStep";
 import { ReviewStep } from "./ReviewStep";
@@ -26,7 +28,9 @@ import { firstStepWithErrors, type ServerErrors } from "./server-errors";
 import { StepIndicator } from "./StepIndicator";
 import { StepsStep } from "./StepsStep";
 
-type RecipeFormWizardProps = { mode: "create"; recipeId?: undefined } | { mode: "edit"; recipeId: string };
+type RecipeFormWizardProps =
+  | { mode: "create"; recipeId?: undefined; initialNotice?: undefined }
+  | { mode: "edit"; recipeId: string; initialNotice?: string };
 
 /** Lỗi backend → lỗi theo field (400 validation, 409 trùng slug); null nếu không gắn được vào field nào. */
 function toServerErrors(error: unknown): ServerErrors | null {
@@ -41,21 +45,29 @@ function toServerErrors(error: unknown): ServerErrors | null {
  * tạo → POST /recipes (kèm nguyên liệu/các bước); sửa → PUT /recipes/{id} (If-Match) rồi đồng bộ
  * nguyên liệu/các bước (saveRecipeEdit).
  */
-export function RecipeFormWizard({ mode, recipeId }: RecipeFormWizardProps) {
+export function RecipeFormWizard({ mode, recipeId, initialNotice }: RecipeFormWizardProps) {
   const router = useRouter();
   const [isReady, setIsReady] = useState(false);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [conflict, setConflict] = useState(false);
   const [serverErrors, setServerErrors] = useState<ServerErrors | null>(null);
-  // Thông báo chung phía trên form (dự án không dùng thư viện toast).
+  // Thông báo validation/API gắn với form; thao tác hoàn tất một phần dùng Sonner.
   const [notice, setNotice] = useState<{ tone: "error" | "info"; text: string } | null>(null);
-  const [coverImage, setCoverImage] = useState<File | null>(null);
-  const [stepImages, setStepImages] = useState<Record<string, File>>({});
+  const [coverImage, setCoverImage] = useState<SelectedRecipeImage | null>(null);
+  const coverImageRef = useRef<SelectedRecipeImage | null>(null);
+  const [stepImages, setStepImages] = useState<Record<string, SelectedRecipeImage>>({});
+  const stepImagesRef = useRef<Record<string, SelectedRecipeImage>>({});
+  const imageObjectUrls = useRef(new Set<string>());
   // Tăng khi nạp lại dữ liệu (xóa nháp, tải bản mới) để form của bước hiện tại mount lại.
   const [formVersion, setFormVersion] = useState(0);
   // Bản gốc + ETag tại thời điểm nạp vào form: dùng khi lưu để If-Match và phép đồng bộ khớp đúng
   // dữ liệu người dùng đang sửa (không dùng bản tải lại ở nền, tránh đè thay đổi của người khác).
   const base = useRef<RecipeWithEtag | null>(null);
+
+  useEffect(() => () => {
+    for (const url of imageObjectUrls.current) URL.revokeObjectURL(url);
+    imageObjectUrls.current.clear();
+  }, []);
 
   const currentStep = useRecipeFormStore((state) => state.currentStep);
   const completedSteps = useRecipeFormStore((state) => state.completedSteps);
@@ -112,36 +124,108 @@ export function RecipeFormWizard({ mode, recipeId }: RecipeFormWizardProps) {
     setNotice({ tone: "error", text: getRecipeErrorMessage(error) });
   }
 
+  function revokeSelection(selection: SelectedRecipeImage | null | undefined) {
+    if (!selection) return;
+    URL.revokeObjectURL(selection.previewUrl);
+    imageObjectUrls.current.delete(selection.previewUrl);
+  }
+
+  function selectCoverImage(file: File | null) {
+    revokeSelection(coverImageRef.current);
+    const selection = file
+      ? { file, previewUrl: URL.createObjectURL(file) }
+      : null;
+    if (selection) imageObjectUrls.current.add(selection.previewUrl);
+    coverImageRef.current = selection;
+    setCoverImage(selection);
+  }
+
+  function selectStepImage(key: string, file: File | null) {
+    const current = stepImagesRef.current;
+    revokeSelection(current[key]);
+    const next = { ...current };
+    if (file) {
+      const selection = { file, previewUrl: URL.createObjectURL(file) };
+      imageObjectUrls.current.add(selection.previewUrl);
+      next[key] = selection;
+    } else {
+      delete next[key];
+    }
+    stepImagesRef.current = next;
+    setStepImages(next);
+  }
+
+  function clearCoverImage() {
+    revokeSelection(coverImageRef.current);
+    coverImageRef.current = null;
+    setCoverImage(null);
+  }
+
+  function clearStepImage(key: string) {
+    const current = stepImagesRef.current;
+    revokeSelection(current[key]);
+    const next = { ...current };
+    delete next[key];
+    stepImagesRef.current = next;
+    setStepImages(next);
+  }
+
   async function handleSubmit() {
     setServerErrors(null);
     setNotice(null);
     const { draft } = useRecipeFormStore.getState();
 
     if (mode === "create") {
+      let created: RecipeDetailDto;
       try {
-        const created = await createRecipe.mutateAsync(toCreateRecipeRequest(draft));
-        if (coverImage) {
-          try {
-            await uploadRecipeImage(created.id, coverImage, token);
-          } catch {
-            setNotice({ tone: "info", text: "Đã tạo công thức nhưng ảnh chưa tải lên được. Bạn có thể thêm ảnh sau." });
-          }
-        }
-        await uploadStepImages(created.id, created.steps, draft.steps, stepImages, token);
-        await refreshPublicRecipes();
-        useRecipeFormStore.getState().reset();
-        router.push(`/dashboard/recipes?notice=created&title=${encodeURIComponent(created.title)}`);
+        created = await createRecipe.mutateAsync(toCreateRecipeRequest(draft));
       } catch (error) {
         showServerErrors(error);
+        return;
       }
+
+      try {
+        if (coverImage) {
+          await uploadRecipeImage(created.id, coverImage.file, token);
+          clearCoverImage();
+        }
+        await uploadStepImages(
+          created.id,
+          created.steps,
+          draft.steps,
+          stepImagesRef.current,
+          token,
+          clearStepImage,
+        );
+      } catch (error) {
+        toast.error(`Công thức đã được tạo nhưng tải ảnh thất bại: ${getRecipeErrorMessage(error)}`);
+        useRecipeFormStore.getState().reset();
+        router.push(`/dashboard/recipes/${created.id}/edit?notice=images-pending`);
+        return;
+      }
+
+      try {
+        await refreshPublicRecipes();
+      } catch (error) {
+        toast.error(`Công thức đã được tạo nhưng chưa làm mới được cache công khai: ${getRecipeErrorMessage(error)}`);
+      }
+      useRecipeFormStore.getState().reset();
+      router.push(`/dashboard/recipes?notice=created&title=${encodeURIComponent(created.title)}`);
       return;
     }
 
     if (!base.current) return;
     try {
       const saved = await saveEdit.mutateAsync({ original: base.current.recipe, draft, etag: base.current.etag });
-      // Ảnh của các bước chọn trong form sửa: tải lên sau khi đã đồng bộ các bước.
-      await uploadStepImages(saved.recipe.id, saved.recipe.steps, draft.steps, stepImages, token);
+      base.current = saved;
+      await uploadStepImages(
+        saved.recipe.id,
+        saved.recipe.steps,
+        draft.steps,
+        stepImagesRef.current,
+        token,
+        clearStepImage,
+      );
       await refreshPublicRecipes();
       router.push(`/dashboard/recipes?notice=updated&title=${encodeURIComponent(saved.recipe.title)}`);
     } catch (error) {
@@ -214,16 +298,16 @@ export function RecipeFormWizard({ mode, recipeId }: RecipeFormWizardProps) {
         )}
       </div>
 
-      {notice && (
+      {(notice || initialNotice) && (
         <p
-          role={notice.tone === "error" ? "alert" : "status"}
+          role={notice?.tone === "error" ? "alert" : "status"}
           className={
-            notice.tone === "error"
+            notice?.tone === "error"
               ? "rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
               : "rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800"
           }
         >
-          {notice.text}
+          {notice?.text ?? initialNotice}
         </p>
       )}
 
@@ -246,9 +330,9 @@ export function RecipeFormWizard({ mode, recipeId }: RecipeFormWizardProps) {
         ) : (
           // key: mount lại form của bước để defaultValues lấy đúng dữ liệu mới nhất trong store.
           <div key={`${currentStep}-${formVersion}`}>
-            {currentStep === 0 && <BasicInfoStep categories={categories} serverErrors={serverErrors} {...(mode === "create" ? { selectedImage: coverImage, onImageSelected: setCoverImage } : {})} />}
+            {currentStep === 0 && <BasicInfoStep categories={categories} serverErrors={serverErrors} {...(mode === "create" ? { selectedImage: coverImage, onImageSelected: selectCoverImage } : {})} />}
             {currentStep === 1 && <IngredientsStep serverErrors={serverErrors} />}
-            {currentStep === 2 && <StepsStep serverErrors={serverErrors} selectedImages={stepImages} onImageSelected={(key, file) => setStepImages((current) => ({ ...current, ...(file ? { [key]: file } : {}) }))} />}
+            {currentStep === 2 && <StepsStep serverErrors={serverErrors} selectedImages={stepImages} onImageSelected={selectStepImage} />}
             {currentStep === 3 && (
               <ReviewStep
                 categories={categories}
@@ -270,8 +354,8 @@ export function RecipeFormWizard({ mode, recipeId }: RecipeFormWizardProps) {
         destructive
         onConfirm={() => {
           useRecipeFormStore.getState().startCreate(true);
-          setCoverImage(null);
-          setStepImages({});
+          clearCoverImage();
+          for (const key of Object.keys(stepImagesRef.current)) clearStepImage(key);
           setServerErrors(null);
           setFormVersion((version) => version + 1);
           setConfirmDiscard(false);
@@ -296,23 +380,28 @@ async function uploadStepImages(
   recipeId: string,
   createdSteps: RecipeStepDto[],
   draftSteps: StepDraft[],
-  files: Record<string, File>,
+  files: Record<string, SelectedRecipeImage>,
   token: string | null | undefined,
+  onUploaded: (key: string) => void,
 ) {
   const orderedCreatedSteps = [...createdSteps].sort((left, right) => left.stepNumber - right.stepNumber);
-  await Promise.allSettled(draftSteps.map(async (draftStep, index) => {
-    const file = files[draftStep.key];
+  for (const [index, draftStep] of draftSteps.entries()) {
+    const selection = files[draftStep.key];
     const createdStep = orderedCreatedSteps[index];
-    if (!file || !createdStep) return;
+    if (!selection) continue;
+    if (!createdStep) {
+      throw new Error(`Không tìm thấy bước ${index + 1} để gắn ảnh. Hãy tải lại công thức rồi thử lại.`);
+    }
 
-    const uploaded = await uploadRecipeImage(recipeId, file, token);
+    const uploaded = await uploadRecipeImage(recipeId, selection.file, token);
     await updateStep(recipeId, createdStep.id, {
       title: createdStep.title,
       description: createdStep.description,
       timerMinutes: createdStep.timerMinutes,
       imageUrl: uploaded.url,
     }, token);
-  }));
+    onUploaded(draftStep.key);
+  }
 }
 
 function BackLink() {

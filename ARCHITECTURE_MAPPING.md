@@ -124,7 +124,9 @@ Login/Register form
 - Tạo và sửa recipe dùng wizard 4 bước: thông tin cơ bản, nguyên liệu, các bước, dinh dưỡng/xem lại. Từng bước dùng React Hook Form/Zod; Zustand giữ dữ liệu khi chuyển bước.
 - Draft tạo mới được lưu trong `sessionStorage` (theo tab) để phục hồi khi tải lại; chế độ sửa tải dữ liệu từ server và không lưu bản nháp client-side.
 - Tạo mới gửi recipe; sửa dùng `GET /recipes/by-id/{id}` để lấy ETag, `PUT` với `If-Match`, sau đó đồng bộ ingredients và steps. Nếu ETag xung đột, UI yêu cầu tải lại phiên bản mới.
-- Dashboard cung cấp thao tác đổi trạng thái/xóa theo quyền. API backend kiểm tra quyền cuối cùng.
+- Ảnh cover và ảnh từng bước được kiểm tra định dạng/kích thước, xem trước cục bộ bằng object URL có cleanup, rồi tải multipart với Bearer token qua API client dùng chung. Nếu upload lỗi sau khi tạo recipe, UI báo lỗi và dẫn đến trang sửa để tiếp tục.
+- Dashboard cung cấp thao tác xuất bản/hủy xuất bản, lưu trữ và xóa có xác nhận; trang sửa cũng có các hành động trạng thái. Mutation làm mới cache recipe và lỗi API được hiển thị rõ.
+- `/dashboard/users` dành cho Admin có danh sách phân trang, lọc/tìm kiếm, đổi role Admin/Author/Reader, khóa/mở khóa và xóa; trạng thái lockout được trả riêng trong DTO.
 - Tab “Món đã lưu” hiện là placeholder; chưa có luồng favorites/save đồng bộ backend.
 
 ### 3.3 Trang chi tiết công thức
@@ -163,7 +165,7 @@ Trang detail hiện có:
 | Search | `/search?q=...&categoryId=...` | `/recipes/search` | PostgreSQL `simple` FTS + fuzzy; category filter và page |
 | Danh sách công khai | `/recipes` | `/recipes` | CategoryId, difficulty, cook-time filters |
 | Detail/preview | `/recipes/[slug]` | `/recipes/{slug}` | Public cache; fallback authenticated cho preview |
-| Upload ảnh | Detail/editor image UI | recipe image endpoints | Backend lưu metadata và object/file |
+| Upload ảnh | Wizard/editor/detail image UI | `POST /recipes/{id}/images` multipart | API client gắn Bearer token; preview cục bộ; backend lưu metadata và object/file |
 
 API client dùng prefix `/api/v1`, gắn access token cho request xác thực, giải mã ProblemDetails và phân biệt lỗi HTTP với lỗi mạng.
 
@@ -175,8 +177,8 @@ Các mục dưới đây được xác nhận từ log người dùng gửi ho�
 
 | Mức ảnh hưởng | Phát hiện | Tác động / diễn giải |
 |---|---|---|
-| Chặn đăng nhập và session | Auth.js báo `MissingSecret`; `GET /api/auth/session` trả `500` và trình duyệt báo `ClientFetchError`. | `AUTH_SECRET` chưa được cấu hình. Trong workspace rà soát không có `frontend/.env.local` hay `frontend/.env`; `.env.example` để `AUTH_SECRET` trống. Các màn cần session, đăng nhập/đăng ký qua Auth.js, account và dashboard có thể lỗi hoặc không xác thực được. |
-| Chặn dữ liệu từ backend | `ApiNetworkError` với `ECONNREFUSED` ở `GET /random`, stack trỏ tới `RandomRecipePage` khi gọi `/recipes` và `/categories`. | Frontend không kết nối được API tại URL đang cấu hình (mặc định `http://localhost:5000`). Thường là backend chưa chạy hoặc URL/port không khớp. `/random` tải cả hai API bằng `Promise.all`, nên một request lỗi làm cả trang thất bại; status `200` của request trang trong log dev không chứng minh dữ liệu đã tải thành công. |
+| Đã khắc phục cấu hình Auth.js local | Terminal trước đó báo `MissingSecret`; `GET /api/auth/session` trả `500` và trình duyệt báo `ClientFetchError`. | `frontend/.env.local` hiện được cấu hình local với `AUTH_SECRET` và URL backend; file bị Git ignore. `.env.example` cung cấp giá trị mẫu, cần copy và tạo secret riêng cho mỗi máy. Runtime session đã trả `200` sau khi cấu hình. |
+| Chặn dữ liệu từ backend (log tại thời điểm ghi nhận) | `ApiNetworkError` với `ECONNREFUSED` ở `GET /random`, stack trỏ tới `RandomRecipePage` khi gọi `/recipes` và `/categories`. | Tại thời điểm log, frontend không kết nối được API (mặc định `http://localhost:5000`), thường do backend chưa chạy hoặc URL/port không khớp. `/random` tải cả hai API bằng `Promise.all`, nên một request lỗi làm cả trang thất bại; status `200` của request trang trong log dev không chứng minh dữ liệu đã tải thành công. |
 | Lỗi kéo theo | Nhiều `MissingSecret`, `GET /api/auth/session 500` và `ClientFetchError` lặp lại. | Các lỗi lặp là nhiều lần gọi session của Auth.js bị cùng một cấu hình thiếu secret chặn, không phải nhiều lỗi độc lập. |
 
 ### 5.2 Chức năng có giao diện nhưng chưa hoàn chỉnh
@@ -187,14 +189,14 @@ Các mục dưới đây được xác nhận từ log người dùng gửi ho�
 - **Ghi nhớ đăng nhập:** checkbox “Ghi nhớ tôi” trên login không có tên hoặc xử lý state; không thay đổi thời hạn session.
 - **Newsletter:** form ở trang chủ dùng `action="#"`, input không có `name` và không nối API/dịch vụ gửi email; gửi form không đăng ký nhận thư.
 - **Cài đặt tài khoản:** thông báo, ngôn ngữ và bảo mật đều ghi “Sắp có”, chưa có workflow hoặc lưu cấu hình.
-- **Quản lý người dùng:** backend có endpoint Admin để đổi role, khóa/mở khóa và xóa tài khoản; trang Admin frontend hiện vẫn chỉ đọc/tìm/lọc danh sách nên chưa có UI gọi các thao tác này.
+- **Quản lý người dùng:** đã có UI và API admin cho danh sách, đổi role, khóa/mở khóa và xóa. Các thao tác vẫn cần được kiểm thử tích hợp với backend/Identity và dữ liệu thực tế.
 - **Xác nhận email:** hệ thống tạo email xác nhận và có endpoint xác nhận, nhưng đăng nhập backend không kiểm tra `EmailConfirmed`; tài khoản có thể đăng nhập trước khi xác nhận.
 - **Đề xuất món ngẫu nhiên:** bộ chọn lấy tối đa 50 công thức mới nhất rồi chọn ngẫu nhiên trong tập đó, không đại diện cho toàn bộ công thức khi có hơn 50 món.
 
 ### 5.3 Vấn đề tích hợp / độ tin cậy cần lưu ý
 
 - **Sitemap:** Hangfire sinh URL `/categories/{slug}`, nhưng frontend hiện chỉ có route `/categories`, không có trang chi tiết danh mục theo slug; các URL danh mục sinh ra sẽ không có route tương ứng. Job ghi `sitemap.xml` vào web root của backend, trong khi website chạy bằng Next.js riêng và không có route sitemap Next.js; cần xác minh cách public sitemap trên domain website trước khi dựa vào nó cho SEO.
-- **Cấu hình API trong Docker:** chú thích `frontend/.env.example` gợi ý `API_URL=http://api:5000`; service API trong Docker Compose lắng nghe port `8080` bên trong container và chỉ publish thành `localhost:5000` trên host. Frontend chạy trong cùng Docker network phải dùng port nội bộ `8080`; nếu dùng ví dụ `api:5000` sẽ không kết nối được.
+- **Cấu hình API trong Docker:** `frontend/.env.example` dùng `localhost:5000` cho môi trường host và ghi chú dùng `http://api:8080` khi frontend chạy cùng Docker network. Service API lắng nghe port `8080` bên trong container và publish thành `localhost:5000` trên host.
 - **Không có frontend test suite trong repository;** backend hiện chỉ có 2 test và đều kiểm tra handler/validation của search. Chưa có kiểm thử tích hợp API/database, Auth/Google, UI hoặc end-to-end để xác nhận các luồng chính.
 - `README.md` còn nội dung không khớp implementation hiện tại (ví dụ cấu trúc thư mục/API và mô tả Redis cache), nên không nên dùng riêng README làm nguồn chuẩn khi dựng hoặc đánh giá hệ thống.
 
