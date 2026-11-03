@@ -92,7 +92,7 @@ export function changeRecipeStatus(id: string, action: RecipeStatusAction, token
   return apiFetch(`${RECIPES}/${id}/${action}`, { method: "PATCH", token });
 }
 
-/** DELETE /recipes/{id} – xóa vĩnh viễn (FR-RCP-007). */
+/** DELETE /recipes/{id} – xóa mềm (FR-RCP-007). */
 export function deleteRecipe(id: string, token: Token): Promise<void> {
   return apiFetch(`${RECIPES}/${id}`, { method: "DELETE", token });
 }

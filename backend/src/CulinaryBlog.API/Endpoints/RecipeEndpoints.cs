@@ -124,8 +124,8 @@ public static class RecipeEndpoints
 
         authorized.MapDelete("/{id:guid}", DeleteAsync)
             .WithName("DeleteRecipe")
-            .WithSummary("Xóa vĩnh viễn công thức")
-            .WithDescription("FR-RCP-007. Hard delete; nguyên liệu, bước, ảnh bị xóa theo (cascade).")
+            .WithSummary("Xóa mềm công thức")
+            .WithDescription("FR-RCP-007. Đánh dấu công thức đã xóa và ẩn khỏi các truy vấn; file ảnh được dọn bằng background job.")
             .Produces(StatusCodes.Status204NoContent)
             .ProducesNotFoundProblem();
 
