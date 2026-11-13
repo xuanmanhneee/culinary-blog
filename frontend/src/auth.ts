@@ -175,6 +175,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
 
       const backend = token as typeof token & Partial<BackendSessionToken>;
+      if (backend.error === "RefreshAccessTokenError") return token;
       if (!backend.accessTokenExpiresAt || Date.now() < backend.accessTokenExpiresAt - 30_000) return token;
       return refreshAccessToken(backend);
     },

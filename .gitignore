@@ -1,6 +1,8 @@
 # .NET
 backend/**/bin/
 backend/**/obj/
+services/**/bin/
+services/**/obj/
 *.user
 
 # Node / Next.js

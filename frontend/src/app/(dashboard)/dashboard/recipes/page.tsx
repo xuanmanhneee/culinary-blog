@@ -6,13 +6,17 @@ import { auth } from "@/auth";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { apiFetch } from "@/lib/api/client";
+import { getSavedRecipes } from "@/lib/api/engagement";
 import type { PagedResult } from "@/lib/types/api";
+import type { SavedRecipePage } from "@/lib/types/engagement";
 import { Pagination } from "@/components/common/Pagination";
 import { RECIPE_STATUS_LABELS, RecipeStatus, type RecipeListItemDto } from "@/lib/types/recipe";
 import { RecipeRowActions } from "./_components/RecipeRowActions";
+import { SavedRecipeActions } from "./_components/SavedRecipeActions";
 
 const PAGE_SIZE = 10;
 const EMPTY_PAGE: PagedResult<RecipeListItemDto> = { items: [], totalCount: 0, page: 1, pageSize: PAGE_SIZE, totalPages: 0, hasNextPage: false, hasPreviousPage: false };
+const EMPTY_SAVED_PAGE: SavedRecipePage = { items: [], totalCount: 0, page: 1, pageSize: PAGE_SIZE, totalPages: 0 };
 
 const statusFilters: { value: RecipeStatus | undefined; label: string }[] = [
   { value: undefined, label: "Tất cả" },
@@ -61,11 +65,12 @@ export default async function RecipeDashboardPage({ searchParams }: { searchPara
   const fetchMine = (query: string) =>
     token ? apiFetch<PagedResult<RecipeListItemDto>>(`/recipes?mine=true&${query}`, { token, cache: "no-store" }) : Promise.resolve(EMPTY_PAGE);
   // Số đếm cho thống kê: mỗi trạng thái một request pageSize=1, chỉ lấy totalCount.
-  const [result, all, published, drafts] = await Promise.all([
-    fetchMine(`page=${page}&pageSize=${PAGE_SIZE}&sort=-createdAt${status === undefined ? "" : `&status=${status}`}`),
-    fetchMine("pageSize=1"),
-    fetchMine(`pageSize=1&status=${RecipeStatus.Published}`),
-    fetchMine(`pageSize=1&status=${RecipeStatus.Draft}`),
+  const [result, all, published, drafts, savedRecipes] = await Promise.all([
+    isSavedTab ? EMPTY_PAGE : fetchMine(`page=${page}&pageSize=${PAGE_SIZE}&sort=-createdAt${status === undefined ? "" : `&status=${status}`}`),
+    isSavedTab ? EMPTY_PAGE : fetchMine("pageSize=1"),
+    isSavedTab ? EMPTY_PAGE : fetchMine(`pageSize=1&status=${RecipeStatus.Published}`),
+    isSavedTab ? EMPTY_PAGE : fetchMine(`pageSize=1&status=${RecipeStatus.Draft}`),
+    isSavedTab && token ? getSavedRecipes(page, PAGE_SIZE, token).catch(() => null) : EMPTY_SAVED_PAGE,
   ]);
   const recipes = result.items;
   const hrefFor = (next: { status?: RecipeStatus; page?: number }) => {
@@ -91,12 +96,30 @@ export default async function RecipeDashboardPage({ searchParams }: { searchPara
       )}
 
       {isSavedTab ? (
-        <div className="mt-7 flex min-h-72 flex-col items-center justify-center rounded-[1.5rem] border border-dashed border-[#d3c5b5] bg-[#fffdf9] px-6 text-center">
-          <span className="grid size-12 place-items-center rounded-full bg-[#f1e7da] text-[#b65338]"><Heart className="size-5" /></span>
-          <h2 className="font-display mt-4 text-2xl font-bold text-[#302a26]">Chưa có món nào được lưu</h2>
-          <p className="mt-2 max-w-md text-sm leading-6 text-[#7b7169]">Khi thấy một công thức yêu thích, hãy lưu lại để tìm thấy nhanh hơn trong Bếp của tôi.</p>
-          <Button variant="outline" className="mt-5" asChild><Link href="/recipes">Khám phá công thức</Link></Button>
-        </div>
+        <>
+          {savedRecipes === null ? (
+            <p role="status" className="mt-7 rounded-xl border border-[#e0d6ca] bg-[#fffdf9] px-5 py-6 text-center text-sm text-[#70675f]">Món đã lưu tạm thời không khả dụng.</p>
+          ) : savedRecipes.items.length === 0 ? (
+            <div className="mt-7 flex min-h-72 flex-col items-center justify-center rounded-[1.5rem] border border-dashed border-[#d3c5b5] bg-[#fffdf9] px-6 text-center">
+              <span className="grid size-12 place-items-center rounded-full bg-[#f1e7da] text-[#b65338]"><Heart className="size-5" /></span>
+              <h2 className="font-display mt-4 text-2xl font-bold text-[#302a26]">Chưa có món nào được lưu</h2>
+              <p className="mt-2 max-w-md text-sm leading-6 text-[#7b7169]">Khi thấy một công thức yêu thích, hãy lưu lại để tìm thấy nhanh hơn trong Bếp của tôi.</p>
+              <Button variant="outline" className="mt-5" asChild><Link href="/recipes">Khám phá công thức</Link></Button>
+            </div>
+          ) : (
+            <div className="mt-7 overflow-hidden rounded-[1.5rem] border border-[#ddd1c3] bg-[#fffdf9] shadow-[0_16px_45px_rgba(75,57,41,.06)]">
+              <div className="border-b border-[#e3d9cd] px-5 py-4"><h2 className="font-display text-xl font-bold">Món đã lưu ({savedRecipes.totalCount})</h2></div>
+              <div className="divide-y divide-[#e8dfd4]">{savedRecipes.items.map((recipe) => (
+                <div key={recipe.recipeId} className="grid items-center gap-4 px-5 py-4 sm:grid-cols-[72px_1fr_auto]">
+                  <div className="relative aspect-square overflow-hidden rounded-xl bg-[#eee5da]">{recipe.primaryImageUrl && <Image src={recipe.primaryImageUrl} alt="" fill sizes="72px" unoptimized className="object-cover" />}</div>
+                  <div className="min-w-0"><span className="inline-flex items-center gap-1 text-xs text-[#857b72]"><Clock3 className="size-3" />{recipe.totalTimeMinutes} phút</span><h3 className="mt-2 truncate font-bold text-[#3d3732]"><Link href={`/recipes/${recipe.slug}`} className="hover:text-[#1f4b3f]">{recipe.title}</Link></h3><p className="mt-1 line-clamp-1 text-xs text-[#887d74]">{recipe.description}</p></div>
+                  <div className="flex gap-1"><Button variant="ghost" size="icon" asChild><Link href={`/recipes/${recipe.slug}`} aria-label="Xem công thức"><Eye /></Link></Button><SavedRecipeActions recipeId={recipe.recipeId} /></div>
+                </div>
+              ))}</div>
+            </div>
+          )}
+          {savedRecipes && <div className="mt-7"><Pagination currentPage={savedRecipes.page} totalPages={savedRecipes.totalPages} hrefForPage={(next) => `/dashboard/recipes?tab=saved${next > 1 ? `&page=${next}` : ""}`} /></div>}
+        </>
       ) : (
         <>
           <div className="mt-7 grid gap-4 sm:grid-cols-3"><Stat label="Tổng công thức" value={String(all.totalCount)} /><Stat label="Đã xuất bản" value={String(published.totalCount)} /><Stat label="Bản nháp" value={String(drafts.totalCount)} /></div>

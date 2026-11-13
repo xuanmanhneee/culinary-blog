@@ -20,6 +20,10 @@ Browser
                            ├─ Redis cache + health checks
                            ├─ File storage: Local hoặc MinIO
                            └─ Hangfire jobs / PostgreSQL storage
+       └─ Engagement Minimal API (`:5100`)
+            ├─ Món đã lưu và rating dùng lại JWT của API chính
+            ├─ Xác nhận recipe Published qua CulinaryBlog API
+            └─ PostgreSQL riêng (`:5433`)
 ```
 
 ### Công nghệ chính
@@ -127,7 +131,7 @@ Login/Register form
 - Ảnh cover và ảnh từng bước được kiểm tra định dạng/kích thước, xem trước cục bộ bằng object URL có cleanup, rồi tải multipart với Bearer token qua API client dùng chung. Nếu upload lỗi sau khi tạo recipe, UI báo lỗi và dẫn đến trang sửa để tiếp tục.
 - Dashboard cung cấp thao tác xuất bản/hủy xuất bản, lưu trữ và xóa có xác nhận; trang sửa cũng có các hành động trạng thái. Mutation làm mới cache recipe và lỗi API được hiển thị rõ.
 - `/dashboard/users` dành cho Admin có danh sách phân trang, lọc/tìm kiếm, đổi role Admin/Author/Reader, khóa/mở khóa và xóa; trạng thái lockout được trả riêng trong DTO.
-- Tab “Món đã lưu” hiện là placeholder; chưa có luồng favorites/save đồng bộ backend.
+- Tab “Món đã lưu” đọc dữ liệu phân trang từ Engagement service; trang chi tiết cho phép lưu/bỏ lưu và chấm 1–5 sao.
 
 ### 3.3 Trang chi tiết công thức
 
@@ -184,7 +188,7 @@ Các mục dưới đây được xác nhận từ log người dùng gửi ho�
 ### 5.2 Chức năng có giao diện nhưng chưa hoàn chỉnh
 
 - **Google login:** luồng đã có ở frontend và backend, nhưng không bật mặc định. `.env.example` để trống `AUTH_GOOGLE_ID`/`AUTH_GOOGLE_SECRET` và đặt `NEXT_PUBLIC_GOOGLE_AUTH_ENABLED=false`; backend cũng cần `Google:ClientId`. Vì chưa có file env trong workspace, Google login hiện chưa sẵn sàng chạy. Cờ hiển thị nút và cấu hình provider là hai điều kiện riêng: bật cờ mà thiếu credentials vẫn không đăng ký provider.
-- **Yêu thích / “Món đã lưu”:** tab trong dashboard chỉ hiển thị trạng thái rỗng tĩnh; chưa có thao tác lưu/bỏ lưu, API hay lưu trữ favorites.
+- **Yêu thích và rating:** đã được tách thành `CulinaryBlog.Engagement` Minimal API, xác thực bằng JWT hiện tại và dùng PostgreSQL riêng. Service lưu snapshot tối thiểu của recipe sau khi xác nhận recipe Published qua API chính.
 - **Đổi / quên mật khẩu:** API đổi mật khẩu, quên mật khẩu và đặt lại mật khẩu chưa có trong backend hiện tại. “Quên mật khẩu?” trên login chỉ là chữ, không điều hướng; form đổi mật khẩu đã không còn trong account.
 - **Ghi nhớ đăng nhập:** checkbox “Ghi nhớ tôi” trên login không có tên hoặc xử lý state; không thay đổi thời hạn session.
 - **Newsletter:** form ở trang chủ dùng `action="#"`, input không có `name` và không nối API/dịch vụ gửi email; gửi form không đăng ký nhận thư.

@@ -30,6 +30,7 @@ Hệ thống theo mô hình Client–Server, giao tiếp qua REST API. Backend t
 |---|---|
 | Frontend | Next.js 14+ (App Router), TypeScript, Tailwind CSS, Auth.js v5, TanStack Query, React Hook Form + Zod |
 | Backend | .NET 10 Minimal APIs, C#, MediatR (CQRS), FluentValidation |
+| Engagement | .NET 10 Minimal API, EF Core; món đã lưu và rating, database riêng |
 | Database | PostgreSQL 16 (EF Core Code First, Full-Text Search) |
 | Cache | Adapter boundary available; distributed cache is not enabled yet |
 | Object Storage | Local files (Development), MinIO/S3-compatible (Production) |
@@ -156,6 +157,7 @@ Sau khi chạy, ứng dụng khả dụng tại:
 |---|---|
 | Frontend | http://localhost:3000 |
 | Backend API | http://localhost:5000 |
+| Engagement API | http://localhost:5100 |
 | API Docs (Scalar) | http://localhost:5000/scalar |
 | Mailhog (dev only) | http://localhost:8025 |
 

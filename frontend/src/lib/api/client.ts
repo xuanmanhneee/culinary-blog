@@ -43,6 +43,8 @@ export interface ApiFetchOptions extends Omit<RequestInit, "body"> {
   body?: unknown;
   /** Access token JWT, gửi qua header Authorization: Bearer. */
   token?: string | null;
+  /** Override cho microservice khác; mặc định là CulinaryBlog API. */
+  baseUrl?: string;
 }
 
 export interface ApiResponse<T> {
@@ -117,7 +119,7 @@ async function readProblemDetails(response: Response): Promise<ProblemDetails> {
 
 export async function apiFetchWithHeaders<T>(
   path: string,
-  { body, token, headers, ...init }: ApiFetchOptions = {},
+  { body, token, baseUrl = API_V1, headers, ...init }: ApiFetchOptions = {},
 ): Promise<ApiResponse<T>> {
   const requestHeaders = new Headers(headers);
   requestHeaders.set("Accept", "application/json");
@@ -133,7 +135,7 @@ export async function apiFetchWithHeaders<T>(
   let response: Response;
   try {
     // Các hàm apiFetch nhận path tương đối dưới `/api/v1` (ví dụ `/recipes`).
-    response = await fetch(`${API_V1}${path}`, { ...init, headers: requestHeaders, body: requestBody });
+    response = await fetch(`${baseUrl}${path}`, { ...init, headers: requestHeaders, body: requestBody });
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") throw error;
     throw new ApiNetworkError("Không thể kết nối đến máy chủ. Vui lòng kiểm tra mạng và thử lại.", error);

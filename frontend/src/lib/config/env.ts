@@ -23,6 +23,18 @@ export const API_V1 = trimTrailingSlash(
     `${API_URL}/api/v1`,
 );
 
+/** Engagement microservice: món đã lưu và đánh giá. */
+export const ENGAGEMENT_API_URL = trimTrailingSlash(
+  (typeof window === "undefined" ? process.env.ENGAGEMENT_API_URL : undefined) ||
+    process.env.NEXT_PUBLIC_ENGAGEMENT_API_URL ||
+    "http://localhost:5100",
+);
+
+export const ENGAGEMENT_API_V1 = trimTrailingSlash(
+  (typeof window === "undefined" ? process.env.ENGAGEMENT_API_V1 : undefined) ||
+    `${ENGAGEMENT_API_URL}/api/v1`,
+);
+
 /** URL public của website, dùng cho canonical, Open Graph và JSON-LD (NFR-SEO). */
 export const SITE_URL = trimTrailingSlash(
   process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000",

@@ -29,6 +29,6 @@ OpenAPI is available at `/openapi/v1.json`; Scalar is enabled in Development.
 - Storage uses local `wwwroot/uploads` in Development and keeps the MinIO adapter
   available for production configuration.
 
-Rating and saved recipes are intentionally excluded from the shared core. They
-live on the optional `codex/rating-saved-extension` branch and can be merged later
-without changing the Recipes domain contract.
+Rating and saved recipes live in the standalone `services/CulinaryBlog.Engagement`
+Minimal API. It validates the same JWT, owns a separate PostgreSQL database, and
+checks published recipes through the public Recipes API without sharing tables.

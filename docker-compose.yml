@@ -1,4 +1,26 @@
 services:
+  engagement:
+    image: culinaryblog-engagement:dev
+    build:
+      context: .
+      dockerfile: services/CulinaryBlog.Engagement/Dockerfile
+    container_name: culinaryblog-engagement
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__DefaultConnection: Host=engagement-postgres;Port=5432;Database=engagement;Username=postgres;Password=postgres
+      RecipeApiUrl: http://api:8080/
+      Jwt__Key: culinary-blog-dev-secret-key-2026
+      Cors__AllowedOrigins__0: http://localhost:3000
+    ports:
+      - "5100:8080"
+    depends_on:
+      engagement-postgres:
+        condition: service_healthy
+      api:
+        condition: service_started
+
   api:
     image: culinaryblog-api:dev
     build:
@@ -59,6 +81,24 @@ services:
       timeout: 5s
       retries: 10
 
+  engagement-postgres:
+    image: postgres:16-alpine
+    container_name: culinaryblog-engagement-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: engagement
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - culinaryblog-engagement-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d engagement"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   redis:
     image: redis:7-alpine
     container_name: culinaryblog-redis
@@ -113,6 +153,7 @@ services:
 
 volumes:
   culinaryblog-postgres-data:
+  culinaryblog-engagement-postgres-data:
   culinaryblog-redis-data:
   culinaryblog-minio-data:
   culinaryblog-seq-data:
