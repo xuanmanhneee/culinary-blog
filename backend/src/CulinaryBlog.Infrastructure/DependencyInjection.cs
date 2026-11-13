@@ -49,7 +49,7 @@ public static class DependencyInjection
 
         services.AddCache(configuration);
         services.AddHealthChecks()
-            .AddCheck<RedisHealthCheck>("redis", tags: ["ready"]);
+            .AddCheck<RedisHealthCheck>("redis");
         services.AddBackgroundJobs(configuration);
         return services;
     }
