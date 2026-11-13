@@ -366,7 +366,7 @@ Không tự đặt `Content-Type` khi gửi `FormData`; browser cần thêm mult
 | GET | `/health` | Tất cả health check đã đăng ký |
 | GET | `/health/live` | Process còn sống |
 | GET | `/health/ready` | Core DB sẵn sàng |
-| GET | `/hangfire` | Dashboard, chỉ được map trong Development |
+| GET | `/hangfire` | Dashboard; JWT Admin hoặc Basic Auth cấu hình riêng |
 
 ## 7. Luồng frontend khuyến nghị
 
@@ -399,6 +399,7 @@ Không tự đặt `Content-Type` khi gửi `FormData`; browser cần thêm mult
 | `Jwt__Audience` | `CulinaryBlog.Client` | Theo deployment |
 | `Cors__AllowedOrigins__0` | `http://localhost:3000` | Domain frontend thật |
 | `Storage__Provider` | `Local` | `MinIO` hoặc provider tương thích |
+| `HangfireDashboard__Username`, `HangfireDashboard__Password` | Để trống thì dashboard bị khóa | Đặt bằng secret; chỉ dùng qua HTTPS |
 
 Không dùng development key/password ở production.
 

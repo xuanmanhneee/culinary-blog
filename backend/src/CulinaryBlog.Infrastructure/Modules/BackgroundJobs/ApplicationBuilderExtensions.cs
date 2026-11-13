@@ -1,6 +1,5 @@
 using Hangfire;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.Hosting;
 using CulinaryBlog.Infrastructure.Modules.BackgroundJobs.Jobs;
 
 namespace CulinaryBlog.Infrastructure.Modules.BackgroundJobs;
@@ -9,13 +8,10 @@ public static class ApplicationBuilderExtensions
 {
     public static WebApplication UseBackgroundJobs(this WebApplication app)
     {
-        if (app.Environment.IsDevelopment())
+        app.UseHangfireDashboard("/hangfire", new DashboardOptions
         {
-            app.UseHangfireDashboard("/hangfire", new DashboardOptions
-            {
-                Authorization = [new AdminDashboardAuthorizationFilter()]
-            });
-        }
+            Authorization = [new AdminDashboardAuthorizationFilter(app.Configuration)]
+        });
 
         RecurringJob.AddOrUpdate<SitemapJob>(
             "sitemap-generation",

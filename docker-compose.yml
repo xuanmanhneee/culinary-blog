@@ -23,6 +23,8 @@ services:
       Smtp__Port: "1025"
       Smtp__From: noreply@culinaryblog.local
       Smtp__PublicApiUrl: http://localhost:5000
+      HangfireDashboard__Username: ${HANGFIRE_DASHBOARD_USERNAME:-}
+      HangfireDashboard__Password: ${HANGFIRE_DASHBOARD_PASSWORD:-}
       Cors__AllowedOrigins__0: http://localhost:3000
     ports:
       - "5000:8080"
