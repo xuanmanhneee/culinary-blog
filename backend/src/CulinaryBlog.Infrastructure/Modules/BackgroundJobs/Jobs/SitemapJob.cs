@@ -21,12 +21,14 @@ public sealed class SitemapJob
     {
         var baseUrl = (_configuration["App:PublicUrl"] ?? "http://localhost:3000").TrimEnd('/');
         var categories = await _db.Categories.AsNoTracking().OrderBy(c => c.Slug)
-            .Select(c => c.Slug).ToListAsync(ct);
+            .Select(c => c.Id).ToListAsync(ct);
         var recipes = await _db.Recipes.AsNoTracking()
             .Where(r => r.Status == Domain.Modules.Recipes.RecipeStatus.Published)
             .OrderBy(r => r.Slug).Select(r => r.Slug).ToListAsync(ct);
 
-        var urls = categories.Select(slug => $"{baseUrl}/categories/{slug}")
+        string[] staticUrls = [baseUrl, $"{baseUrl}/recipes", $"{baseUrl}/categories", $"{baseUrl}/search"];
+        var urls = staticUrls
+            .Concat(categories.Select(id => $"{baseUrl}/recipes?categoryId={id:D}"))
             .Concat(recipes.Select(slug => $"{baseUrl}/recipes/{slug}"));
         XNamespace sitemap = "http://www.sitemaps.org/schemas/sitemap/0.9";
         var document = new XDocument(

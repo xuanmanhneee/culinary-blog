@@ -195,7 +195,7 @@ Các mục dưới đây được xác nhận từ log người dùng gửi ho�
 
 ### 5.3 Vấn đề tích hợp / độ tin cậy cần lưu ý
 
-- **Sitemap:** Hangfire sinh URL `/categories/{slug}`, nhưng frontend hiện chỉ có route `/categories`, không có trang chi tiết danh mục theo slug; các URL danh mục sinh ra sẽ không có route tương ứng. Job ghi `sitemap.xml` vào web root của backend, trong khi website chạy bằng Next.js riêng và không có route sitemap Next.js; cần xác minh cách public sitemap trên domain website trước khi dựa vào nó cho SEO.
+- **Sitemap:** Hangfire sinh URL công thức, bộ lọc danh mục và trang tĩnh vào web root backend; frontend công khai file tại `/sitemap.xml` và `/robots.txt` khai báo URL sitemap.
 - **Cấu hình API trong Docker:** `frontend/.env.example` dùng `localhost:5000` cho môi trường host và ghi chú dùng `http://api:8080` khi frontend chạy cùng Docker network. Service API lắng nghe port `8080` bên trong container và publish thành `localhost:5000` trên host.
 - **Không có frontend test suite trong repository;** backend hiện chỉ có 2 test và đều kiểm tra handler/validation của search. Chưa có kiểm thử tích hợp API/database, Auth/Google, UI hoặc end-to-end để xác nhận các luồng chính.
 - `README.md` còn nội dung không khớp implementation hiện tại (ví dụ cấu trúc thư mục/API và mô tả Redis cache), nên không nên dùng riêng README làm nguồn chuẩn khi dựng hoặc đánh giá hệ thống.
@@ -205,4 +205,3 @@ Các mục dưới đây được xác nhận từ log người dùng gửi ho�
 - Log terminal ở mục 5.1 là bằng chứng runtime người dùng cung cấp; chúng xác nhận cấu hình Auth.js thiếu secret và frontend không kết nối được backend tại thời điểm chạy thử.
 - Các mục 5.2–5.3 là rà soát tĩnh mã nguồn/cấu hình và thiếu endpoint/route; chưa chạy từng tích hợp với Google, SMTP, PostgreSQL, Redis hay MinIO trong môi trường thực tế.
 - Các thay đổi endpoint và logging backend trong LAB 8 đã build thành công với 0 warning/0 error; 2 backend tests hiện có đều pass. Chưa chạy kiểm thử tích hợp các endpoints với PostgreSQL/Identity trong môi trường thực tế.
- 
