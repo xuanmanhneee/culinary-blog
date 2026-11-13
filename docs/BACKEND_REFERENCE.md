@@ -261,7 +261,7 @@ Query của `GET /recipes`:
 | `maxCookTime` |  | `>= 0` |
 | `sort` | `-createdAt` | `createdAt`, `title`, `cookTime`; thêm `-` để giảm dần |
 
-Query của `GET /recipes/search`: `q`, `page=1`, `pageSize=10` (`1..50`).
+Query của `GET /recipes/search`: `q`, `page=1`, `pageSize=10` (`1..50`), các filter và `sort` giống `GET /recipes`; bỏ trống `sort` để xếp theo độ liên quan.
 
 ```json
 // CreateRecipeRequest

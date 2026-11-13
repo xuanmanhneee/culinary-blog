@@ -19,7 +19,7 @@ public class SearchRecipesQueryHandler
     {
         var result = await _searchReader.SearchAsync(
             request.SearchTerm, request.Page, request.PageSize, request.CategoryId,
-            request.Difficulty, request.MaxCookTime, request.MinServings, cancellationToken);
+            request.Difficulty, request.MaxCookTime, request.MinServings, request.Sort, cancellationToken);
 
         return PagedResult<RecipeSummaryDto>.Create(
             result.Items.Select(hit => new RecipeSummaryDto

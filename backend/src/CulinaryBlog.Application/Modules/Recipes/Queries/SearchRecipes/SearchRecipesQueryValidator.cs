@@ -5,6 +5,9 @@ namespace CulinaryBlog.Application.Recipes.Queries.SearchRecipes;
 
 public class SearchRecipesQueryValidator : AbstractValidator<SearchRecipesQuery>
 {
+    private static readonly string[] SortOptions =
+        ["createdAt", "-createdAt", "title", "-title", "cookTime", "-cookTime"];
+
     public SearchRecipesQueryValidator()
     {
         RuleFor(v => v.SearchTerm)
@@ -25,5 +28,8 @@ public class SearchRecipesQueryValidator : AbstractValidator<SearchRecipesQuery>
         RuleFor(v => v.MaxCookTime).GreaterThanOrEqualTo(0).When(v => v.MaxCookTime.HasValue);
         RuleFor(v => v.MinServings).GreaterThanOrEqualTo(0).When(v => v.MinServings.HasValue);
         RuleFor(v => v.Difficulty).IsInEnum().When(v => v.Difficulty.HasValue);
+        RuleFor(v => v.Sort)
+            .Must(sort => sort is null || SortOptions.Contains(sort))
+            .WithMessage($"Sort must be one of: {string.Join(", ", SortOptions)}.");
     }
 }

@@ -557,7 +557,7 @@
           "Recipes"
         ],
         "summary": "Tìm kiếm toàn văn công thức đã xuất bản",
-        "description": "Tìm theo tiêu đề và mô tả; hỗ trợ phân trang, pageSize từ 1 đến 50.",
+        "description": "Tìm theo tiêu đề và mô tả; hỗ trợ lọc, phân trang và sắp xếp theo createdAt, title hoặc cookTime; thêm '-' để giảm dần.",
         "operationId": "SearchRecipes",
         "parameters": [
           {
@@ -630,6 +630,13 @@
                 "string"
               ],
               "format": "int32"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string"
             }
           }
         ],

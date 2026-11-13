@@ -15,15 +15,17 @@ function SearchContent() {
   const searchParams = useSearchParams();
   const searchTerm = searchParams.get("q")?.trim() ?? "";
   const categoryId = searchParams.get("categoryId")?.trim() ?? "";
+  const sort = searchParams.get("sort")?.trim() ?? "";
   const pageParam = Number(searchParams.get("page") ?? "1");
   const page = Number.isSafeInteger(pageParam) && pageParam > 0 ? pageParam : 1;
-  const { data, isLoading, error } = useRecipeSearch(searchTerm, categoryId, page);
+  const { data, isLoading, error } = useRecipeSearch(searchTerm, categoryId, page, sort);
   const categories = useCategories();
 
-  function navigate(query: string, selectedCategory: string, nextPage = 1) {
+  function navigate(query: string, selectedCategory: string, selectedSort: string, nextPage = 1) {
     const params = new URLSearchParams();
     if (query) params.set("q", query);
     if (selectedCategory) params.set("categoryId", selectedCategory);
+    if (selectedSort) params.set("sort", selectedSort);
     if (nextPage > 1) params.set("page", String(nextPage));
     const queryString = params.toString();
     router.push(queryString ? `/search?${queryString}` : "/search");
@@ -32,12 +34,12 @@ function SearchContent() {
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
-    navigate(String(form.get("q") ?? "").trim(), categoryId);
+    navigate(String(form.get("q") ?? "").trim(), categoryId, sort);
   }
 
   return <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-10 sm:px-6">
     <h1 className="font-display text-3xl font-bold text-[#302a26]">Tìm kiếm công thức</h1>
-    <form key={searchTerm} onSubmit={submit} className="mt-6 grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(13rem,auto)_auto]">
+    <form key={searchTerm} onSubmit={submit} className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(13rem,auto)_minmax(12rem,auto)_auto]">
       <label htmlFor="recipe-search" className="sr-only">Từ khóa tìm kiếm</label>
       <input id="recipe-search" name="q" defaultValue={searchTerm} minLength={2} required placeholder="Nhập ít nhất 2 ký tự..." className="min-w-0 rounded-md border border-zinc-300 px-4 py-2" />
       <label htmlFor="category-filter" className="sr-only">Lọc theo danh mục</label>
@@ -45,11 +47,21 @@ function SearchContent() {
         id="category-filter"
         value={categoryId}
         disabled={categories.isLoading}
-        onChange={(event) => navigate(searchTerm, event.target.value)}
+        onChange={(event) => navigate(searchTerm, event.target.value, sort)}
         className="rounded-md border border-zinc-300 bg-white px-4 py-2 disabled:opacity-60"
       >
         <option value="">Tất cả danh mục</option>
-        {categories.data?.map((category) => <option key={category.id} value={category.slug}>{category.name}</option>)}
+        {categories.data?.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
+      </select>
+      <label htmlFor="sort" className="sr-only">Sắp xếp kết quả</label>
+      <select id="sort" value={sort} onChange={(event) => navigate(searchTerm, categoryId, event.target.value)} className="rounded-md border border-zinc-300 bg-white px-4 py-2">
+        <option value="">Liên quan nhất</option>
+        <option value="-createdAt">Mới nhất</option>
+        <option value="createdAt">Cũ nhất</option>
+        <option value="title">Tên A–Z</option>
+        <option value="-title">Tên Z–A</option>
+        <option value="cookTime">Nấu nhanh nhất</option>
+        <option value="-cookTime">Nấu lâu nhất</option>
       </select>
       <button type="submit" className="rounded-md bg-emerald-700 px-5 py-2 font-medium text-white hover:bg-emerald-800">Tìm</button>
     </form>
@@ -58,7 +70,7 @@ function SearchContent() {
     {searchTerm.length === 0 && <p className="mt-4 text-sm text-zinc-600">Nhập từ khóa để tìm công thức; có thể kết hợp bộ lọc danh mục.</p>}
     {isLoading && <LoadingState label="Đang tìm công thức..." />}{error && <ErrorState message={error} />}
     {data && <section aria-live="polite" className="mt-8"><p className="mb-4 text-sm text-zinc-600">Tìm thấy {data.totalCount} công thức.</p>{data.items.length ? <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{data.items.map((recipe) => <li key={recipe.id} className="overflow-hidden rounded-lg border border-zinc-200">{recipe.thumbnailUrl && <Image src={recipe.thumbnailUrl} alt="" width={640} height={480} unoptimized className="h-48 w-full object-cover" />}<div className="p-4"><h2 className="text-lg font-semibold"><Link href={`/recipes/${encodeURIComponent(recipe.slug)}`} className="hover:text-emerald-800">{recipe.title}</Link></h2>{recipe.description && <p className="mt-2 line-clamp-3 text-sm text-zinc-600">{recipe.description}</p>}</div></li>)}</ul> : <p className="text-zinc-600">Không tìm thấy công thức phù hợp.</p>}
-      <Pagination page={data.page} totalPages={data.totalPages} hasPreviousPage={data.hasPreviousPage} hasNextPage={data.hasNextPage} onPageChange={(nextPage) => navigate(searchTerm, categoryId, nextPage)} isDisabled={isLoading} ariaLabel="Phân trang kết quả tìm kiếm" />
+      <Pagination page={data.page} totalPages={data.totalPages} hasPreviousPage={data.hasPreviousPage} hasNextPage={data.hasNextPage} onPageChange={(nextPage) => navigate(searchTerm, categoryId, sort, nextPage)} isDisabled={isLoading} ariaLabel="Phân trang kết quả tìm kiếm" />
     </section>}
   </main>;
 }

@@ -20,7 +20,7 @@ public sealed class SearchRecipesQueryTests
         using var scope = provider.CreateScope();
 
         var sender = scope.ServiceProvider.GetRequiredService<ISender>();
-        var result = await sender.Send(new SearchRecipesQuery("spicy", Page: 1, PageSize: 10));
+        var result = await sender.Send(new SearchRecipesQuery("spicy", Page: 1, PageSize: 10, Sort: "-title"));
 
         var item = Assert.Single(result.Items);
         Assert.Equal(recipeId, item.Id);
@@ -28,6 +28,7 @@ public sealed class SearchRecipesQueryTests
         Assert.Equal("spicy-noodles", item.Slug);
         Assert.Equal(1, result.TotalCount);
         Assert.Equal(1, reader.CallCount);
+        Assert.Equal("-title", reader.LastSort);
     }
 
     [Fact]
@@ -39,11 +40,12 @@ public sealed class SearchRecipesQueryTests
         var sender = scope.ServiceProvider.GetRequiredService<ISender>();
 
         var exception = await Assert.ThrowsAsync<ValidationException>(() =>
-            sender.Send(new SearchRecipesQuery(string.Empty, Page: 0, PageSize: 51)));
+            sender.Send(new SearchRecipesQuery(string.Empty, Page: 0, PageSize: 51, Sort: "unknown")));
 
         Assert.Contains(nameof(SearchRecipesQuery.SearchTerm), exception.Errors.Keys);
         Assert.Contains(nameof(SearchRecipesQuery.Page), exception.Errors.Keys);
         Assert.Contains(nameof(SearchRecipesQuery.PageSize), exception.Errors.Keys);
+        Assert.Contains(nameof(SearchRecipesQuery.Sort), exception.Errors.Keys);
         Assert.Equal(0, reader.CallCount);
     }
 
@@ -67,6 +69,7 @@ public sealed class SearchRecipesQueryTests
             (_items, _totalCount) = (items, totalCount);
 
         public int CallCount { get; private set; }
+        public string? LastSort { get; private set; }
 
         public Task<(IReadOnlyList<RecipeSearchItem> Items, int TotalCount)> SearchAsync(
             string searchTerm,
@@ -76,9 +79,11 @@ public sealed class SearchRecipesQueryTests
             RecipeDifficulty? difficulty = null,
             int? maxCookTime = null,
             int? minServings = null,
+            string? sort = null,
             CancellationToken cancellationToken = default)
         {
             CallCount++;
+            LastSort = sort;
             return Task.FromResult((_items, _totalCount));
         }
     }

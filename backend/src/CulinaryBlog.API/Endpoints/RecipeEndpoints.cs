@@ -52,7 +52,7 @@ public static class RecipeEndpoints
         group.MapGet("/search", SearchAsync)
             .WithName("SearchRecipes")
             .WithSummary("Tìm kiếm toàn văn công thức đã xuất bản")
-            .WithDescription("FR-SEARCH-001. Tìm theo từ khóa q (tối thiểu 2 ký tự), lọc categoryId tùy chọn, hỗ trợ phân trang bằng page và pageSize (1–50).")
+            .WithDescription("FR-SEARCH-001/003. Tìm theo từ khóa q (tối thiểu 2 ký tự), lọc categoryId, phân trang và sắp xếp theo createdAt, title hoặc cookTime; thêm '-' để giảm dần.")
             .Produces<PagedResult<RecipeSummaryDto>>()
             .ProducesValidationProblem();
 
@@ -242,10 +242,11 @@ public static class RecipeEndpoints
         [FromQuery] Guid? categoryId = null,
         [FromQuery] CulinaryBlog.Domain.Modules.Recipes.RecipeDifficulty? difficulty = null,
         [FromQuery] int? maxCookTime = null,
-        [FromQuery] int? minServings = null) =>
+        [FromQuery] int? minServings = null,
+        [FromQuery] string? sort = null) =>
         Results.Ok(await sender.Send(
             new SearchRecipesQuery(searchTerm ?? string.Empty, page, pageSize, categoryId,
-                difficulty, maxCookTime, minServings),
+                difficulty, maxCookTime, minServings, sort),
             cancellationToken));
 
     private static async Task<IResult> GetBySlugAsync(
