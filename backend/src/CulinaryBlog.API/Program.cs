@@ -58,7 +58,8 @@ var telemetryBuilder = builder.Services.AddOpenTelemetry()
     {
         metrics.AddAspNetCoreInstrumentation()
             .AddHttpClientInstrumentation()
-            .AddRuntimeInstrumentation();
+            .AddRuntimeInstrumentation()
+            .AddMeter("CulinaryBlog.Recipes");
         if (!string.IsNullOrWhiteSpace(telemetryEndpoint)) metrics.AddOtlpExporter();
     });
 

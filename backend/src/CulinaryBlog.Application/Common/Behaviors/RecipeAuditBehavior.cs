@@ -61,6 +61,7 @@ public sealed class RecipeAuditBehavior<TRequest, TResponse> : IPipelineBehavior
 
             // CreateRecipe chưa có id trước khi chạy: lấy từ kết quả trả về.
             recipeId ??= (response as RecipeDetailDto)?.Id;
+            RecipeTelemetry.Record(Action, "succeeded", stopwatch.Elapsed.TotalMilliseconds);
             _logger.LogInformation(
                 "Recipe audit: {AuditAction} recipe {RecipeId} by user {AuditUserId} succeeded in {ElapsedMs} ms",
                 Action, recipeId, userId, stopwatch.ElapsedMilliseconds);
@@ -74,6 +75,7 @@ public sealed class RecipeAuditBehavior<TRequest, TResponse> : IPipelineBehavior
                 DomainException domain => domain.ErrorCode,
                 _ => exception.GetType().Name,
             };
+            RecipeTelemetry.Record(Action, "failed", stopwatch.Elapsed.TotalMilliseconds, errorCode);
             // Lỗi nghiệp vụ (validation, không có quyền, xung đột...) là Warning; lỗi hệ thống để
             // GlobalExceptionMiddleware ghi Error kèm stack trace, ở đây chỉ đánh dấu thất bại.
             _logger.LogWarning(
