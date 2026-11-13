@@ -32,6 +32,10 @@ builder.Host.UseSerilog((context, services, loggerConfiguration) =>
             retainedFileCountLimit: 14,
             shared: true,
             outputTemplate: outputTemplate);
+
+    var seqServerUrl = context.Configuration["Seq:ServerUrl"];
+    if (!string.IsNullOrWhiteSpace(seqServerUrl))
+        loggerConfiguration.WriteTo.Seq(seqServerUrl);
 });
 
 // Không gọi builder.Services.AddOpenApi(): AddApiVersioning().AddOpenApi() đã đăng ký dịch vụ

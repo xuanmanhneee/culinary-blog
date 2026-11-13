@@ -400,6 +400,9 @@ Không tự đặt `Content-Type` khi gửi `FormData`; browser cần thêm mult
 | `Cors__AllowedOrigins__0` | `http://localhost:3000` | Domain frontend thật |
 | `Storage__Provider` | `Local` | `MinIO` hoặc provider tương thích |
 | `HangfireDashboard__Username`, `HangfireDashboard__Password` | Để trống thì dashboard bị khóa | Đặt bằng secret; chỉ dùng qua HTTPS |
+| `Seq__ServerUrl` | `http://seq:80` trong Docker Compose | URL Seq nội bộ; để trống để tắt sink |
+
+Docker Compose công khai giao diện Seq tại `http://localhost:5341`. Tài khoản mặc định là `admin`; đổi `SEQ_ADMIN_PASSWORD` trước khi dùng ngoài máy local.
 
 Không dùng development key/password ở production.
 
