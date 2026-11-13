@@ -1,4 +1,5 @@
 import { ArrowRight, BookOpen, Dices, Search, Sparkles, UtensilsCrossed } from "lucide-react";
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { RecipeCard } from "@/components/recipes/RecipeCard";
@@ -7,6 +8,10 @@ import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/common/ErrorState";
 import { getErrorMessage } from "@/lib/errors";
 import { getLatestPublicRecipes, getPublicCategories } from "@/lib/api/recipes";
+
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+};
 
 export default async function Home() {
   const [categoriesResult, recipesResult] = await Promise.allSettled([

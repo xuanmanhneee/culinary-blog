@@ -10,6 +10,7 @@ import { getErrorMessage } from "@/lib/errors";
 export const metadata: Metadata = {
   title: "Danh mục công thức",
   description: "Khám phá các danh mục công thức nấu ăn từ cộng đồng Bếp Nhà.",
+  alternates: { canonical: "/categories" },
 };
 
 export default async function CategoriesPage() {

@@ -5,6 +5,7 @@ import { RandomRecipePicker } from "./RandomRecipePicker";
 export const metadata: Metadata = {
   title: "Không biết ăn gì?",
   description: "Để Bếp Nhà chọn ngẫu nhiên một món ngon cho bữa ăn tiếp theo của bạn.",
+  alternates: { canonical: "/random" },
 };
 
 // The random pool must reflect currently published recipes and must not require the API

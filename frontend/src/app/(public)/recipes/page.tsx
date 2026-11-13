@@ -12,6 +12,7 @@ import { RECIPE_DIFFICULTY_LABELS, type RecipeDifficulty } from "@/lib/types/rec
 export const metadata: Metadata = {
   title: "Khám phá công thức",
   description: "Tìm công thức nấu ăn phù hợp với khẩu vị và thời gian của bạn.",
+  alternates: { canonical: "/recipes" },
 };
 
 interface RecipeSearchParams {

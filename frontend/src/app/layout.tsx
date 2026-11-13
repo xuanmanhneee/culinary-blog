@@ -2,9 +2,11 @@ import type { Metadata } from "next";
 import { Toaster } from "sonner";
 import { AuthSessionProvider } from "@/components/providers/AuthSessionProvider";
 import { Header } from "@/components/layout/Header";
+import { SITE_URL } from "@/lib/config/env";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: {
     default: "Bếp Nhà — Gói trọn vị ngon trong từng câu chuyện",
     template: "%s | Bếp Nhà",

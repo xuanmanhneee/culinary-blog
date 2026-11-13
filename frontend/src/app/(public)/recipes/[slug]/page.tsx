@@ -36,6 +36,7 @@ export async function generateMetadata({ params }: RecipePageProps): Promise<Met
   return {
     title: recipe.title,
     description: recipe.description,
+    alternates: isPreview ? undefined : { canonical: `/recipes/${encodeURIComponent(recipe.slug)}` },
     openGraph: { title: recipe.title, description: recipe.description, type: "article", ...(image ? { images: [image.url] } : {}) },
     // Bản nháp/lưu trữ chỉ chủ công thức xem trước, không cho công cụ tìm kiếm index.
     robots: isPreview ? { index: false, follow: false } : undefined,
