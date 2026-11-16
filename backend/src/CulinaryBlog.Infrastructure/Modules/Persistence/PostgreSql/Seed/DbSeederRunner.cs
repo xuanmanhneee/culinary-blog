@@ -24,7 +24,7 @@ public static class DbSeederRunner
 
         var authors = await identitySeeder.SeedAuthorsAsync(count: 6);
         var categories = await categorySeeder.SeedAsync(); // >= 20 categories
-        await recipeSeeder.SeedAsync(categories, authors, count: 120); // >= 100 recipes
+        await recipeSeeder.SeedAsync(categories, authors);
 
         logger.LogInformation("=== Seed dữ liệu hoàn tất ===");
     }

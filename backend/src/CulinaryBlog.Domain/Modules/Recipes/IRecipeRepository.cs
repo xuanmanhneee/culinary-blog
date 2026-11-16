@@ -23,6 +23,7 @@ public interface IRecipeRepository : IRepository<Recipe>
         string? ownerId = null,
         Guid? categoryId = null,
         RecipeDifficulty? difficulty = null,
+        RecipeStatus? status = null,
         int? minPrepTime = null,
         int? maxCookTime = null,
         int? minServings = null,

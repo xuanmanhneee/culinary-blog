@@ -13,6 +13,7 @@ public sealed record RecipeQuery(
     int PageSize = 12,
     Guid? CategoryId = null,
     RecipeDifficulty? Difficulty = null,
+    RecipeStatus? Status = null,
     int? MinPrepTime = null,
     int? MaxCookTime = null,
     int? MinServings = null,

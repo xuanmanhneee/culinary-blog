@@ -49,7 +49,7 @@ function SearchContent() {
         className="rounded-md border border-zinc-300 bg-white px-4 py-2 disabled:opacity-60"
       >
         <option value="">Tất cả danh mục</option>
-        {categories.data?.map((category) => <option key={category.id} value={category.slug}>{category.name}</option>)}
+        {categories.data?.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
       </select>
       <button type="submit" className="rounded-md bg-emerald-700 px-5 py-2 font-medium text-white hover:bg-emerald-800">Tìm</button>
     </form>

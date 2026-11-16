@@ -36,6 +36,7 @@ public class RecipeRepository : IRecipeRepository
         string? ownerId = null,
         Guid? categoryId = null,
         RecipeDifficulty? difficulty = null,
+        RecipeStatus? status = null,
         int? minPrepTime = null,
         int? maxCookTime = null,
         int? minServings = null,
@@ -58,6 +59,7 @@ public class RecipeRepository : IRecipeRepository
         }
         if (categoryId.HasValue) query = query.Where(r => r.CategoryId == categoryId.Value);
         if (difficulty.HasValue) query = query.Where(r => r.Difficulty == difficulty.Value);
+        if (status.HasValue) query = query.Where(r => r.Status == status.Value);
         if (minPrepTime.HasValue) query = query.Where(r => r.PrepTime >= minPrepTime.Value);
         if (maxCookTime.HasValue) query = query.Where(r => r.CookTime <= maxCookTime.Value);
         if (minServings.HasValue) query = query.Where(r => r.Servings >= minServings.Value);
