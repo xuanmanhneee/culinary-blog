@@ -10,6 +10,9 @@ using CulinaryBlog.Application.Recipes.Models;
 using CulinaryBlog.Application.Recipes.Queries.GetRecipeById;
 using CulinaryBlog.Application.Recipes.Queries.GetRecipeBySlug;
 using CulinaryBlog.Application.Recipes.Queries.GetRecipes;
+using CulinaryBlog.Application.Recipes.Commands.ToggleFavorite;
+using CulinaryBlog.Application.Recipes.Queries.GetFavoriteStatus;
+using CulinaryBlog.Application.Recipes.Queries.GetSavedRecipes;
 using CulinaryBlog.Application.Recipes.Queries.SearchRecipes;
 using CulinaryBlog.Application.Recipes.Services;
 using CulinaryBlog.Application.Common.Exceptions;
@@ -55,6 +58,25 @@ public static class RecipeEndpoints
             .WithDescription("FR-SEARCH-001. Tìm theo từ khóa q (tối thiểu 2 ký tự), lọc categoryId tùy chọn, hỗ trợ phân trang bằng page và pageSize (1–50).")
             .Produces<PagedResult<RecipeSummaryDto>>()
             .ProducesValidationProblem();
+
+        group.MapGet("/favorites", GetFavoritesAsync)
+            .RequireAuthorization()
+            .WithName("GetSavedRecipes")
+            .WithSummary("Danh sách công thức yêu thích của người dùng hiện tại")
+            .Produces<PagedResult<RecipeListItemDto>>()
+            .ProducesAuthProblems();
+
+        group.MapGet("/{id:guid}/is-favorite", GetIsFavoriteAsync)
+            .WithName("GetRecipeIsFavorite")
+            .WithSummary("Kiểm tra công thức đã được lưu chưa")
+            .Produces<object>();
+
+        group.MapPost("/{id:guid}/favorite", ToggleFavoriteAsync)
+            .RequireAuthorization()
+            .WithName("ToggleRecipeFavorite")
+            .WithSummary("Lưu hoặc bỏ lưu công thức yêu thích")
+            .Produces<object>()
+            .ProducesAuthProblems();
 
         group.MapGet("/{slug}", GetBySlugAsync)
             .WithName("GetRecipeBySlug")
@@ -272,4 +294,23 @@ public static class RecipeEndpoints
             cancellationToken);
         return Results.Created($"{ApiVersioningExtensions.V1Path}/recipes/{recipe.Slug}", recipe);
     }
+
+    private static async Task<IResult> GetFavoritesAsync(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10,
+        ISender sender = default!,
+        CancellationToken cancellationToken = default) =>
+        Results.Ok(await sender.Send(new GetSavedRecipesQuery(page, pageSize), cancellationToken));
+
+    private static async Task<IResult> GetIsFavoriteAsync(
+        Guid id,
+        ISender sender,
+        CancellationToken cancellationToken) =>
+        Results.Ok(new { isFavorite = await sender.Send(new GetFavoriteStatusQuery(id), cancellationToken) });
+
+    private static async Task<IResult> ToggleFavoriteAsync(
+        Guid id,
+        ISender sender,
+        CancellationToken cancellationToken) =>
+        Results.Ok(new { isFavorite = await sender.Send(new ToggleFavoriteCommand(id), cancellationToken) });
 }

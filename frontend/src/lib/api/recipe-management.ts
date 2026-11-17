@@ -162,3 +162,22 @@ export function uploadRecipeImage(recipeId: string, file: File, token: Token): P
 export function listCategories(): Promise<CategoryDto[]> {
   return apiFetch("/categories");
 }
+
+// ---------------------------------------------------------------- Yêu thích / Món đã lưu
+
+export interface FavoriteStatusResponse {
+  isFavorite: boolean;
+}
+
+export function toggleFavoriteRecipe(recipeId: string, token: Token): Promise<FavoriteStatusResponse> {
+  return apiFetch(`${RECIPES}/${encodeURIComponent(recipeId)}/favorite`, { method: "POST", token });
+}
+
+export function getRecipeFavoriteStatus(recipeId: string, token: Token): Promise<FavoriteStatusResponse> {
+  return apiFetch(`${RECIPES}/${encodeURIComponent(recipeId)}/is-favorite`, { token });
+}
+
+export function getSavedRecipes(page = 1, pageSize = 10, token: Token): Promise<PagedResult<RecipeListItemDto>> {
+  return apiFetch(`${RECIPES}/favorites?page=${page}&pageSize=${pageSize}`, { token, cache: "no-store" });
+}
+

@@ -124,4 +124,53 @@ public class RecipeRepository : IRecipeRepository
     public void Update(Recipe entity) => _context.Recipes.Update(entity);
 
     public void Remove(Recipe entity) => _context.Recipes.Remove(entity);
+
+    public async Task<bool> IsFavoriteAsync(Guid recipeId, string userId, CancellationToken cancellationToken = default) =>
+        await _context.RecipeFavorites
+            .AnyAsync(rf => rf.RecipeId == recipeId && rf.UserId == userId, cancellationToken);
+
+    public async Task<bool> ToggleFavoriteAsync(Guid recipeId, string userId, CancellationToken cancellationToken = default)
+    {
+        var existing = await _context.RecipeFavorites
+            .FirstOrDefaultAsync(rf => rf.RecipeId == recipeId && rf.UserId == userId, cancellationToken);
+
+        if (existing is not null)
+        {
+            _context.RecipeFavorites.Remove(existing);
+            await _context.SaveChangesAsync(cancellationToken);
+            return false;
+        }
+
+        var favorite = RecipeFavorite.Create(recipeId, userId);
+        await _context.RecipeFavorites.AddAsync(favorite, cancellationToken);
+        await _context.SaveChangesAsync(cancellationToken);
+        return true;
+    }
+
+    public async Task<(IReadOnlyList<Recipe> Items, int TotalCount)> GetFavoritesPagedAsync(
+        string userId,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _context.RecipeFavorites
+            .Where(rf => rf.UserId == userId && rf.Recipe != null)
+            .OrderByDescending(rf => rf.CreatedAt);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var favorites = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Include(rf => rf.Recipe)
+                .ThenInclude(r => r!.Category)
+            .Include(rf => rf.Recipe)
+                .ThenInclude(r => r!.Author)
+            .Include(rf => rf.Recipe)
+                .ThenInclude(r => r!.Images.Where(i => i.IsPrimary))
+            .AsSplitQuery()
+            .ToListAsync(cancellationToken);
+
+        return (favorites.Select(favorite => favorite.Recipe!).ToList(), totalCount);
+    }
 }

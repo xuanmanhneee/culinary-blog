@@ -49,4 +49,14 @@ public interface IRecipeRepository : IRepository<Recipe>
     void AddStep(RecipeStep step);
 
     Task<bool> SlugExistsAsync(string slug, CancellationToken cancellationToken = default);
+
+    Task<bool> IsFavoriteAsync(Guid recipeId, string userId, CancellationToken cancellationToken = default);
+
+    Task<bool> ToggleFavoriteAsync(Guid recipeId, string userId, CancellationToken cancellationToken = default);
+
+    Task<(IReadOnlyList<Recipe> Items, int TotalCount)> GetFavoritesPagedAsync(
+        string userId,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken = default);
 }

@@ -88,7 +88,7 @@ export default async function RecipePage({ params }: RecipePageProps) {
 
         <div className="relative">
           <RecipeGallery images={recipe.images} title={recipe.title} />
-          <RecipeActions title={recipe.title} />
+          <RecipeActions recipeId={recipe.id} title={recipe.title} />
         </div>
 
         <dl className="mx-auto -mt-1 grid max-w-4xl grid-cols-2 divide-x divide-y divide-[#ded3c6] rounded-b-[1.5rem] border border-[#ded3c6] bg-white px-2 py-3 shadow-[0_18px_40px_rgba(80,59,39,.07)] sm:grid-cols-4 sm:divide-y-0 sm:px-4 sm:py-5">
