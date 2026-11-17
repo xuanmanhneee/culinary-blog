@@ -80,7 +80,7 @@ export default async function Home() {
               <Link href="/categories" className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[#f3d8c5] hover:text-white">Khám phá tất cả <ArrowRight className="size-4" /></Link>
             </div>
             {categories.slice(0, 3).map((category, index) => (
-              <Link key={category.id} href={`/search?categorySlug=${encodeURIComponent(category.slug)}`} className="group flex min-h-44 items-end overflow-hidden rounded-[1.5rem] border border-[#ded3c6] bg-[#e3eee7] p-5 shadow-[0_10px_25px_rgba(75,57,41,.05)] transition hover:-translate-y-1 hover:shadow-[0_16px_35px_rgba(75,57,41,.10)]">
+              <Link key={category.id} href={`/recipes?categoryId=${encodeURIComponent(category.id)}`} className="group flex min-h-44 items-end overflow-hidden rounded-[1.5rem] border border-[#ded3c6] bg-[#e3eee7] p-5 shadow-[0_10px_25px_rgba(75,57,41,.05)] transition hover:-translate-y-1 hover:shadow-[0_16px_35px_rgba(75,57,41,.10)]">
                 <span className="flex w-full items-center gap-4">
                   <span className="grid size-16 shrink-0 place-items-center overflow-hidden rounded-full bg-white/70 text-[#1f4b3f]">
                     {category.imageUrl ? <Image src={category.imageUrl} alt="" width={96} height={96} unoptimized className="size-full object-cover" /> : <span className="font-display text-3xl font-bold">{category.name.charAt(0) || index + 1}</span>}

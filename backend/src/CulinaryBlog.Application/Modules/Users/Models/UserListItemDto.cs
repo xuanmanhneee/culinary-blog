@@ -10,4 +10,5 @@ public sealed record UserListItemDto(
     IReadOnlyList<string> Roles,
     bool EmailConfirmed,
     bool IsActive,
+    bool IsLocked,
     DateTimeOffset CreatedAt);

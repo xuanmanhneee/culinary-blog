@@ -13,6 +13,7 @@ import { emptyStep, useRecipeFormStore, type StepDraft } from "@/lib/stores/reci
 import { optionalNumber, stepsSchema, type StepsValues } from "./schemas";
 import { useServerErrors, type ServerErrors } from "./server-errors";
 import { StepActions } from "./StepActions";
+import { RecipeImageFilePicker, type SelectedRecipeImage } from "./RecipeImageFilePicker";
 
 /** Bước 3 – các bước thực hiện (FR-RCP-010). Số thứ tự theo vị trí, backend đánh lại 1, 2, 3... */
 export function StepsStep({
@@ -21,7 +22,7 @@ export function StepsStep({
   onImageSelected,
 }: {
   serverErrors?: ServerErrors | null;
-  selectedImages?: Record<string, File>;
+  selectedImages?: Record<string, SelectedRecipeImage>;
   onImageSelected?: (key: string, file: File | null) => void;
 }) {
   const setSteps = useRecipeFormStore((state) => state.setSteps);
@@ -113,17 +114,12 @@ export function StepsStep({
                     />
                     <FieldError errors={[itemErrors?.description]} />
                   </Field>
-                  <div className="rounded-md border border-dashed px-4 py-3">
-                    <label htmlFor={`step-${index}-image`} className="flex cursor-pointer items-center justify-between gap-3 text-sm hover:text-emerald-700">
-                      <span>
-                        <span className="block font-medium">Ảnh minh họa (tùy chọn)</span>
-                        <span className="text-xs text-muted-foreground">JPEG, PNG, WebP hoặc AVIF · tối đa 5 MB</span>
-                      </span>
-                      <span className="shrink-0 rounded-md border px-3 py-1.5 text-xs font-semibold">{selectedImages[field.key]?.name ? "Đổi ảnh" : "Chọn ảnh"}</span>
-                    </label>
-                    <input id={`step-${index}-image`} type="file" accept="image/jpeg,image/png,image/webp,image/avif" className="sr-only" onChange={(event) => onImageSelected?.(field.key, event.target.files?.[0] ?? null)} />
-                    {selectedImages[field.key] && <p className="mt-2 truncate text-xs text-emerald-700">{selectedImages[field.key].name}</p>}
-                  </div>
+                  <RecipeImageFilePicker
+                    id={`step-${index}-image`}
+                    label={`ảnh minh họa bước ${index + 1}`}
+                    selection={selectedImages[field.key] ?? null}
+                    onFileChange={(file) => onImageSelected?.(field.key, file)}
+                  />
                   <div className="flex justify-end gap-1">
                     <Button
                       type="button"

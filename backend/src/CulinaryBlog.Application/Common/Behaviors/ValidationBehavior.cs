@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using CulinaryBlog.Application.Common.Exceptions;
 using FluentValidation;
 using MediatR;
 using AppValidationException = CulinaryBlog.Application.Common.Exceptions.ValidationException;
@@ -44,4 +45,3 @@ public class ValidationBehavior<TRequest, TResponse> : IPipelineBehavior<TReques
         return await next();
     }
 }
-

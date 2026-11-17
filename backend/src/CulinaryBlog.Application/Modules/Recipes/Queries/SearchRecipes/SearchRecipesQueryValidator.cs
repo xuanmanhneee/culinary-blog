@@ -12,9 +12,12 @@ public class SearchRecipesQueryValidator : AbstractValidator<SearchRecipesQuery>
             .MinimumLength(2).WithMessage("SearchTerm must be at least 2 characters long.")
             .Must(value => Regex.IsMatch(value, @"[\p{L}\p{N}]"))
             .WithMessage("SearchTerm must contain at least one letter or number.");
-            
+
         RuleFor(v => v.Page)
             .GreaterThanOrEqualTo(1).WithMessage("Page at least greater than or equal to 1.");
+        RuleFor(v => v.Page)
+            .Must((query, page) => (long)(page - 1) * query.PageSize <= int.MaxValue)
+            .WithMessage("The requested page is out of range.");
 
         RuleFor(v => v.PageSize)
             .InclusiveBetween(1, 50).WithMessage("PageSize must be between 1 and 50.");
@@ -24,4 +27,3 @@ public class SearchRecipesQueryValidator : AbstractValidator<SearchRecipesQuery>
         RuleFor(v => v.Difficulty).IsInEnum().When(v => v.Difficulty.HasValue);
     }
 }
-

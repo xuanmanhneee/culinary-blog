@@ -26,9 +26,12 @@ public static class AuthEndpoints
             RegisterRequest request,
             ISender sender,
             HttpContext http,
+            ILoggerFactory loggerFactory,
             CancellationToken ct) =>
         {
             var result = await sender.Send(new RegisterCommand(request, http.GetClientIp()), ct);
+            var logger = loggerFactory.CreateLogger("CulinaryBlog.API.Endpoints.AuthEndpoints");
+            logger.LogInformation("User registered: {UserId}", result.User.Id);
             return Results.Created($"{ApiVersioningExtensions.V1Path}/auth/me", result);
         })
         .AllowAnonymous()
@@ -62,9 +65,12 @@ public static class AuthEndpoints
             LoginRequest request,
             ISender sender,
             HttpContext http,
+            ILoggerFactory loggerFactory,
             CancellationToken ct) =>
         {
             var result = await sender.Send(new LoginCommand(request, http.GetClientIp()), ct);
+            var logger = loggerFactory.CreateLogger("CulinaryBlog.API.Endpoints.AuthEndpoints");
+            logger.LogInformation("User logged in: {UserId}", result.User.Id);
             return Results.Ok(result);
         })
         .AllowAnonymous()
@@ -79,8 +85,14 @@ public static class AuthEndpoints
             GoogleLoginRequest request,
             ISender sender,
             HttpContext http,
+            ILoggerFactory loggerFactory,
             CancellationToken ct) =>
-            Results.Ok(await sender.Send(new GoogleLoginCommand(request, http.GetClientIp()), ct)))
+        {
+            var result = await sender.Send(new GoogleLoginCommand(request, http.GetClientIp()), ct);
+            var logger = loggerFactory.CreateLogger("CulinaryBlog.API.Endpoints.AuthEndpoints");
+            logger.LogInformation("User authenticated with Google: {UserId}", result.User.Id);
+            return Results.Ok(result);
+        })
         .AllowAnonymous()
         .WithName("GoogleLogin")
         .WithSummary("Đăng nhập hoặc đăng ký bằng Google")

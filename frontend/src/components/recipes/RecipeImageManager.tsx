@@ -2,9 +2,11 @@
 
 import Image from "next/image";
 import { useSession } from "next-auth/react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ChangeEvent, DragEvent } from "react";
-import { API_V1 } from "@/lib/config/env";
+import { getRecipeErrorMessage } from "@/lib/api/problem";
+import { uploadRecipeImage } from "@/lib/api/recipe-management";
+import { validateRecipeImageFile } from "@/lib/recipe-image";
 import type { RecipeImageDto } from "@/lib/types/recipe";
 
 interface RecipeImageManagerProps {
@@ -12,40 +14,6 @@ interface RecipeImageManagerProps {
   images: RecipeImageDto[];
   authorId?: string | null;
   uploadOnly?: boolean;
-}
-
-const maxFileSize = 5 * 1024 * 1024;
-const acceptedImageTypes = new Set([
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/avif",
-]);
-
-function getErrorMessage(body: unknown, fallback: string): string {
-  if (typeof body === "string" && body.trim()) {
-    return body;
-  }
-
-  if (typeof body === "object" && body !== null) {
-    const problem = body as { detail?: unknown; title?: unknown; errors?: unknown };
-    if (typeof problem.detail === "string") {
-      return problem.detail;
-    }
-    if (typeof problem.title === "string") {
-      return problem.title;
-    }
-    if (typeof problem.errors === "object" && problem.errors !== null) {
-      const messages = Object.values(problem.errors)
-        .flatMap((value) => (Array.isArray(value) ? value : []))
-        .filter((value): value is string => typeof value === "string");
-      if (messages.length > 0) {
-        return messages.join(" ");
-      }
-    }
-  }
-
-  return fallback;
 }
 
 export default function RecipeImageManager({
@@ -60,12 +28,18 @@ export default function RecipeImageManager({
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [isDragging, setIsDragging] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const previewUrlRef = useRef<string | null>(null);
   const accessToken = session?.accessToken;
   const isAdmin = session?.user.roles.includes("Admin") ?? false;
   const hasAuthorRole = session?.user.roles.includes("Author") ?? false;
   const isOwner = Boolean(authorId && session?.user.id === authorId);
   const canUpload = Boolean(accessToken) && (isAdmin || (hasAuthorRole && isOwner));
+
+  useEffect(() => () => {
+    if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+  }, []);
 
   if (uploadOnly && !canUpload) {
     return null;
@@ -79,83 +53,29 @@ export default function RecipeImageManager({
     setMessage("");
     setError("");
 
-    if (file.size > maxFileSize) {
-      setError("Ảnh không được vượt quá 5 MB.");
-      return;
-    }
-    if (!acceptedImageTypes.has(file.type)) {
-      setError("Chỉ hỗ trợ ảnh JPEG, PNG, WebP hoặc AVIF.");
+    const validationError = validateRecipeImageFile(file);
+    if (validationError) {
+      setError(validationError);
       return;
     }
 
     setIsUploading(true);
+    const localPreview = URL.createObjectURL(file);
+    previewUrlRef.current = localPreview;
+    setPreviewUrl(localPreview);
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const response = await fetch(
-        `${API_V1}/recipes/${encodeURIComponent(recipeId)}/images`,
-        {
-          method: "POST",
-          headers: { Authorization: `Bearer ${accessToken}` },
-          body: formData,
-        },
-      );
-      const responseText = await response.text();
-      let responseBody: unknown;
-      if (responseText) {
-        try {
-          responseBody = JSON.parse(responseText);
-        } catch (parseError) {
-          if (!(parseError instanceof SyntaxError)) {
-            throw parseError;
-          }
-          responseBody = responseText;
-        }
-      }
-
-      if (!response.ok) {
-        throw new Error(
-          getErrorMessage(responseBody, `Không thể tải ảnh lên (HTTP ${response.status}).`),
-        );
-      }
-
-      if (
-        typeof responseBody !== "object"
-        || responseBody === null
-        || !("id" in responseBody)
-        || typeof responseBody.id !== "string"
-        || !("url" in responseBody)
-        || typeof responseBody.url !== "string"
-        || !("altText" in responseBody)
-        || (responseBody.altText !== null && typeof responseBody.altText !== "string")
-        || !("isPrimary" in responseBody)
-        || typeof responseBody.isPrimary !== "boolean"
-        || !("orderIndex" in responseBody)
-        || typeof responseBody.orderIndex !== "number"
-      ) {
-        throw new Error("Máy chủ trả về dữ liệu ảnh không hợp lệ.");
-      }
-
-      const uploadedImage: RecipeImageDto = {
-        id: responseBody.id,
-        url: responseBody.url,
-        altText: responseBody.altText,
-        isPrimary: responseBody.isPrimary,
-        orderIndex: responseBody.orderIndex,
-      };
+      const uploadedImage = await uploadRecipeImage(recipeId, file, accessToken);
       setImages((currentImages) => [
         ...currentImages,
         uploadedImage,
       ]);
       setMessage("Tải ảnh lên thành công!");
     } catch (uploadError) {
-      setError(
-        uploadError instanceof Error
-          ? uploadError.message
-          : "Đã xảy ra lỗi khi tải ảnh lên.",
-      );
+      setError(getRecipeErrorMessage(uploadError));
     } finally {
+      URL.revokeObjectURL(localPreview);
+      previewUrlRef.current = null;
+      setPreviewUrl(null);
       setIsUploading(false);
       if (inputRef.current) {
         inputRef.current.value = "";
@@ -240,6 +160,11 @@ export default function RecipeImageManager({
           isDragging ? "border-emerald-600 bg-emerald-50" : "border-zinc-300"
         }`}
       >
+        {previewUrl && (
+          <div className="relative mx-auto mb-4 aspect-[4/3] w-full max-w-sm overflow-hidden rounded-lg bg-zinc-100">
+            <Image src={previewUrl} alt="Xem trước ảnh đang tải lên" fill unoptimized className="object-cover" />
+          </div>
+        )}
         <p className="text-sm text-zinc-700">
           Kéo thả ảnh vào đây hoặc chọn tệp (JPEG, PNG, WebP, AVIF; tối đa 5 MB).
         </p>

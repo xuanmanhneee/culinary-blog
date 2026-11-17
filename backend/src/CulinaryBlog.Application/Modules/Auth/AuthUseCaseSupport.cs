@@ -66,6 +66,7 @@ internal static class AuthUseCaseSupport
             user.Email!,
             user.UserName!,
             user.AvatarUrl,
+            user.Bio,
             roles.ToList(),
             user.EmailConfirmed,
             user.CreatedAt);

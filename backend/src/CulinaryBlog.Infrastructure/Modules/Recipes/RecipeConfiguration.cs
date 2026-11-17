@@ -22,7 +22,6 @@ public class RecipeConfiguration : IEntityTypeConfiguration<Recipe>
 
         builder.Property(r => r.Description).IsRequired();
         builder.Property(r => r.Instructions).IsRequired();
-
         builder.Property(r => r.PrepTime).IsRequired();
         builder.Property(r => r.CookTime).IsRequired();
         builder.Property(r => r.Servings).IsRequired();
@@ -69,10 +68,8 @@ public class RecipeConfiguration : IEntityTypeConfiguration<Recipe>
             .IsConcurrencyToken()
             .ValueGeneratedNever();
 
-        // Full-text search: "simple" có sẵn trong PostgreSQL và giữ nguyên từ tiếng Việt.
-        // Là shadow property để Domain không phải phụ thuộc NpgsqlTypes; query qua EF.Property
-        // trong RecipeSearchReader.SearchAsync.
-        builder.Property<NpgsqlTsVector>("SearchVector")
+        // Full-text search uses PostgreSQL's built-in simple configuration.
+        builder.Property<NpgsqlTypes.NpgsqlTsVector>("SearchVector")
             .IsGeneratedTsVectorColumn("simple", "Title", "Description");
         builder.HasIndex("SearchVector").HasDatabaseName("IDX_Recipe_SearchVector").HasMethod("gin");
 

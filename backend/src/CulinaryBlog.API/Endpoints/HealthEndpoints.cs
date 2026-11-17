@@ -17,7 +17,7 @@ public static class HealthEndpoints
             .WithTags("Health")
             .AllowAnonymous();
 
-        // GET /health - tổng hợp các dependency đã đăng ký health check.
+        // GET /health - tổng hợp tất cả dependency checks đã đăng ký (DB, Redis, MinIO).
         group.MapHealthChecks("/", new HealthCheckOptions
         {
             ResponseWriter = WriteResponse
@@ -30,7 +30,7 @@ public static class HealthEndpoints
             ResponseWriter = WriteResponse
         });
 
-        // GET /health/ready - Core DB sẵn sàng nhận traffic.
+        // GET /health/ready - dependencies tagged "ready" sẵn sàng nhận traffic.
         group.MapHealthChecks("/ready", new HealthCheckOptions
         {
             Predicate = check => check.Tags.Contains("ready"),

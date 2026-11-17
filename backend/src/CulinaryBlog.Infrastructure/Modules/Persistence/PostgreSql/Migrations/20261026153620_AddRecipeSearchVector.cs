@@ -1,6 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
-using NpgsqlTypes;
-
+using Microsoft.EntityFrameworkCore.Migrations;
 #nullable disable
 
 namespace CulinaryBlog.Infrastructure.Modules.Persistence.PostgreSql.Migrations
@@ -11,31 +9,43 @@ namespace CulinaryBlog.Infrastructure.Modules.Persistence.PostgreSql.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<NpgsqlTsVector>(
-                name: "SearchVector",
-                table: "Recipes",
-                type: "tsvector",
-                nullable: true)
-                .Annotation("Npgsql:TsVectorConfig", "simple")
-                .Annotation("Npgsql:TsVectorProperties", new[] { "Title", "Description" });
+            migrationBuilder.Sql(
+                """
+                DO $migration$
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_name = 'Recipes' AND column_name = 'SearchVector'
+                    ) THEN
+                        ALTER TABLE "Recipes" ADD COLUMN "SearchVector" tsvector 
+                            GENERATED ALWAYS AS (to_tsvector('simple', coalesce("Title", '') || ' ' || coalesce("Description", ''))) STORED;
+                    END IF;
 
-            migrationBuilder.CreateIndex(
-                name: "IDX_Recipe_SearchVector",
-                table: "Recipes",
-                column: "SearchVector")
-                .Annotation("Npgsql:IndexMethod", "gin");
+                    IF to_regclass('public."IDX_Recipe_SearchVector"') IS NULL
+                       AND to_regclass('public."IX_Recipes_SearchVector"') IS NOT NULL THEN
+                        ALTER INDEX public."IX_Recipes_SearchVector" RENAME TO "IDX_Recipe_SearchVector";
+                    ELSIF to_regclass('public."IDX_Recipe_SearchVector"') IS NULL THEN
+                        CREATE INDEX "IDX_Recipe_SearchVector" ON "Recipes" USING GIN ("SearchVector");
+                    END IF;
+                END
+                $migration$;
+                """);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropIndex(
-                name: "IDX_Recipe_SearchVector",
-                table: "Recipes");
-
-            migrationBuilder.DropColumn(
-                name: "SearchVector",
-                table: "Recipes");
+            migrationBuilder.Sql(
+                """
+                DO $migration$
+                BEGIN
+                    IF to_regclass('public."IX_Recipes_SearchVector"') IS NULL
+                       AND to_regclass('public."IDX_Recipe_SearchVector"') IS NOT NULL THEN
+                        ALTER INDEX public."IDX_Recipe_SearchVector" RENAME TO "IX_Recipes_SearchVector";
+                    END IF;
+                END
+                $migration$;
+                """);
         }
     }
 }
