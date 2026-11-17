@@ -16,6 +16,7 @@ public sealed record RecipeQuery(
     int? MinPrepTime = null,
     int? MaxCookTime = null,
     int? MinServings = null,
+    RecipeStatus? Status = null,
     string? Sort = null,
     bool Mine = false);
 

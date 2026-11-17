@@ -36,13 +36,16 @@ public sealed class RecipeAuditBehavior<TRequest, TResponse> : IPipelineBehavior
     private static readonly PropertyInfo? RecipeIdProperty = typeof(TRequest).GetProperty("RecipeId", typeof(Guid));
 
     private readonly ICurrentUserService? _currentUser;
+    private readonly ICacheService _cache;
     private readonly ILogger<RecipeAuditBehavior<TRequest, TResponse>> _logger;
 
     public RecipeAuditBehavior(
         ILogger<RecipeAuditBehavior<TRequest, TResponse>> logger,
+        ICacheService cache,
         ICurrentUserService? currentUser = null)
     {
         _logger = logger;
+        _cache = cache;
         _currentUser = currentUser;
     }
 
@@ -65,6 +68,8 @@ public sealed class RecipeAuditBehavior<TRequest, TResponse> : IPipelineBehavior
             _logger.LogInformation(
                 "Recipe audit: {AuditAction} recipe {RecipeId} by user {AuditUserId} succeeded in {ElapsedMs} ms",
                 Action, recipeId, userId, stopwatch.ElapsedMilliseconds);
+            await _cache.EvictByTagAsync("recipes", cancellationToken);
+            await _cache.EvictByTagAsync("categories", cancellationToken);
             return response;
         }
         catch (Exception exception)

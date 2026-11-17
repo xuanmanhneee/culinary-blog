@@ -26,6 +26,7 @@ public interface IRecipeRepository : IRepository<Recipe>
         int? minPrepTime = null,
         int? maxCookTime = null,
         int? minServings = null,
+        RecipeStatus? status = null,
         string? sort = null,
         CancellationToken cancellationToken = default);
 

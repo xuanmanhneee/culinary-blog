@@ -155,6 +155,7 @@ export interface RecipeQuery {
   categoryId?: Guid;
   difficulty?: RecipeDifficulty;
   maxCookTime?: number;
+  status?: RecipeStatus;
   sort?: RecipeSort;
 }
 

@@ -87,7 +87,11 @@ builder.Services.AddProblemDetails(options =>
 
 var app = builder.Build();
 
-
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHsts();
+    app.UseHttpsRedirection();
+}
 
 if (await app.InitializePersistenceAsync(args))
 {

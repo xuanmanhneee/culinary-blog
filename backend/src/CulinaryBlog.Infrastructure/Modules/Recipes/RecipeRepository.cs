@@ -39,6 +39,7 @@ public class RecipeRepository : IRecipeRepository
         int? minPrepTime = null,
         int? maxCookTime = null,
         int? minServings = null,
+        RecipeStatus? status = null,
         string? sort = null,
         CancellationToken cancellationToken = default)
     {
@@ -61,6 +62,7 @@ public class RecipeRepository : IRecipeRepository
         if (minPrepTime.HasValue) query = query.Where(r => r.PrepTime >= minPrepTime.Value);
         if (maxCookTime.HasValue) query = query.Where(r => r.CookTime <= maxCookTime.Value);
         if (minServings.HasValue) query = query.Where(r => r.Servings >= minServings.Value);
+        if (status.HasValue) query = query.Where(r => r.Status == status.Value);
 
         var totalCount = await query.CountAsync(cancellationToken);
 

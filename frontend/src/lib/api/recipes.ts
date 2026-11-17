@@ -1,6 +1,6 @@
 import { API_V1 } from "@/lib/config/env";
 import { apiFetch } from "@/lib/api/client";
-import type { CategoryDto } from "@/lib/types/category";
+import type { CategoryDetailDto, CategoryDto } from "@/lib/types/category";
 import type { PagedResult } from "@/lib/types/api";
 import type { RecipeDetailDto, RecipeListItemDto } from "@/lib/types/recipe";
 import type { RecipeQuery } from "@/lib/types/recipe";
@@ -9,6 +9,13 @@ export async function getPublicCategories(): Promise<CategoryDto[]> {
   return apiFetch<CategoryDto[]>("/categories", {
     next: { revalidate: 300, tags: ["categories"] },
   });
+}
+
+export async function getPublicCategory(slug: string, page = 1): Promise<CategoryDetailDto> {
+  return apiFetch<CategoryDetailDto>(
+    `/categories/${encodeURIComponent(slug)}?page=${page}&pageSize=12&sort=-createdAt`,
+    { next: { revalidate: 300, tags: ["categories", "recipes", `category:${slug}`] } },
+  );
 }
 
 export async function getLatestPublicRecipes(pageSize = 6): Promise<PagedResult<RecipeListItemDto>> {
@@ -33,6 +40,7 @@ export async function getPublicRecipes(query: RecipeQuery = {}): Promise<PagedRe
   if (query.categoryId) params.set("categoryId", query.categoryId);
   if (query.difficulty !== undefined) params.set("difficulty", String(query.difficulty));
   if (query.maxCookTime !== undefined) params.set("maxCookTime", String(query.maxCookTime));
+  if (query.status !== undefined) params.set("status", String(query.status));
 
   return apiFetch<PagedResult<RecipeListItemDto>>(`/recipes?${params}`, {
     next: { revalidate: 60, tags: ["recipes"] },
