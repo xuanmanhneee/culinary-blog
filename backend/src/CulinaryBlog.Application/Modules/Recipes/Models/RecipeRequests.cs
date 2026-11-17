@@ -5,12 +5,15 @@ namespace CulinaryBlog.Application.Recipes.Models;
 /// <summary>
 /// FR-RCP-001: query string của GET /api/v1/recipes.
 /// Sort: createdAt | title | cookTime, thêm tiền tố "-" để giảm dần (mặc định "-createdAt").
+/// Mine = true: chỉ công thức của người đang đăng nhập, mọi trạng thái (trang "Công thức của tôi").
+/// Status: lọc theo trạng thái, áp dụng sau quyền xem (Guest gửi Draft vẫn không thấy bản nháp của ai).
 /// </summary>
 public sealed record RecipeQuery(
     int Page = 1,
     int PageSize = 12,
     Guid? CategoryId = null,
     RecipeDifficulty? Difficulty = null,
+    RecipeStatus? Status = null,
     int? MinPrepTime = null,
     int? MaxCookTime = null,
     int? MinServings = null,

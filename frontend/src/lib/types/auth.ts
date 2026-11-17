@@ -8,6 +8,7 @@ import type { IsoDateTime } from "./api";
 export const Roles = {
   Admin: "Admin",
   Author: "Author",
+  Reader: "Reader",
 } as const;
 export type Role = (typeof Roles)[keyof typeof Roles];
 
@@ -54,6 +55,7 @@ export interface AdminUserListItem {
   roles: Role[];
   emailConfirmed: boolean;
   isActive: boolean;
+  isLocked: boolean;
   createdAt: IsoDateTime;
 }
 
@@ -86,10 +88,4 @@ export interface UpdateProfileRequest {
   fullName?: string | null;
   avatarUrl?: string | null;
   bio?: string | null;
-}
-
-/** POST /api/v1/auth/change-password. */
-export interface ChangePasswordRequest {
-  currentPassword: string;
-  newPassword: string;
 }

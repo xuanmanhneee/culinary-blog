@@ -24,6 +24,10 @@ Content-Type: application/json
 GET {{baseUrl}}/api/v1/recipes
 Authorization: Bearer {{login.response.body.accessToken}}
 
+### 1b. Công thức của tôi (trang dashboard) – 200 OK, mọi trạng thái; bỏ token – 401
+GET {{baseUrl}}/api/v1/recipes?mine=true&status=0&sort=-createdAt
+Authorization: Bearer {{login.response.body.accessToken}}
+
 ### 2. Lọc + sắp xếp – 200 OK
 GET {{baseUrl}}/api/v1/recipes?page=1&pageSize=5&categoryId={{categoryId}}&difficulty=Easy&maxCookTime=30&sort=-cookTime
 

@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Archive, Loader2, MoreHorizontal, Send, Trash2, Undo2 } from "lucide-react";
+import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { Button } from "@/components/ui/button";
 import {
@@ -55,7 +56,7 @@ export function RecipeRowActions({ recipe }: { recipe: RecipeListItemDto }) {
         router.refresh();
       });
     } catch (error) {
-      window.alert(getRecipeErrorMessage(error));
+      toast.error(getRecipeErrorMessage(error));
     }
   }
 

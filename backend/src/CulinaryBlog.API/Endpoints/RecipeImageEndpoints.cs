@@ -67,12 +67,20 @@ public static class RecipeImageEndpoints
         Guid recipeId,
         [FromForm(Name = "file")] IFormFile file,
         ISender sender,
+        HttpContext httpContext,
+        ILoggerFactory loggerFactory,
         CancellationToken cancellationToken)
     {
         var image = await sender.Send(
             new UploadRecipeImageCommand(recipeId, file),
             cancellationToken);
 
+        var logger = loggerFactory.CreateLogger("CulinaryBlog.API.Endpoints.RecipeImageEndpoints");
+        logger.LogInformation(
+            "Recipe image {ImageId} uploaded to recipe {RecipeId} by user {UserId}",
+            image.Id,
+            recipeId,
+            httpContext.User.GetUserId());
         return Results.Created(
             $"{ApiVersioningExtensions.V1Path}/recipes/{recipeId}/images/{image.Id}",
             image);

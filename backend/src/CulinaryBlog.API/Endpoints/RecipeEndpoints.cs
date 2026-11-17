@@ -10,8 +10,13 @@ using CulinaryBlog.Application.Recipes.Models;
 using CulinaryBlog.Application.Recipes.Queries.GetRecipeById;
 using CulinaryBlog.Application.Recipes.Queries.GetRecipeBySlug;
 using CulinaryBlog.Application.Recipes.Queries.GetRecipes;
+using CulinaryBlog.Application.Recipes.Commands.ToggleFavorite;
+using CulinaryBlog.Application.Recipes.Queries.GetFavoriteStatus;
+using CulinaryBlog.Application.Recipes.Queries.GetSavedRecipes;
 using CulinaryBlog.Application.Recipes.Queries.SearchRecipes;
 using CulinaryBlog.Application.Recipes.Services;
+using CulinaryBlog.Application.Common.Exceptions;
+using CulinaryBlog.Domain.Common.Exceptions;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
@@ -21,6 +26,7 @@ namespace CulinaryBlog.API.Endpoints;
 /// FR-RCP-001: GET /api/v1/recipes
 /// FR-RCP-002: GET /api/v1/recipes/{slug}
 /// FR-RCP-003: POST /api/v1/recipes
+/// FR-SEARCH-001: GET /api/v1/recipes/search?q={query}
 /// FR-RCP-004: GET /api/v1/recipes/by-id/{id:guid} (trang edit, trả ETag), PUT /api/v1/recipes/{id:guid} (If-Match)
 /// FR-RCP-005: PATCH /api/v1/recipes/{id:guid}/publish | /unpublish
 /// FR-RCP-006: PATCH /api/v1/recipes/{id:guid}/archive
@@ -49,9 +55,28 @@ public static class RecipeEndpoints
         group.MapGet("/search", SearchAsync)
             .WithName("SearchRecipes")
             .WithSummary("Tìm kiếm toàn văn công thức đã xuất bản")
-            .WithDescription("Tìm theo tiêu đề và mô tả; hỗ trợ phân trang, pageSize từ 1 đến 50.")
+            .WithDescription("FR-SEARCH-001. Tìm theo từ khóa q (tối thiểu 2 ký tự), lọc categoryId tùy chọn, hỗ trợ phân trang bằng page và pageSize (1–50).")
             .Produces<PagedResult<RecipeSummaryDto>>()
             .ProducesValidationProblem();
+
+        group.MapGet("/favorites", GetFavoritesAsync)
+            .RequireAuthorization()
+            .WithName("GetSavedRecipes")
+            .WithSummary("Danh sách công thức yêu thích của người dùng hiện tại")
+            .Produces<PagedResult<RecipeListItemDto>>()
+            .ProducesAuthProblems();
+
+        group.MapGet("/{id:guid}/is-favorite", GetIsFavoriteAsync)
+            .WithName("GetRecipeIsFavorite")
+            .WithSummary("Kiểm tra công thức đã được lưu chưa")
+            .Produces<object>();
+
+        group.MapPost("/{id:guid}/favorite", ToggleFavoriteAsync)
+            .RequireAuthorization()
+            .WithName("ToggleRecipeFavorite")
+            .WithSummary("Lưu hoặc bỏ lưu công thức yêu thích")
+            .Produces<object>()
+            .ProducesAuthProblems();
 
         group.MapGet("/{slug}", GetBySlugAsync)
             .WithName("GetRecipeBySlug")
@@ -145,26 +170,50 @@ public static class RecipeEndpoints
         Guid id,
         ISender sender,
         HttpContext httpContext,
+        ILoggerFactory loggerFactory,
         CancellationToken cancellationToken) =>
-        StatusChanged(httpContext, await sender.Send(new PublishRecipeCommand(id), cancellationToken));
+        StatusChanged(
+            httpContext,
+            await sender.Send(new PublishRecipeCommand(id), cancellationToken),
+            loggerFactory.CreateLogger("CulinaryBlog.API.Endpoints.RecipeEndpoints"),
+            "published");
 
     private static async Task<IResult> UnpublishAsync(
         Guid id,
         ISender sender,
         HttpContext httpContext,
+        ILoggerFactory loggerFactory,
         CancellationToken cancellationToken) =>
-        StatusChanged(httpContext, await sender.Send(new UnpublishRecipeCommand(id), cancellationToken));
+        StatusChanged(
+            httpContext,
+            await sender.Send(new UnpublishRecipeCommand(id), cancellationToken),
+            loggerFactory.CreateLogger("CulinaryBlog.API.Endpoints.RecipeEndpoints"),
+            "unpublished");
 
     private static async Task<IResult> ArchiveAsync(
         Guid id,
         ISender sender,
         HttpContext httpContext,
+        ILoggerFactory loggerFactory,
         CancellationToken cancellationToken) =>
-        StatusChanged(httpContext, await sender.Send(new ArchiveRecipeCommand(id), cancellationToken));
+        StatusChanged(
+            httpContext,
+            await sender.Send(new ArchiveRecipeCommand(id), cancellationToken),
+            loggerFactory.CreateLogger("CulinaryBlog.API.Endpoints.RecipeEndpoints"),
+            "archived");
 
-    private static IResult StatusChanged(HttpContext httpContext, RecipeDetailDto recipe)
+    private static IResult StatusChanged(
+        HttpContext httpContext,
+        RecipeDetailDto recipe,
+        ILogger logger,
+        string status)
     {
         SetETag(httpContext, recipe);
+        logger.LogInformation(
+            "Recipe {RecipeId} {Status} by user {UserId}",
+            recipe.Id,
+            status,
+            httpContext.User.GetUserId());
         return Results.Ok(recipe);
     }
 
@@ -229,9 +278,7 @@ public static class RecipeEndpoints
         var recipe = await sender.Send(new GetRecipeBySlugQuery(slug), cancellationToken);
         if (recipe is null)
         {
-            return Results.Problem(
-                detail: $"Recipe with slug '{slug}' was not found.",
-                statusCode: StatusCodes.Status404NotFound);
+            throw new NotFoundException(ErrorCodes.RecipeNotFound, $"Recipe with slug '{slug}' was not found.");
         }
 
         return Results.Ok(recipe);
@@ -247,4 +294,23 @@ public static class RecipeEndpoints
             cancellationToken);
         return Results.Created($"{ApiVersioningExtensions.V1Path}/recipes/{recipe.Slug}", recipe);
     }
+
+    private static async Task<IResult> GetFavoritesAsync(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10,
+        ISender sender = default!,
+        CancellationToken cancellationToken = default) =>
+        Results.Ok(await sender.Send(new GetSavedRecipesQuery(page, pageSize), cancellationToken));
+
+    private static async Task<IResult> GetIsFavoriteAsync(
+        Guid id,
+        ISender sender,
+        CancellationToken cancellationToken) =>
+        Results.Ok(new { isFavorite = await sender.Send(new GetFavoriteStatusQuery(id), cancellationToken) });
+
+    private static async Task<IResult> ToggleFavoriteAsync(
+        Guid id,
+        ISender sender,
+        CancellationToken cancellationToken) =>
+        Results.Ok(new { isFavorite = await sender.Send(new ToggleFavoriteCommand(id), cancellationToken) });
 }

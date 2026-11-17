@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useRecipeFormStore } from "@/lib/stores/recipe-form-store";
 import { RECIPE_DIFFICULTY_LABELS, RecipeDifficulty, type RecipeCategoryDto } from "@/lib/types/recipe";
+import { RecipeImageFilePicker, type SelectedRecipeImage } from "./RecipeImageFilePicker";
 import { basicInfoSchema, requiredNumber, type BasicInfoValues } from "./schemas";
 import { useServerErrors, type ServerErrors } from "./server-errors";
 import { StepActions } from "./StepActions";
@@ -24,22 +25,11 @@ export function BasicInfoStep({
   categories: RecipeCategoryDto[];
   serverErrors?: ServerErrors | null;
   /** Chỉ dùng khi tạo mới; trang sửa quản lý ảnh ở RecipeImagesPanel. Bỏ trống thì ẩn ô chọn ảnh. */
-  selectedImage?: File | null;
+  selectedImage?: SelectedRecipeImage | null;
   onImageSelected?: (file: File | null) => void;
 }) {
   const setBasic = useRecipeFormStore((state) => state.setBasic);
   const nextStep = useRecipeFormStore((state) => state.nextStep);
-  const [previewUrl, setPreviewUrl] = useState("");
-
-  useEffect(() => {
-    if (!selectedImage) {
-      setPreviewUrl("");
-      return;
-    }
-    const url = URL.createObjectURL(selectedImage);
-    setPreviewUrl(url);
-    return () => URL.revokeObjectURL(url);
-  }, [selectedImage]);
 
   // Giá trị ban đầu đọc một lần khi bước được mở (component được mount lại mỗi lần đổi bước).
   const form = useForm<BasicInfoValues>({
@@ -177,16 +167,12 @@ export function BasicInfoStep({
 
         {onImageSelected && <Field>
           <FieldLabel htmlFor="cover-image">Ảnh đại diện</FieldLabel>
-          <label htmlFor="cover-image" className="flex cursor-pointer flex-col items-center justify-center gap-3 rounded-lg border border-dashed bg-muted/20 px-5 py-6 text-center transition hover:border-emerald-600 hover:bg-emerald-50/40">
-            {previewUrl ? (
-              <img src={previewUrl} alt="Xem trước ảnh đại diện" className="max-h-48 rounded-lg object-cover shadow-sm" />
-            ) : (
-              <span className="text-sm font-medium">Chọn ảnh món ăn</span>
-            )}
-            <span className="text-xs text-muted-foreground">JPEG, PNG, WebP hoặc AVIF · tối đa 5 MB</span>
-            {selectedImage && <span className="max-w-full truncate text-xs text-emerald-700">{selectedImage.name}</span>}
-          </label>
-          <input id="cover-image" type="file" accept="image/jpeg,image/png,image/webp,image/avif" className="sr-only" onChange={(event) => onImageSelected(event.target.files?.[0] ?? null)} />
+          <RecipeImageFilePicker
+            id="cover-image"
+            label="ảnh đại diện"
+            selection={selectedImage ?? null}
+            onFileChange={onImageSelected}
+          />
           <FieldDescription>Ảnh sẽ được tải lên sau khi công thức được tạo.</FieldDescription>
         </Field>}
       </FieldGroup>

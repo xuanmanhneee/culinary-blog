@@ -1,7 +1,6 @@
 import { apiFetch } from "@/lib/api/client";
 import type {
   AuthResponseDto,
-  ChangePasswordRequest,
   RegisterRequest,
   UpdateProfileRequest,
   UserProfileDto,
@@ -17,8 +16,4 @@ export function getMyProfile(token: string, signal?: AbortSignal): Promise<UserP
 
 export function updateMyProfile(token: string, request: UpdateProfileRequest): Promise<UserProfileDto> {
   return apiFetch<UserProfileDto>("/auth/me", { method: "PATCH", token, body: request });
-}
-
-export function changeMyPassword(token: string, request: ChangePasswordRequest): Promise<void> {
-  return apiFetch<void>("/auth/change-password", { method: "POST", token, body: request });
 }

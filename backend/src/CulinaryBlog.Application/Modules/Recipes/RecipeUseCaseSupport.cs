@@ -26,6 +26,7 @@ internal static class RecipeUseCaseSupport
         if (query.Page < 1) errors["page"] = ["page phải >= 1."];
         if (query.PageSize is < 1 or > MaxPageSize) errors["pageSize"] = [$"pageSize phải trong khoảng 1–{MaxPageSize}."];
         if (query.Difficulty.HasValue && !Enum.IsDefined(query.Difficulty.Value)) errors["difficulty"] = ["difficulty không hợp lệ."];
+        if (query.Status.HasValue && !Enum.IsDefined(query.Status.Value)) errors["status"] = ["status không hợp lệ."];
         if (query.MinPrepTime is < 0) errors["minPrepTime"] = ["minPrepTime không được âm."];
         if (query.MaxCookTime is < 0) errors["maxCookTime"] = ["maxCookTime không được âm."];
         if (query.MinServings is < 0) errors["minServings"] = ["minServings không được âm."];

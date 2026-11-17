@@ -21,11 +21,9 @@ namespace CulinaryBlog.Infrastructure.Modules.Persistence.PostgreSql.Migrations
                 .HasAnnotation("ProductVersion", "10.0.12")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
-            NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
-
             NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "pg_trgm");
-
             NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "unaccent");
+            NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("CulinaryBlog.Domain.Modules.Categories.Category", b =>
                 {
@@ -311,7 +309,6 @@ namespace CulinaryBlog.Infrastructure.Modules.Persistence.PostgreSql.Migrations
                         .HasDatabaseName("IDX_Recipe_SearchTextNormalized_Trgm");
 
                     NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("SearchTextNormalized"), "gin");
-
                     NpgsqlIndexBuilderExtensions.HasOperators(b.HasIndex("SearchTextNormalized"), new[] { "gin_trgm_ops" });
 
                     b.HasIndex("SearchVector")
@@ -330,6 +327,52 @@ namespace CulinaryBlog.Infrastructure.Modules.Persistence.PostgreSql.Migrations
                         .HasDatabaseName("IDX_Recipe_Title");
 
                     b.ToTable("Recipes", (string)null);
+                });
+
+            modelBuilder.Entity("CulinaryBlog.Domain.Modules.Recipes.RecipeFavorite", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<Guid>("RecipeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .HasColumnType("bytea");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RecipeId")
+                        .HasDatabaseName("IDX_RecipeFavorite_RecipeId");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("IDX_RecipeFavorite_UserId");
+
+                    b.HasIndex("UserId", "RecipeId")
+                        .IsUnique()
+                        .HasDatabaseName("IDX_RecipeFavorite_UserId_RecipeId");
+
+                    b.ToTable("RecipeFavorites", (string)null);
                 });
 
             modelBuilder.Entity("CulinaryBlog.Domain.Modules.Recipes.RecipeImage", b =>
@@ -700,6 +743,25 @@ namespace CulinaryBlog.Infrastructure.Modules.Persistence.PostgreSql.Migrations
 
                     b.Navigation("Nutrition")
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("CulinaryBlog.Domain.Modules.Recipes.RecipeFavorite", b =>
+                {
+                    b.HasOne("CulinaryBlog.Domain.Modules.Recipes.Recipe", "Recipe")
+                        .WithMany()
+                        .HasForeignKey("RecipeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("CulinaryBlog.Domain.Modules.Identity.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Recipe");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("CulinaryBlog.Domain.Modules.Recipes.RecipeImage", b =>

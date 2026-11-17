@@ -34,8 +34,7 @@ public sealed class RecipeAuthorizationHandler
     public bool IsOwnerOrAdmin(Recipe recipe) =>
         _currentUser.IsAdmin ||
         (_currentUser.UserId is { } userId &&
-         Guid.TryParse(recipe.AuthorId, out var authorId) &&
-         authorId == userId);
+         string.Equals(recipe.AuthorId, userId, StringComparison.Ordinal));
 
     /// <summary>Sửa, xóa, đổi trạng thái, quản lý nguyên liệu/bước/ảnh: chỉ owner hoặc Admin.</summary>
     public void EnsureCanModify(Recipe recipe)

@@ -128,4 +128,17 @@ public sealed class LocalFileStorageService : IFileStorageService
 
         return filePath;
     }
+
+    public Task DeleteAsync(Guid recipeId, string url, CancellationToken cancellationToken)
+    {
+        var path = Uri.TryCreate(url, UriKind.Absolute, out var absoluteUri)
+            ? absoluteUri.AbsolutePath
+            : url;
+        path = Uri.UnescapeDataString(path).Replace('\\', '/');
+        var recipePath = $"/uploads/recipes/{recipeId:D}/";
+        if (!path.StartsWith(recipePath, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidDataException("The URL does not belong to the specified recipe.");
+
+        return DeleteAsync(url, cancellationToken);
+    }
 }
