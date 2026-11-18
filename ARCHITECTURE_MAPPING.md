@@ -71,7 +71,7 @@ Các endpoint dùng prefix `/api/v1`.
 | Nhóm | Endpoint/chức năng |
 |---|---|
 | Auth | `POST /auth/register`, `/auth/login`, `/auth/google`, `/auth/refresh`, `/auth/logout`; `GET /auth/confirm-email`; `GET/PATCH /auth/me` |
-| Users | `GET /users` — danh sách phân trang; `PATCH /users/{id}/role` — đổi role Admin/Author/Reader; `PATCH /users/{id}/status` — khóa/mở khóa; `DELETE /users/{id}` — xóa tài khoản. Tất cả chỉ Admin |
+| Users | `GET /users` — danh sách phân trang; `PATCH /users/{id}/role` — đổi role Admin/Author; `PATCH /users/{id}/status` — khóa/mở khóa; `DELETE /users/{id}` — xóa tài khoản. Tất cả chỉ Admin |
 | Recipe public | `GET /recipes`, `GET /recipes/search` (q, categoryId, difficulty, thời gian, khẩu phần), `GET /recipes/{slug}` |
 | Recipe management | `GET /recipes/by-id/{id}`, `POST /recipes`, `PUT /recipes/{id}`, publish/unpublish/archive và xóa |
 | Recipe ingredients | Thêm, sửa, xóa ingredient theo recipe |
@@ -130,7 +130,7 @@ Login/Register form
 - Tạo mới gửi recipe; sửa dùng `GET /recipes/by-id/{id}` để lấy ETag, `PUT` với `If-Match`, sau đó đồng bộ ingredients và steps. Nếu ETag xung đột, UI yêu cầu tải lại phiên bản mới.
 - Ảnh cover và ảnh từng bước được kiểm tra định dạng/kích thước, xem trước cục bộ bằng object URL có cleanup, rồi tải multipart với Bearer token qua API client dùng chung. Nếu upload lỗi sau khi tạo recipe, UI báo lỗi và dẫn đến trang sửa để tiếp tục.
 - Dashboard cung cấp thao tác xuất bản/hủy xuất bản, lưu trữ và xóa có xác nhận; trang sửa cũng có các hành động trạng thái. Mutation làm mới cache recipe và lỗi API được hiển thị rõ.
-- `/dashboard/users` dành cho Admin có danh sách phân trang, lọc/tìm kiếm, đổi role Admin/Author/Reader, khóa/mở khóa và xóa; trạng thái lockout được trả riêng trong DTO.
+- `/dashboard/users` dành cho Admin có danh sách phân trang, lọc/tìm kiếm, đổi role Admin/Author, khóa/mở khóa và xóa; trạng thái lockout được trả riêng trong DTO.
 - Tab “Món đã lưu” đọc dữ liệu phân trang từ Engagement service; trang chi tiết cho phép lưu/bỏ lưu và chấm 1–5 sao.
 
 ### 3.3 Trang chi tiết công thức

@@ -52,7 +52,6 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
           <RoleLink href={hrefFor({ search })} active={!role}>Tất cả</RoleLink>
           <RoleLink href={hrefFor({ role: Roles.Admin, search })} active={role === Roles.Admin}>Admin</RoleLink>
           <RoleLink href={hrefFor({ role: Roles.Author, search })} active={role === Roles.Author}>Tác giả</RoleLink>
-          <RoleLink href={hrefFor({ role: Roles.Reader, search })} active={role === Roles.Reader}>Reader</RoleLink>
         </nav>
         <form className="flex w-full gap-2 sm:max-w-md" action="/dashboard/users">
           {role && <input type="hidden" name="role" value={role} />}
@@ -83,5 +82,5 @@ function RoleLink({ href, active, children }: { href: string; active: boolean; c
 }
 
 function parseRole(value?: string): Role | undefined {
-  return value === Roles.Admin || value === Roles.Author || value === Roles.Reader ? value : undefined;
+  return value === Roles.Admin || value === Roles.Author ? value : undefined;
 }

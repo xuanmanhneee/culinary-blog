@@ -167,7 +167,7 @@ public static class UserEndpoints
                 Results.Ok(await sender.Send(new GetUsersQuery(page, pageSize, role, search), ct)))
             .WithName("GetUsers")
             .WithSummary("Danh sách người dùng dành cho quản trị viên")
-            .WithDescription("Phân trang, tìm theo tên/email/tên đăng nhập và lọc theo vai trò Admin, Author hoặc Reader.")
+            .WithDescription("Phân trang, tìm theo tên/email/tên đăng nhập và lọc theo vai trò Admin hoặc Author.")
             .Produces<PagedResult<UserListItemDto>>()
             .ProducesValidationProblem();
 

@@ -202,7 +202,6 @@ export function UserManagementTable({
                             {!selectedRole && <option value="">Chọn vai trò</option>}
                             <option value={Roles.Admin}>Admin</option>
                             <option value={Roles.Author}>Author</option>
-                            <option value={Roles.Reader}>Reader</option>
                           </select>
                         </div>
                       </td>
@@ -290,7 +289,7 @@ function problemMessage(error: unknown): string {
 }
 
 function parseRole(value: string): Role | null {
-  return value === Roles.Admin || value === Roles.Author || value === Roles.Reader
+  return value === Roles.Admin || value === Roles.Author
     ? value
     : null;
 }
