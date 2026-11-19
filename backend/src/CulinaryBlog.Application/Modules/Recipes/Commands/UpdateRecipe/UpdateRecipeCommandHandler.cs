@@ -1,5 +1,4 @@
 using CulinaryBlog.Application.Common.Exceptions;
-using CulinaryBlog.Application.Common.Helpers;
 using CulinaryBlog.Application.Recipes.Models;
 using CulinaryBlog.Application.Recipes.Services;
 using CulinaryBlog.Domain.Common;
@@ -43,11 +42,7 @@ internal sealed class UpdateRecipeCommandHandler
         var title = request.Title.Trim();
         var slug = recipe.Slug;
         if (recipe.Status == RecipeStatus.Draft)
-        {
-            slug = SlugHelper.Generate(title);
-            if (slug != recipe.Slug && await _recipes.SlugExistsAsync(slug, ct))
-                throw new ConflictException(ErrorCodes.RecipeSlugExists, $"Slug '{slug}' đã tồn tại.");
-        }
+            slug = await RecipeUseCaseSupport.GenerateUniqueSlugAsync(title, _recipes, ct, recipe.Slug);
 
         recipe.Update(title, slug, request.Description.Trim(), request.Instructions?.Trim() ?? string.Empty,
             request.CategoryId, request.PrepTimeMinutes, request.CookTimeMinutes, request.Servings, request.Difficulty);

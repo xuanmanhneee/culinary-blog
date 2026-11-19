@@ -60,6 +60,19 @@ internal static class RecipeUseCaseSupport
     public static NotFoundException RecipeNotFound(Guid id) =>
         new(ErrorCodes.RecipeNotFound, $"Recipe '{id}' không tồn tại.");
 
+    public static async Task<string> GenerateUniqueSlugAsync(
+        string title,
+        IRecipeRepository recipes,
+        CancellationToken ct,
+        string? currentSlug = null)
+    {
+        var baseSlug = SlugHelper.Generate(title);
+        var slug = baseSlug;
+        for (var suffix = 2; slug != currentSlug && await recipes.SlugExistsAsync(slug, ct); suffix++)
+            slug = $"{baseSlug}-{suffix}";
+        return slug;
+    }
+
     public static RecipeNutrition MapNutrition(NutritionRequest nutrition) => new()
     {
         Calories = nutrition.Calories, Protein = nutrition.Protein,

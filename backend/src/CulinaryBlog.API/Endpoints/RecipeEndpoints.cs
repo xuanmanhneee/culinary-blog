@@ -95,18 +95,17 @@ public static class RecipeEndpoints
             .WithName("CreateRecipe")
             .WithSummary("Tạo công thức")
             .WithDescription(
-                "FR-RCP-003. Tác giả là người đang đăng nhập; recipe mới luôn ở trạng thái Draft, slug sinh từ title. " +
-                "Có thể gửi kèm nutrition, ingredients, steps. Trùng slug: 409 RECIPE_SLUG_EXISTS.")
+                "FR-RCP-003. Tác giả là người đang đăng nhập; recipe mới luôn ở trạng thái Draft, slug sinh từ title và tự thêm hậu tố nếu trùng. " +
+                "Có thể gửi kèm nutrition, ingredients, steps.")
             .Produces<RecipeDetailDto>(StatusCodes.Status201Created)
-            .ProducesValidationProblem(StatusCodes.Status422UnprocessableEntity)
-            .ProducesProblem(StatusCodes.Status409Conflict);
+            .ProducesValidationProblem(StatusCodes.Status422UnprocessableEntity);
 
         authorized.MapPut("/{id:guid}", UpdateAsync)
             .WithName("UpdateRecipe")
             .WithSummary("Cập nhật công thức (kiểm soát đồng thời bằng If-Match)")
             .WithDescription(
                 "FR-RCP-004. Gửi rowVersion qua header If-Match (hoặc field rowVersion). Bản cũ: 409 RECIPE_CONCURRENCY_CONFLICT. " +
-                "Slug chỉ đổi theo title khi còn Draft (trùng: 409). Response kèm ETag mới.")
+                "Slug chỉ đổi theo title khi còn Draft và tự thêm hậu tố nếu trùng. Response kèm ETag mới.")
             .Produces<RecipeDetailDto>()
             .ProducesValidationProblem(StatusCodes.Status422UnprocessableEntity)
             .ProducesNotFoundProblem()

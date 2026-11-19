@@ -21,7 +21,7 @@ export class ApiError extends Error {
     this.problem = problem;
   }
 
-  /** Mã lỗi ứng dụng (SRS Phụ lục B), ví dụ "RECIPE_SLUG_EXISTS". */
+  /** Mã lỗi ứng dụng (SRS Phụ lục B), ví dụ "RECIPE_NOT_FOUND". */
   get code(): string | undefined {
     return this.problem.type ?? undefined;
   }

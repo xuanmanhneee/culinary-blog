@@ -34,11 +34,10 @@ type RecipeFormWizardProps =
   | { mode: "create"; recipeId?: undefined; initialNotice?: undefined }
   | { mode: "edit"; recipeId: string; initialNotice?: string };
 
-/** Lỗi backend → lỗi theo field (400 validation, 409 trùng slug); null nếu không gắn được vào field nào. */
+/** Lỗi backend → lỗi theo field; null nếu không gắn được vào field nào. */
 function toServerErrors(error: unknown): ServerErrors | null {
   if (!(error instanceof ApiError)) return null;
   if (error.problem.errors) return error.problem.errors;
-  if (error.code === "RECIPE_SLUG_EXISTS") return { title: [getRecipeErrorMessage(error)] };
   return null;
 }
 

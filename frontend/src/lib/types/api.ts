@@ -22,7 +22,7 @@ export interface PagedResult<T> {
 
 /**
  * RFC 7807 Problem Details do GlobalExceptionMiddleware của backend trả về.
- * `type` là mã lỗi ứng dụng (SRS Phụ lục B), ví dụ "RECIPE_SLUG_EXISTS".
+ * `type` là mã lỗi ứng dụng (SRS Phụ lục B), ví dụ "RECIPE_NOT_FOUND".
  */
 export interface ProblemDetails {
   type?: string | null;
