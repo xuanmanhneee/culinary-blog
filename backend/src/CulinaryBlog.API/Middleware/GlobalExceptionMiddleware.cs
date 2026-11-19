@@ -81,7 +81,7 @@ public sealed class GlobalExceptionMiddleware
         ForbiddenException ex => Problem(StatusCodes.Status403Forbidden, "Forbidden.", ex.ErrorCode, ex.Message),
         NotFoundException ex => Problem(StatusCodes.Status404NotFound, "Resource not found.", ex.ErrorCode, ex.Message),
         ConflictException ex => Problem(StatusCodes.Status409Conflict, "Conflict.", ex.ErrorCode, ex.Message),
-        ConcurrencyConflictException ex => Problem(StatusCodes.Status422UnprocessableEntity, "Concurrency conflict.", ex.ErrorCode, ex.Message),
+        ConcurrencyConflictException ex => Problem(StatusCodes.Status409Conflict, "Concurrency conflict.", ex.ErrorCode, ex.Message),
 
         // Nhánh cụ thể phải đứng trước nhánh DomainException chung.
         BusinessRuleViolationException ex => Problem(StatusCodes.Status400BadRequest, "Business rule violation.", ex.ErrorCode, ex.Message),

@@ -21,7 +21,7 @@ public class UnitOfWork : IUnitOfWork
 
     /// <summary>
     /// Đổi DbUpdateConcurrencyException của EF Core thành ConcurrencyConflictException
-    /// để tầng Application/API không phụ thuộc EF (map sang HTTP 422).
+    /// để tầng Application/API không phụ thuộc EF (map sang HTTP 409).
     /// </summary>
     public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {

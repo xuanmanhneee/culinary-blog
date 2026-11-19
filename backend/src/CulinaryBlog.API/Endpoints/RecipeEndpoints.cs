@@ -105,13 +105,12 @@ public static class RecipeEndpoints
             .WithName("UpdateRecipe")
             .WithSummary("Cập nhật công thức (kiểm soát đồng thời bằng If-Match)")
             .WithDescription(
-                "FR-RCP-004. Gửi rowVersion qua header If-Match (hoặc field rowVersion). Bản cũ: 422 RECIPE_CONCURRENCY_CONFLICT. " +
+                "FR-RCP-004. Gửi rowVersion qua header If-Match (hoặc field rowVersion). Bản cũ: 409 RECIPE_CONCURRENCY_CONFLICT. " +
                 "Slug chỉ đổi theo title khi còn Draft (trùng: 409). Response kèm ETag mới.")
             .Produces<RecipeDetailDto>()
             .ProducesValidationProblem(StatusCodes.Status422UnprocessableEntity)
             .ProducesNotFoundProblem()
-            .ProducesProblem(StatusCodes.Status409Conflict)
-            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+            .ProducesProblem(StatusCodes.Status409Conflict);
 
         authorized.MapPatch("/{id:guid}/publish", PublishAsync)
             .WithName("PublishRecipe")
