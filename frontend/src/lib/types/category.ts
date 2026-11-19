@@ -27,8 +27,8 @@ export interface CategoryDetailDto {
 export interface CreateCategoryRequest {
   /** 2–100 ký tự, backend tự trim. */
   name: string;
-  /** URL-friendly, backend tự lowercase; trùng thì 409 CATEGORY_SLUG_EXISTS. */
-  slug: string;
+  /** Bỏ trống để backend tạo từ tên. */
+  slug?: string;
   description?: string | null;
   orderIndex?: number;
   imageUrl?: string | null;

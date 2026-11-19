@@ -128,7 +128,7 @@ export function RecipeImagesPanel({ recipeId, title, images }: RecipeImagesPanel
   }
 
   return (
-    <section aria-label="Ảnh công thức" className="rounded-xl border bg-background p-4 sm:p-5">
+    <section aria-label="Ảnh công thức" className="rounded-xl border bg-card p-4 sm:p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-sm font-medium">Ảnh công thức</h2>
@@ -152,7 +152,7 @@ export function RecipeImagesPanel({ recipeId, title, images }: RecipeImagesPanel
       </div>
 
       {pendingFiles.length > 0 && (
-        <div className="mt-4 rounded-lg border border-dashed p-3">
+        <div className="mt-4 rounded-xl border border-dashed p-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-sm font-medium">Xem trước {pendingFiles.length} ảnh đang chờ tải lên</p>
             <Button type="button" size="sm" disabled={busy !== null || !token} onClick={uploadPendingFiles}>
@@ -162,7 +162,7 @@ export function RecipeImagesPanel({ recipeId, title, images }: RecipeImagesPanel
           </div>
           <ul className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {pendingFiles.map((selection) => (
-              <li key={selection.previewUrl} className="overflow-hidden rounded-lg border bg-background">
+              <li key={selection.previewUrl} className="overflow-hidden rounded-xl border bg-card">
                 <div className="relative aspect-[4/3] bg-muted">
                   <Image src={selection.previewUrl} alt={`Xem trước ${selection.file.name}`} fill unoptimized className="object-cover" />
                 </div>
@@ -187,13 +187,13 @@ export function RecipeImagesPanel({ recipeId, title, images }: RecipeImagesPanel
       )}
 
       {sorted.length === 0 ? (
-        <p className="mt-4 rounded-lg border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
+        <p className="mt-4 rounded-xl border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
           Công thức chưa có ảnh nào.
         </p>
       ) : (
         <ul className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           {sorted.map((image, index) => (
-            <li key={image.id} className="overflow-hidden rounded-lg border">
+            <li key={image.id} className="overflow-hidden rounded-xl border">
               <div className="relative aspect-[4/3] bg-muted">
                 <Image
                   src={image.url}
@@ -204,7 +204,7 @@ export function RecipeImagesPanel({ recipeId, title, images }: RecipeImagesPanel
                   className="object-cover"
                 />
                 {image.isPrimary && (
-                  <span className="absolute top-2 left-2 rounded-full bg-emerald-700 px-2 py-0.5 text-xs font-medium text-white">
+                  <span className="absolute top-2 left-2 rounded-full bg-primary px-2 py-0.5 text-xs font-medium text-white">
                     Ảnh chính
                   </span>
                 )}
@@ -230,7 +230,7 @@ export function RecipeImagesPanel({ recipeId, title, images }: RecipeImagesPanel
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="ml-auto px-2 text-red-700"
+                  className="ml-auto px-2 text-destructive"
                   disabled={busy !== null}
                   aria-label={`Xóa ảnh ${index + 1}`}
                   onClick={() => setToDelete(image)}
@@ -277,8 +277,8 @@ export function RecipeImagesPanel({ recipeId, title, images }: RecipeImagesPanel
           role={message.tone === "error" ? "alert" : "status"}
           className={
             message.tone === "error"
-              ? "mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
-              : "mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800"
+              ? "mt-4 rounded-xl border border-destructive/10 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+              : "mt-4 rounded-xl border border-primary-soft bg-primary-soft px-4 py-3 text-sm text-primary"
           }
         >
           {message.text}

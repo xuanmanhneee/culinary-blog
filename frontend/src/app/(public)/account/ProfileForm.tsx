@@ -72,32 +72,32 @@ export function ProfileForm() {
   }
 
   if (isLoading) {
-    return <article id="profile" className="min-h-96 animate-pulse rounded-[1.75rem] border border-[#ddd1c3] bg-[#fffdf9] p-8" aria-label="Đang tải hồ sơ" />;
+    return <article id="profile" className="min-h-96 animate-pulse rounded-2xl border border-border bg-card p-8" aria-label="Đang tải hồ sơ" />;
   }
 
   if (!profile) {
-    return <article id="profile" className="rounded-[1.75rem] border border-[#e1c8c1] bg-[#fff8f6] p-8 text-sm text-[#9b3f2f]">{error || "Không thể tải hồ sơ."}</article>;
+    return <article id="profile" className="rounded-2xl border border-border bg-accent-soft p-8 text-sm text-accent-hover">{error || "Không thể tải hồ sơ."}</article>;
   }
 
   const initial = profile.fullName.trim().charAt(0).toLocaleUpperCase("vi") || "B";
   const hasAvatar = /^https?:\/\//i.test(profile.avatarUrl ?? "");
 
   return (
-    <article id="profile" className="scroll-mt-28 rounded-[1.75rem] border border-[#ddd1c3] bg-[#fffdf9] p-6 shadow-[0_16px_45px_rgba(75,57,41,.06)] sm:p-8">
+    <article id="profile" className="scroll-mt-28 rounded-2xl border border-border bg-card p-6 shadow-sm sm:p-8">
       <div className="flex items-center gap-4">
-        <span className="relative grid size-16 shrink-0 place-items-center overflow-hidden rounded-full bg-[#1f4b3f] font-display text-2xl font-bold text-white">
+        <span className="relative grid size-16 shrink-0 place-items-center overflow-hidden rounded-full bg-primary text-lg font-bold text-white">
           {hasAvatar ? <Image src={profile.avatarUrl!} alt="" fill sizes="64px" unoptimized className="object-cover" /> : initial}
         </span>
-        <div className="min-w-0"><h2 className="truncate text-xl font-bold text-[#302a26]">{profile.fullName}</h2><p className="mt-1 truncate text-sm text-[#7b7169]">@{profile.userName}</p></div>
+        <div className="min-w-0"><h2 className="truncate text-xl font-bold text-foreground">{profile.fullName}</h2><p className="mt-1 truncate text-sm text-muted-foreground">@{profile.userName}</p></div>
       </div>
 
       <form onSubmit={handleSubmit} className="mt-7 space-y-4">
-        <label className="block"><span className="form-label">Tên hiển thị</span><input className="form-input" name="fullName" defaultValue={profile.fullName} minLength={2} maxLength={100} required />{fieldErrors.fullName && <span className="mt-1 block text-xs text-red-700">{fieldErrors.fullName}</span>}</label>
-        <label className="block"><span className="form-label">Giới thiệu</span><textarea className="form-input min-h-24 resize-y py-3" name="bio" defaultValue={profile.bio ?? ""} maxLength={500} placeholder="Chia sẻ một chút về bạn và căn bếp của mình." />{fieldErrors.bio && <span className="mt-1 block text-xs text-red-700">{fieldErrors.bio}</span>}</label>
-        <label className="block"><span className="form-label">Ảnh đại diện</span><input className="form-input" name="avatarUrl" type="url" defaultValue={profile.avatarUrl ?? ""} placeholder="https://..." />{fieldErrors.avatarUrl && <span className="mt-1 block text-xs text-red-700">{fieldErrors.avatarUrl}</span>}</label>
-        <label className="block"><span className="form-label">Email</span><input className="form-input cursor-not-allowed bg-[#f2ece4] text-[#81766e]" value={profile.email} readOnly /></label>
-        {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
-        {saved && <p role="status" className="flex items-center gap-2 text-sm font-semibold text-[#1f6a54]"><CheckCircle2 className="size-4" />Đã cập nhật hồ sơ.</p>}
+        <label className="block"><span className="form-label">Tên hiển thị</span><input className="form-input" name="fullName" defaultValue={profile.fullName} minLength={2} maxLength={100} required />{fieldErrors.fullName && <span className="mt-1 block text-xs text-destructive">{fieldErrors.fullName}</span>}</label>
+        <label className="block"><span className="form-label">Giới thiệu</span><textarea className="form-input min-h-24 resize-y py-3" name="bio" defaultValue={profile.bio ?? ""} maxLength={500} placeholder="Chia sẻ một chút về bạn và căn bếp của mình." />{fieldErrors.bio && <span className="mt-1 block text-xs text-destructive">{fieldErrors.bio}</span>}</label>
+        <label className="block"><span className="form-label">Ảnh đại diện</span><input className="form-input" name="avatarUrl" type="url" defaultValue={profile.avatarUrl ?? ""} placeholder="https://..." />{fieldErrors.avatarUrl && <span className="mt-1 block text-xs text-destructive">{fieldErrors.avatarUrl}</span>}</label>
+        <label className="block"><span className="form-label">Email</span><input className="form-input cursor-not-allowed bg-muted text-muted-foreground" value={profile.email} readOnly /></label>
+        {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+        {saved && <p role="status" className="flex items-center gap-2 text-sm font-semibold text-primary"><CheckCircle2 className="size-4" />Đã cập nhật hồ sơ.</p>}
         <Button type="submit" disabled={isSaving}>{isSaving ? <LoaderCircle className="animate-spin" /> : <Save />}{isSaving ? "Đang lưu..." : "Lưu thay đổi"}</Button>
       </form>
     </article>

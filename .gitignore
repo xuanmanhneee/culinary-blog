@@ -6,6 +6,7 @@ services/**/obj/
 *.user
 
 # Node / Next.js
+/node_modules/
 /pnpm-lock.yaml
 frontend/node_modules/
 frontend/.next/

@@ -1,20 +1,18 @@
 import { API_V1 } from "@/lib/config/env";
-import { apiFetch } from "@/lib/api/client";
+import { apiFetch, publicDataCache } from "@/lib/api/client";
 import type { CategoryDetailDto, CategoryDto } from "@/lib/types/category";
 import type { PagedResult } from "@/lib/types/api";
 import type { RecipeDetailDto, RecipeListItemDto } from "@/lib/types/recipe";
 import type { RecipeQuery } from "@/lib/types/recipe";
 
 export async function getPublicCategories(): Promise<CategoryDto[]> {
-  return apiFetch<CategoryDto[]>("/categories", {
-    next: { revalidate: 300, tags: ["categories"] },
-  });
+  return apiFetch<CategoryDto[]>("/categories", publicDataCache(300, ["categories"]));
 }
 
 export async function getPublicCategory(slug: string, page = 1): Promise<CategoryDetailDto> {
   return apiFetch<CategoryDetailDto>(
     `/categories/${encodeURIComponent(slug)}?page=${page}&pageSize=12&sort=-createdAt`,
-    { next: { revalidate: 300, tags: ["categories", "recipes", `category:${slug}`] } },
+    publicDataCache(300, ["categories", "recipes", `category:${slug}`]),
   );
 }
 
@@ -25,9 +23,7 @@ export async function getLatestPublicRecipes(pageSize = 6): Promise<PagedResult<
     sort: "-createdAt",
   });
 
-  return apiFetch<PagedResult<RecipeListItemDto>>(`/recipes?${query}`, {
-    next: { revalidate: 300, tags: ["recipes"] },
-  });
+  return apiFetch<PagedResult<RecipeListItemDto>>(`/recipes?${query}`, publicDataCache(300, ["recipes"]));
 }
 
 export async function getPublicRecipes(query: RecipeQuery = {}): Promise<PagedResult<RecipeListItemDto>> {
@@ -39,12 +35,12 @@ export async function getPublicRecipes(query: RecipeQuery = {}): Promise<PagedRe
 
   if (query.categoryId) params.set("categoryId", query.categoryId);
   if (query.difficulty !== undefined) params.set("difficulty", String(query.difficulty));
+  if (query.minPrepTime !== undefined) params.set("minPrepTime", String(query.minPrepTime));
   if (query.maxCookTime !== undefined) params.set("maxCookTime", String(query.maxCookTime));
+  if (query.minServings !== undefined) params.set("minServings", String(query.minServings));
   if (query.status !== undefined) params.set("status", String(query.status));
 
-  return apiFetch<PagedResult<RecipeListItemDto>>(`/recipes?${params}`, {
-    next: { revalidate: 60, tags: ["recipes"] },
-  });
+  return apiFetch<PagedResult<RecipeListItemDto>>(`/recipes?${params}`, publicDataCache(60, ["recipes"]));
 }
 
 export async function getPublicRecipePool(pageSize = 50): Promise<PagedResult<RecipeListItemDto>> {
@@ -54,15 +50,13 @@ export async function getPublicRecipePool(pageSize = 50): Promise<PagedResult<Re
     sort: "-createdAt",
   });
 
-  return apiFetch<PagedResult<RecipeListItemDto>>(`/recipes?${query}`, {
-    next: { revalidate: 60, tags: ["recipes"] },
-  });
+  return apiFetch<PagedResult<RecipeListItemDto>>(`/recipes?${query}`, publicDataCache(60, ["recipes"]));
 }
 
 export async function getRecipeBySlug(slug: string): Promise<RecipeDetailDto | null> {
   const response = await fetch(
     `${API_V1}/recipes/${encodeURIComponent(slug)}`,
-    { next: { revalidate: 300, tags: ["recipes", `recipe:${slug}`] } },
+    publicDataCache(300, ["recipes", `recipe:${slug}`]),
   );
 
   if (response.status === 404) {

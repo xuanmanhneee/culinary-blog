@@ -41,7 +41,7 @@ export function Pagination(props: PaginationProps) {
         {pages.map((page, index) => (
           <span className="contents" key={page}>
             {index > 0 && pages[index - 1] !== page - 1 && (
-              <span className="px-1 text-[#9a9188]">…</span>
+              <span className="px-1 text-muted-foreground">…</span>
             )}
             <Link
               href={hrefForPage(page)}
@@ -49,8 +49,8 @@ export function Pagination(props: PaginationProps) {
               className={cn(
                 "grid size-10 place-items-center rounded-full text-sm font-bold transition",
                 page === currentPage
-                  ? "bg-[#1f4b3f] text-white"
-                  : "text-[#5f5750] hover:bg-[#efe6da]",
+                  ? "bg-primary text-white"
+                  : "text-foreground hover:bg-muted",
               )}
             >
               {page}
@@ -86,18 +86,18 @@ export function Pagination(props: PaginationProps) {
         type="button"
         disabled={!hasPreviousPage || isDisabled}
         onClick={() => onPageChange(Math.max(1, page - 1))}
-        className="rounded-md border px-4 py-2 disabled:cursor-not-allowed disabled:opacity-50"
+        className="rounded-xl border px-4 py-2 disabled:cursor-not-allowed disabled:opacity-50"
       >
         Trước
       </button>
-      <span aria-live="polite" className="text-sm text-zinc-600">
+      <span aria-live="polite" className="text-sm text-muted-foreground">
         Trang {page} / {totalPages}
       </span>
       <button
         type="button"
         disabled={!hasNextPage || isDisabled}
         onClick={() => onPageChange(Math.min(totalPages, page + 1))}
-        className="rounded-md border px-4 py-2 disabled:cursor-not-allowed disabled:opacity-50"
+        className="rounded-xl border px-4 py-2 disabled:cursor-not-allowed disabled:opacity-50"
       >
         Sau
       </button>
@@ -123,7 +123,7 @@ function PageLink({
       aria-disabled={disabled}
       tabIndex={disabled ? -1 : undefined}
       className={cn(
-        "grid size-10 place-items-center rounded-full border border-[#d8cdbf] text-[#4f4842] transition hover:border-[#1f4b3f]",
+        "grid size-10 place-items-center rounded-full border border-border text-foreground transition hover:border-primary",
         disabled && "pointer-events-none opacity-35",
       )}
     >

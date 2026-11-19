@@ -36,7 +36,7 @@ export const RECIPE_STATUS_LABELS: Record<RecipeStatus, string> = {
 };
 
 /** Giá trị `sort` của GET /api/v1/recipes; tiền tố "-" là giảm dần. */
-export type RecipeSort = "createdAt" | "-createdAt" | "title" | "-title" | "cookTime" | "-cookTime";
+export type RecipeSort = "createdAt" | "-createdAt" | "updatedAt" | "-updatedAt" | "title" | "-title" | "cookTime" | "-cookTime";
 
 // ---------------------------------------------------------------- Response DTO
 
@@ -103,6 +103,7 @@ export interface RecipeListItemDto {
   difficulty: RecipeDifficulty;
   status: RecipeStatus;
   createdAt: IsoDateTime;
+  updatedAt: IsoDateTime;
   publishedAt: IsoDateTime | null;
   primaryImageUrl: string | null;
   category: RecipeCategoryDto | null;
@@ -154,7 +155,9 @@ export interface RecipeQuery {
   pageSize?: number;
   categoryId?: Guid;
   difficulty?: RecipeDifficulty;
+  minPrepTime?: number;
   maxCookTime?: number;
+  minServings?: number;
   status?: RecipeStatus;
   sort?: RecipeSort;
 }

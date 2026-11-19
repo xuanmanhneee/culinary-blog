@@ -7,6 +7,7 @@
  */
 import { cache } from "react";
 import { auth } from "@/auth";
+import { publicDataCache } from "@/lib/api/client";
 import { API_V1 } from "@/lib/config/env";
 import type { RecipeDetailDto } from "@/lib/types/recipe";
 
@@ -19,7 +20,7 @@ async function fetchRecipe(slug: string, token?: string): Promise<Response> {
   const url = `${API_V1}/recipes/${encodeURIComponent(slug)}`;
   return token
     ? fetch(url, { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" })
-    : fetch(url, { next: { revalidate: 300, tags: ["recipes", `recipe:${slug}`] } });
+    : fetch(url, publicDataCache(300, ["recipes", `recipe:${slug}`]));
 }
 
 async function read(response: Response): Promise<RecipeForViewer | null> {

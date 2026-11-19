@@ -39,17 +39,17 @@ export function RecipeImageFilePicker({ id, label, selection, onFileChange }: Re
     <div className="space-y-2">
       <label
         htmlFor={id}
-        className="flex cursor-pointer flex-col items-center justify-center gap-3 rounded-lg border border-dashed bg-muted/20 px-5 py-5 text-center transition hover:border-emerald-600 hover:bg-emerald-50/40"
+        className="flex cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border border-dashed bg-muted/20 px-5 py-5 text-center transition hover:border-primary hover:bg-primary-soft/40"
       >
         {selection ? (
-          <span className="relative block aspect-[4/3] w-full max-w-sm overflow-hidden rounded-lg bg-muted">
+          <span className="relative block aspect-[4/3] w-full max-w-sm overflow-hidden rounded-xl bg-muted">
             <Image src={selection.previewUrl} alt={`Xem trước ${label.toLocaleLowerCase("vi")}`} fill unoptimized className="object-cover" />
           </span>
         ) : (
           <span className="flex items-center gap-2 text-sm font-medium"><ImagePlus /> Chọn {label.toLocaleLowerCase("vi")}</span>
         )}
         <span className="text-xs text-muted-foreground">JPEG, PNG, WebP hoặc AVIF · tối đa 5 MB</span>
-        {selection && <span className="max-w-full truncate text-xs text-emerald-700">{selection.file.name}</span>}
+        {selection && <span className="max-w-full truncate text-xs text-primary">{selection.file.name}</span>}
       </label>
       <input id={id} type="file" accept={RECIPE_IMAGE_ACCEPT} className="sr-only" onChange={handleChange} />
       {selection && (
@@ -57,7 +57,7 @@ export function RecipeImageFilePicker({ id, label, selection, onFileChange }: Re
           <X /> Bỏ ảnh đã chọn
         </Button>
       )}
-      {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
+      {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
     </div>
   );
 }

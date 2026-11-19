@@ -17,10 +17,10 @@ export function SavedRecipeActions({ recipeId }: { recipeId: string }) {
     setBusy(true);
     try {
       await unsaveRecipe(recipeId, session.accessToken);
-      router.refresh();
     } catch {
-      router.refresh();
+      // Trang refresh sẽ hiển thị trạng thái service không khả dụng nếu request lỗi.
     } finally {
+      router.refresh();
       setBusy(false);
     }
   }

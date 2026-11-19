@@ -6,22 +6,24 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getEngagementSummary, rateRecipe, saveRecipe, unsaveRecipe } from "@/lib/api/engagement";
 import type { EngagementSummary } from "@/lib/types/engagement";
+import { Roles } from "@/lib/types/auth";
 
 export function RecipeActions({ recipeId, slug, title }: { recipeId: string; slug: string; title: string }) {
   const { data: session, status } = useSession();
   const router = useRouter();
   const token = session?.accessToken;
+  const isAdmin = session?.user.roles?.includes(Roles.Admin) ?? false;
   const [summary, setSummary] = useState<EngagementSummary | null>(null);
-  const [engagementAvailable, setEngagementAvailable] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
+    if (isAdmin) return;
     const controller = new AbortController();
     void getEngagementSummary(recipeId, token, controller.signal)
-      .then((value) => { setSummary(value); setEngagementAvailable(true); })
-      .catch((error: unknown) => { if (!(error instanceof DOMException && error.name === "AbortError")) setEngagementAvailable(false); });
+      .then(setSummary)
+      .catch((error: unknown) => { if (!(error instanceof DOMException && error.name === "AbortError")) setSummary(null); });
     return () => controller.abort();
-  }, [recipeId, token]);
+  }, [isAdmin, recipeId, token]);
 
   function requireToken(): string | null {
     if (token) return token;
@@ -38,7 +40,7 @@ export function RecipeActions({ recipeId, slug, title }: { recipeId: string; slu
       else await saveRecipe(recipeId, slug, accessToken);
       setSummary(await getEngagementSummary(recipeId, accessToken));
     } catch {
-      setEngagementAvailable(false);
+      setSummary(null);
     } finally {
       setBusy(false);
     }
@@ -52,7 +54,7 @@ export function RecipeActions({ recipeId, slug, title }: { recipeId: string; slu
       await rateRecipe(recipeId, slug, score, accessToken);
       setSummary(await getEngagementSummary(recipeId, accessToken));
     } catch {
-      setEngagementAvailable(false);
+      setSummary(null);
     } finally {
       setBusy(false);
     }
@@ -66,22 +68,24 @@ export function RecipeActions({ recipeId, slug, title }: { recipeId: string; slu
     await navigator.clipboard.writeText(window.location.href);
   }
 
+  if (isAdmin) return null;
+
   return (
-    <div className="absolute right-5 bottom-5 flex flex-wrap justify-end gap-2">
-      {engagementAvailable && <><div className="flex items-center rounded-full bg-white/90 px-2 shadow" aria-label={`Đánh giá trung bình ${summary?.averageRating ?? 0} trên 5`}>
+    <div className="mx-auto mt-4 flex max-w-4xl flex-wrap items-center justify-center gap-2">
+      {summary && <><div className="flex items-center rounded-full bg-card px-2 shadow" aria-label={`Đánh giá trung bình ${summary.averageRating} trên 5`}>
         {[1, 2, 3, 4, 5].map((score) => (
-          <button key={score} type="button" disabled={busy} onClick={() => void setRating(score)} aria-label={`Đánh giá ${score} sao`} className="grid size-8 place-items-center text-amber-500 disabled:opacity-50">
+          <button key={score} type="button" disabled={busy} onClick={() => void setRating(score)} aria-label={`Đánh giá ${score} sao`} className="grid size-8 place-items-center text-accent disabled:opacity-50">
             <Star className={`size-4 ${score <= (summary?.myRating ?? 0) ? "fill-current" : ""}`} />
           </button>
         ))}
-        <span className="pr-2 text-xs font-bold text-[#655d55]">{summary?.ratingCount ? `${summary.averageRating} (${summary.ratingCount})` : "Chưa có"}</span>
+        <span className="pr-2 text-xs font-bold text-foreground">{summary.ratingCount ? `${summary.averageRating}/5 · ${summary.ratingCount} lượt đánh giá` : "Chưa có đánh giá"}</span>
       </div>
       <button
         type="button"
         disabled={busy}
         onClick={() => void toggleSaved()}
         aria-label={summary?.isSaved ? "Bỏ lưu công thức" : "Lưu công thức"}
-        className="grid size-11 place-items-center rounded-full bg-white/90 text-[#b65338] shadow disabled:opacity-50"
+        className="grid size-11 place-items-center rounded-full bg-card text-accent shadow disabled:opacity-50"
       >
         <Heart className={`size-4 ${summary?.isSaved ? "fill-current" : ""}`} />
       </button>
@@ -90,7 +94,7 @@ export function RecipeActions({ recipeId, slug, title }: { recipeId: string; slu
         type="button"
         onClick={() => window.print()}
         aria-label="In công thức"
-        className="grid size-11 place-items-center rounded-full bg-white/90 text-[#3d3732] shadow"
+        className="grid size-11 place-items-center rounded-full bg-card text-foreground shadow"
       >
         <Printer className="size-4" />
       </button>
@@ -98,7 +102,7 @@ export function RecipeActions({ recipeId, slug, title }: { recipeId: string; slu
         type="button"
         onClick={() => void shareRecipe()}
         aria-label="Chia sẻ công thức"
-        className="grid size-11 place-items-center rounded-full bg-white/90 text-[#3d3732] shadow"
+        className="grid size-11 place-items-center rounded-full bg-card text-foreground shadow"
       >
         <Share2 className="size-4" />
       </button>

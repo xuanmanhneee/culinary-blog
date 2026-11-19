@@ -12,11 +12,11 @@ export function Footer() {
   if (pathname === "/login" || pathname === "/register") return null;
 
   return (
-    <footer className="mt-auto border-t border-[#d9cdbd] bg-[#efe7db]">
+    <footer className="mt-auto border-t border-border bg-border">
       <div className="site-container grid gap-10 py-14 md:grid-cols-[1.3fr_.8fr_.8fr]">
         <div>
           <Logo />
-          <p className="mt-5 max-w-sm text-sm leading-7 text-[#6b625a]">Nơi những công thức giản dị được kể bằng tình yêu, để mỗi bữa cơm nhà đều có một câu chuyện đáng nhớ.</p>
+          <p className="mt-5 max-w-sm text-sm leading-7 text-muted-foreground">Nơi những công thức giản dị được kể bằng tình yêu, để mỗi bữa cơm nhà đều có một câu chuyện đáng nhớ.</p>
           <div className="mt-5 flex gap-2">
             <a className="social-button" href="#" aria-label="Kênh hình ảnh"><Camera /></a>
             <a className="social-button" href="#" aria-label="Cộng đồng Bếp Nhà"><MessageCircle /></a>
@@ -24,18 +24,18 @@ export function Footer() {
           </div>
         </div>
         <div>
-          <h2 className="text-sm font-bold uppercase tracking-[0.14em] text-[#302a26]">Khám phá</h2>
-          <ul className="mt-5 space-y-3 text-sm text-[#6b625a]">
-            {footerLinks.map((item) => <li key={item}><Link className="hover:text-[#1f4b3f]" href="/#cong-thuc">{item}</Link></li>)}
+          <h2 className="text-sm font-bold uppercase tracking-[0.14em] text-foreground">Khám phá</h2>
+          <ul className="mt-5 space-y-3 text-sm text-muted-foreground">
+            {footerLinks.map((item) => <li key={item}><Link className="hover:text-primary" href="/#cong-thuc">{item}</Link></li>)}
           </ul>
         </div>
         <div>
-          <h2 className="text-sm font-bold uppercase tracking-[0.14em] text-[#302a26]">Ghé thăm căn bếp</h2>
-          <p className="mt-5 flex gap-3 text-sm leading-6 text-[#6b625a]"><MapPin className="mt-0.5 size-4 shrink-0 text-[#b65338]" />227 Nguyễn Văn Cừ, Quận 5, TP. Hồ Chí Minh</p>
-          <p className="mt-4 text-sm text-[#6b625a]">hello@bepnha.vn</p>
+          <h2 className="text-sm font-bold uppercase tracking-[0.14em] text-foreground">Ghé thăm căn bếp</h2>
+          <p className="mt-5 flex gap-3 text-sm leading-6 text-muted-foreground"><MapPin className="mt-0.5 size-4 shrink-0 text-accent" />227 Nguyễn Văn Cừ, Quận 5, TP. Hồ Chí Minh</p>
+          <p className="mt-4 text-sm text-muted-foreground">hello@bepnha.vn</p>
         </div>
       </div>
-      <div className="border-t border-[#d9cdbd] py-5 text-center text-xs text-[#786e66]">© 2026 Bếp Nhà. Nấu bằng cả trái tim.</div>
+      <div className="border-t border-border py-5 text-center text-xs text-muted-foreground">© 2026 Bếp Nhà. Nấu bằng cả trái tim.</div>
     </footer>
   );
 }

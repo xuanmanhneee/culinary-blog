@@ -53,6 +53,13 @@ export interface ApiResponse<T> {
   headers: Headers;
 }
 
+export function publicDataCache(revalidate: number, tags: string[]): RequestInit {
+  // The local database can be reset independently of Next.js.
+  return process.env.NODE_ENV === "development"
+    ? { cache: "no-store" }
+    : { next: { revalidate, tags } };
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }

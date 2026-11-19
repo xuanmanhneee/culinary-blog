@@ -1,7 +1,10 @@
+import { ArrowLeft } from "lucide-react";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/common/ErrorState";
+import { PageHeader } from "@/components/common/PageHeader";
 import { Pagination } from "@/components/common/Pagination";
 import { RecipeCard } from "@/components/recipes/RecipeCard";
 import { ApiError } from "@/lib/api/client";
@@ -47,19 +50,17 @@ export default async function CategoryPage({ params, searchParams }: Props) {
   const { category, recipes } = result;
   return (
       <section className="site-container py-14 sm:py-20">
-        <header className="mx-auto max-w-3xl text-center">
-          <Badge variant="warm">Danh mục</Badge>
-          <h1 className="font-display mt-5 text-5xl font-bold tracking-[-.05em] text-[#2e2925] sm:text-6xl">{category.name}</h1>
-          {category.description && <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-[#746a62]">{category.description}</p>}
-          <p className="mt-3 text-sm font-semibold text-[#1f4b3f]">{recipes.totalCount} công thức</p>
-        </header>
+        <Button asChild variant="ghost" size="sm">
+          <Link href="/categories"><ArrowLeft aria-hidden="true" />Tất cả danh mục</Link>
+        </Button>
+        <PageHeader className="mt-5" align="center" title={category.name} description={category.description} actions={<span className="text-sm font-semibold text-primary">{recipes.totalCount} công thức</span>} />
 
         {recipes.items.length ? (
           <div className="mt-12 grid gap-x-7 gap-y-12 md:grid-cols-2 lg:grid-cols-3">
             {recipes.items.map((recipe) => <RecipeCard key={recipe.id} recipe={recipe} />)}
           </div>
         ) : (
-          <p className="mt-12 rounded-2xl border border-dashed border-[#d9cdbd] bg-white/70 p-10 text-center text-sm text-[#70675f]">Danh mục này chưa có công thức đã xuất bản.</p>
+          <p className="mt-8 rounded-2xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">Danh mục này chưa có công thức đã xuất bản.</p>
         )}
 
         <div className="mt-16">

@@ -97,6 +97,11 @@ export function deleteRecipe(id: string, token: Token): Promise<void> {
   return apiFetch(`${RECIPES}/${id}`, { method: "DELETE", token });
 }
 
+/** PATCH /recipes/{id}/restore – khôi phục công thức đã xóa mềm (FR-RCP-011). */
+export function restoreRecipe(id: string, token: Token): Promise<void> {
+  return apiFetch(`${RECIPES}/${id}/restore`, { method: "PATCH", token });
+}
+
 // ---------------------------------------------------------------- Nguyên liệu (FR-RCP-009)
 
 export function addIngredient(recipeId: string, body: CreateIngredientRequest, token: Token): Promise<RecipeIngredientDto> {

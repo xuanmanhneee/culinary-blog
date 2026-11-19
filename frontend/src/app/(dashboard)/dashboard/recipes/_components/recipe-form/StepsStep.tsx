@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useFieldArray, useForm } from "react-hook-form";
+import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowDown, ArrowUp, ListOrdered, Plus, Trash2 } from "lucide-react";
 import { EmptyState } from "@/components/common/EmptyState";
@@ -40,12 +40,12 @@ export function StepsStep({
     keyName: "fieldKey",
   });
   const errors = form.formState.errors.steps;
+  const steps = useWatch({ control: form.control, name: "steps" });
   useServerErrors(form.setError, serverErrors, 2);
 
   useEffect(() => {
-    const subscription = form.watch((values) => setSteps((values.steps ?? []) as StepDraft[]));
-    return () => subscription.unsubscribe();
-  }, [form, setSteps]);
+    setSteps((steps ?? []) as StepDraft[]);
+  }, [setSteps, steps]);
 
   return (
     <form
@@ -73,8 +73,8 @@ export function StepsStep({
           {fields.map((field, index) => {
             const itemErrors = errors?.[index];
             return (
-              <li key={field.fieldKey} className="flex gap-4 rounded-lg border bg-background p-4">
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-sm font-semibold text-white">
+              <li key={field.fieldKey} className="flex gap-4 rounded-xl border bg-card p-4">
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-white">
                   {index + 1}
                 </span>
                 <div className="min-w-0 flex-1 space-y-4">
