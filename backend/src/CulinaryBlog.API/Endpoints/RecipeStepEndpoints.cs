@@ -26,14 +26,14 @@ public static class RecipeStepEndpoints
             .WithSummary("Thêm bước thực hiện")
             .WithDescription("FR-RCP-010. StepNumber tự tăng (nối vào cuối); title trống thì mặc định \"Bước n\".")
             .Produces<RecipeStepDto>(StatusCodes.Status201Created)
-            .ProducesValidationProblem();
+            .ProducesValidationProblem(StatusCodes.Status422UnprocessableEntity);
 
         group.MapPut("/{stepId:guid}", UpdateAsync)
             .WithName("UpdateRecipeStep")
             .WithSummary("Cập nhật bước thực hiện")
             .WithDescription("FR-RCP-010. StepNumber không đổi; title trống thì giữ title hiện tại. Bước không tồn tại: 404 STEP_NOT_FOUND.")
             .Produces<RecipeStepDto>()
-            .ProducesValidationProblem();
+            .ProducesValidationProblem(StatusCodes.Status422UnprocessableEntity);
 
         group.MapDelete("/{stepId:guid}", DeleteAsync)
             .WithName("DeleteRecipeStep")

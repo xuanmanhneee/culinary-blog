@@ -50,14 +50,14 @@ public static class RecipeEndpoints
                 "sort: createdAt | updatedAt | title | cookTime, thêm \"-\" để giảm dần (mặc định -createdAt). " +
                 "pageSize 1–50 (mặc định 12). categoryId không tồn tại trả danh sách rỗng.")
             .Produces<PagedResult<RecipeListItemDto>>()
-            .ProducesValidationProblem();
+            .ProducesValidationProblem(StatusCodes.Status422UnprocessableEntity);
 
         group.MapGet("/search", SearchAsync)
             .WithName("SearchRecipes")
             .WithSummary("Tìm kiếm toàn văn công thức đã xuất bản")
             .WithDescription("FR-SEARCH-001/003. Tìm theo từ khóa q (tối thiểu 2 ký tự), lọc categoryId, phân trang và sắp xếp theo createdAt, title hoặc cookTime; thêm '-' để giảm dần.")
             .Produces<PagedResult<RecipeSummaryDto>>()
-            .ProducesValidationProblem();
+            .ProducesValidationProblem(StatusCodes.Status422UnprocessableEntity);
 
         group.MapGet("/{slug}", GetBySlugAsync)
             .WithName("GetRecipeBySlug")
@@ -81,7 +81,7 @@ public static class RecipeEndpoints
             .WithSummary("Danh sách công thức đã xóa")
             .WithDescription("FR-RCP-011. Author chỉ thấy công thức của mình; Admin thấy mọi công thức đã xóa.")
             .Produces<PagedResult<RecipeListItemDto>>()
-            .ProducesValidationProblem();
+            .ProducesValidationProblem(StatusCodes.Status422UnprocessableEntity);
 
         // {id:guid} khai báo riêng để không bị route {slug} bắt mất.
         authorized.MapGet("/by-id/{id:guid}", GetByIdAsync)
@@ -98,7 +98,7 @@ public static class RecipeEndpoints
                 "FR-RCP-003. Tác giả là người đang đăng nhập; recipe mới luôn ở trạng thái Draft, slug sinh từ title. " +
                 "Có thể gửi kèm nutrition, ingredients, steps. Trùng slug: 409 RECIPE_SLUG_EXISTS.")
             .Produces<RecipeDetailDto>(StatusCodes.Status201Created)
-            .ProducesValidationProblem()
+            .ProducesValidationProblem(StatusCodes.Status422UnprocessableEntity)
             .ProducesProblem(StatusCodes.Status409Conflict);
 
         authorized.MapPut("/{id:guid}", UpdateAsync)
@@ -108,7 +108,7 @@ public static class RecipeEndpoints
                 "FR-RCP-004. Gửi rowVersion qua header If-Match (hoặc field rowVersion). Bản cũ: 422 RECIPE_CONCURRENCY_CONFLICT. " +
                 "Slug chỉ đổi theo title khi còn Draft (trùng: 409). Response kèm ETag mới.")
             .Produces<RecipeDetailDto>()
-            .ProducesValidationProblem()
+            .ProducesValidationProblem(StatusCodes.Status422UnprocessableEntity)
             .ProducesNotFoundProblem()
             .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesProblem(StatusCodes.Status422UnprocessableEntity);

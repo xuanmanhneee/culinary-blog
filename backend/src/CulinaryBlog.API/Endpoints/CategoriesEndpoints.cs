@@ -39,7 +39,7 @@ public static class CategoriesEndpoints
                 new GetRecipesQuery(request with { CategoryId = category.Id }), ct);
             return Results.Ok(new CategoryDetailDto(category, recipes));
         }).WithName("GetCategoryBySlug").WithSummary("Chi tiết danh mục theo slug")
-            .Produces<CategoryDetailDto>().ProducesNotFoundProblem().ProducesValidationProblem();
+            .Produces<CategoryDetailDto>().ProducesNotFoundProblem().ProducesValidationProblem(StatusCodes.Status422UnprocessableEntity);
 
         group.MapGet("/{slug}/recipes", async (
                 string slug,
@@ -56,7 +56,7 @@ public static class CategoriesEndpoints
             .WithSummary("Danh sách công thức theo category")
             .Produces<PagedResult<RecipeListItemDto>>()
             .ProducesNotFoundProblem()
-            .ProducesValidationProblem();
+            .ProducesValidationProblem(StatusCodes.Status422UnprocessableEntity);
 
         var admin = group.MapGroup(string.Empty)
             .RequireAuthorization(AuthServiceCollectionExtensions.AdminPolicy).ProducesAuthProblems();
@@ -65,7 +65,7 @@ public static class CategoriesEndpoints
             var created = await sender.Send(new CreateCategoryCommand(request), ct);
             return Results.Created($"{ApiVersioningExtensions.V1Path}/categories/{created.Slug}", created);
         }).WithName("CreateCategory").WithSummary("Tạo danh mục")
-            .Produces<CategoryDto>(StatusCodes.Status201Created).ProducesValidationProblem()
+            .Produces<CategoryDto>(StatusCodes.Status201Created).ProducesValidationProblem(StatusCodes.Status422UnprocessableEntity)
             .ProducesProblem(StatusCodes.Status409Conflict);
 
         admin.MapPut("/{id:guid}", async (
@@ -77,7 +77,7 @@ public static class CategoriesEndpoints
             var updated = await sender.Send(new UpdateCategoryCommand(id, request), ct);
             return Results.Ok(updated);
         }).WithName("UpdateCategory").WithSummary("Cập nhật danh mục")
-            .Produces<CategoryDto>().ProducesValidationProblem()
+            .Produces<CategoryDto>().ProducesValidationProblem(StatusCodes.Status422UnprocessableEntity)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict);
 
@@ -100,7 +100,7 @@ public static class CategoriesEndpoints
             .WithSummary("Tải ảnh danh mục")
             .Accepts<IFormFile>("multipart/form-data")
             .Produces<CategoryDto>()
-            .ProducesValidationProblem()
+            .ProducesValidationProblem(StatusCodes.Status422UnprocessableEntity)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .RequireRateLimiting(RateLimitPolicies.Upload)
             .DisableAntiforgery();

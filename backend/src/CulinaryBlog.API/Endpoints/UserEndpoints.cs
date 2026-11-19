@@ -91,7 +91,7 @@ public static class UserEndpoints
             .WithName("UpdateUserRole")
             .WithSummary("Thay đổi vai trò người dùng")
             .Produces(StatusCodes.Status204NoContent)
-            .ProducesValidationProblem()
+            .ProducesValidationProblem(StatusCodes.Status422UnprocessableEntity)
             .ProducesNotFoundProblem();
 
         group.MapPatch("/{id}/status", async (
@@ -137,7 +137,7 @@ public static class UserEndpoints
             .WithName("UpdateUserStatus")
             .WithSummary("Khóa hoặc mở khóa tài khoản người dùng")
             .Produces(StatusCodes.Status204NoContent)
-            .ProducesValidationProblem()
+            .ProducesValidationProblem(StatusCodes.Status422UnprocessableEntity)
             .ProducesNotFoundProblem();
 
         group.MapDelete("/{id}", async (
@@ -174,7 +174,7 @@ public static class UserEndpoints
             .WithSummary("Danh sách người dùng dành cho quản trị viên")
             .WithDescription("Phân trang, tìm theo tên/email/tên đăng nhập và lọc theo vai trò Admin hoặc Author.")
             .Produces<PagedResult<UserListItemDto>>()
-            .ProducesValidationProblem();
+            .ProducesValidationProblem(StatusCodes.Status422UnprocessableEntity);
 
         return app;
     }

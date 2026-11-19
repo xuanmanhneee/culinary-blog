@@ -26,14 +26,14 @@ public static class RecipeIngredientEndpoints
             .WithSummary("Thêm nguyên liệu")
             .WithDescription("FR-RCP-009. Chỉ owner. Không gửi orderIndex thì xếp cuối danh sách.")
             .Produces<RecipeIngredientDto>(StatusCodes.Status201Created)
-            .ProducesValidationProblem();
+            .ProducesValidationProblem(StatusCodes.Status422UnprocessableEntity);
 
         group.MapPut("/{ingredientId:guid}", UpdateAsync)
             .WithName("UpdateRecipeIngredient")
             .WithSummary("Cập nhật nguyên liệu")
             .WithDescription("FR-RCP-009. Nguyên liệu không tồn tại: 404 INGREDIENT_NOT_FOUND.")
             .Produces<RecipeIngredientDto>()
-            .ProducesValidationProblem();
+            .ProducesValidationProblem(StatusCodes.Status422UnprocessableEntity);
 
         group.MapDelete("/{ingredientId:guid}", DeleteAsync)
             .WithName("DeleteRecipeIngredient")

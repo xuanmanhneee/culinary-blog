@@ -31,7 +31,7 @@ public static class RecipeImageEndpoints
             .WithDescription("FR-FILE-001. Chỉ owner; hỗ trợ JPEG, PNG, WebP, AVIF, tối đa 5 MB.")
             .Accepts<IFormFile>("multipart/form-data")
             .Produces<RecipeImageDto>(StatusCodes.Status201Created)
-            .ProducesValidationProblem()
+            .ProducesValidationProblem(StatusCodes.Status422UnprocessableEntity)
             .RequireRateLimiting(RateLimitPolicies.Upload)
             .DisableAntiforgery();
 
@@ -45,7 +45,7 @@ public static class RecipeImageEndpoints
             .WithName("UpdateRecipeImage")
             .WithSummary("Cập nhật metadata ảnh")
             .Produces<RecipeImageDto>()
-            .ProducesValidationProblem();
+            .ProducesValidationProblem(StatusCodes.Status422UnprocessableEntity);
 
         group.MapDelete("/{imageId:guid}", DeleteAsync)
             .WithName("DeleteRecipeImage")

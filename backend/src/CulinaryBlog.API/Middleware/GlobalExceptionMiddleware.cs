@@ -72,7 +72,7 @@ public sealed class GlobalExceptionMiddleware
     {
         ValidationException ex => new HttpValidationProblemDetails(ex.Errors)
         {
-            Status = StatusCodes.Status400BadRequest,
+            Status = StatusCodes.Status422UnprocessableEntity,
             Title = "One or more validation errors occurred.",
             Type = ex.ErrorCode,
             Detail = ex.Message
