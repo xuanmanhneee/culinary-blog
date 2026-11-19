@@ -2,7 +2,7 @@ namespace CulinaryBlog.Application.Categories.Models;
 
 public sealed record CreateCategoryRequest(
     string Name,
-    string Slug,
+    string? Slug = null,
     string? Description = null,
     int OrderIndex = 0,
     string? ImageUrl = null);

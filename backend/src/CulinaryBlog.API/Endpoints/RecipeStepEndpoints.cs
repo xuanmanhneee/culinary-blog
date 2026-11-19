@@ -14,7 +14,7 @@ public static class RecipeStepEndpoints
 {
     public static IEndpointRouteBuilder MapRecipeStepEndpoints(this IEndpointRouteBuilder app)
     {
-        // Role Author/Admin tại endpoint; owner/Admin trên từng recipe do RecipeAuthorizationHandler kiểm tra.
+        // Role Author/Admin tại endpoint; chỉ owner được sửa các bước.
         var group = app.MapVersionedApiGroup("RecipeSteps", "recipes/{recipeId:guid}/steps")
             .WithTags("Recipe Steps")
             .RequireAuthorization(AuthServiceCollectionExtensions.AuthorPolicy)

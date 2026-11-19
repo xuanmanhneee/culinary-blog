@@ -1,6 +1,6 @@
 param(
     [string]$BaseUrl = "http://localhost:5000",
-    [string]$Email = "author1@culinaryblog.local",
+    [string]$Email = "author2@culinaryblog.local",
     [string]$Password = "Author@123"
 )
 
@@ -15,6 +15,8 @@ $imageId = $null
 $recipeId = $null
 $headers = $null
 $thumbnailUrl = $null
+$savedRecipeTouched = $false
+$ratingTouched = $false
 $tempImage = Join-Path ([IO.Path]::GetTempPath()) "culinary-blog-smoke.png"
 
 try {
@@ -50,21 +52,44 @@ try {
 
     $recipes = Invoke-RestMethod "$BaseUrl/api/v1/recipes?page=1&pageSize=1"
     Assert-True (@($recipes.items).Count -eq 1) "public recipe list is empty; run seed first"
-    $recipe = $recipes.items[0]
+    $ownedRecipes = Invoke-RestMethod "$BaseUrl/api/v1/recipes?mine=true&page=1&pageSize=50" -Headers $headers
+    $recipe = @($ownedRecipes.items) | Where-Object { $_.status -eq 1 } | Select-Object -First 1
+    Assert-True ($null -ne $recipe) "the smoke-test author has no published recipe"
     $recipeId = $recipe.id
 
     $detail = Invoke-RestMethod "$BaseUrl/api/v1/recipes/$($recipe.slug)"
     Assert-True ($detail.id -eq $recipeId) "public recipe detail mismatch"
+
+    $saveBody = @{ slug = $recipe.slug } | ConvertTo-Json
+    Invoke-WebRequest -UseBasicParsing -Method Put `
+        -Uri "$BaseUrl/api/v1/saved-recipes/$recipeId" -Headers $headers `
+        -ContentType "application/json" -Body $saveBody | Out-Null
+    $savedRecipeTouched = $true
+    Invoke-WebRequest -UseBasicParsing -Method Put `
+        -Uri "$BaseUrl/api/v1/saved-recipes/$recipeId" -Headers $headers `
+        -ContentType "application/json" -Body $saveBody | Out-Null
+    $savedPage = Invoke-RestMethod "$BaseUrl/api/v1/saved-recipes?page=1&pageSize=10" -Headers $headers
+    Assert-True (@($savedPage.items).recipeId -contains $recipeId) "saved recipe list mismatch"
+
+    $ratingBody = @{ slug = $recipe.slug; score = 5 } | ConvertTo-Json
+    Invoke-WebRequest -UseBasicParsing -Method Put `
+        -Uri "$BaseUrl/api/v1/ratings/$recipeId" -Headers $headers `
+        -ContentType "application/json" -Body $ratingBody | Out-Null
+    $ratingTouched = $true
+    $engagement = Invoke-RestMethod "$BaseUrl/api/v1/ratings/$recipeId" -Headers $headers
+    Assert-True ($engagement.isSaved -and $engagement.myRating -eq 5) "engagement state mismatch"
 
     $editResponse = Invoke-WebRequest -UseBasicParsing `
         -Uri "$BaseUrl/api/v1/recipes/by-id/$recipeId" -Headers $headers
     Assert-True ($editResponse.StatusCode -eq 200) "edit-by-id failed"
     Assert-True (-not [string]::IsNullOrWhiteSpace($editResponse.Headers["ETag"])) "edit response has no ETag"
 
-    $search = Invoke-RestMethod "$BaseUrl/api/v1/recipes/search?q=cong%20thuc&page=1&pageSize=5"
-    Assert-True ($search.totalCount -gt 0) "accent-insensitive search returned no seeded recipe"
-    $filteredSearch = Invoke-RestMethod "$BaseUrl/api/v1/recipes/search?q=cong%20thuc&page=1&pageSize=5&categoryId=$($category.id)&minServings=1"
-    Assert-True ($filteredSearch.totalCount -ge 0) "filtered search failed"
+    $search = Invoke-RestMethod "$BaseUrl/api/v1/recipes/search?q=ga%20kho%20gung&page=1&pageSize=5"
+    Assert-True (@($search.items).slug -contains "ga-kho-gung") "accent-insensitive search returned no seeded recipe"
+    $mainCategory = $categories | Where-Object { $_.slug -eq "mon-chinh" }
+    Assert-True ($null -ne $mainCategory) "seeded main category is missing"
+    $filteredSearch = Invoke-RestMethod "$BaseUrl/api/v1/recipes/search?q=ga%20kho%20gung&page=1&pageSize=5&categoryId=$($mainCategory.id)&minServings=1"
+    Assert-True (@($filteredSearch.items).slug -contains "ga-kho-gung") "filtered search failed"
 
     [IO.File]::WriteAllBytes(
         $tempImage,
@@ -105,10 +130,23 @@ try {
         searchResults = $search.totalCount
         imageDownloadStatus = $download.StatusCode
         thumbnailDownloadStatus = $thumbnailDownload.StatusCode
+        engagementRating = $engagement.myRating
     } | ConvertTo-Json
 }
 finally {
     if ($headers -and $recipeId) {
+        if ($ratingTouched) {
+            try {
+                Invoke-WebRequest -UseBasicParsing -Method Delete `
+                    -Uri "$BaseUrl/api/v1/ratings/$recipeId" -Headers $headers | Out-Null
+            } catch { Write-Warning "Could not clean rating for ${recipeId}: $_" }
+        }
+        if ($savedRecipeTouched) {
+            try {
+                Invoke-WebRequest -UseBasicParsing -Method Delete `
+                    -Uri "$BaseUrl/api/v1/saved-recipes/$recipeId" -Headers $headers | Out-Null
+            } catch { Write-Warning "Could not clean saved recipe ${recipeId}: $_" }
+        }
         if ($imageId) {
             try {
                 Invoke-WebRequest -UseBasicParsing -Method Delete `

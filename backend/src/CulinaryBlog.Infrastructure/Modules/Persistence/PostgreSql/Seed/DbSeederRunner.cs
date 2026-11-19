@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -12,8 +13,9 @@ public static class DbSeederRunner
 {
     public static async Task SeedCulinaryBlogDataAsync(this IServiceProvider services)
     {
-        using var scope = services.CreateScope();
+        await using var scope = services.CreateAsyncScope();
         var provider = scope.ServiceProvider;
+        var context = provider.GetRequiredService<CulinaryBlogDbContext>();
         var logger = provider.GetRequiredService<ILogger<CulinaryBlogDbContext>>();
 
         var identitySeeder = provider.GetRequiredService<IdentitySeeder>();
@@ -22,9 +24,11 @@ public static class DbSeederRunner
 
         logger.LogInformation("=== Bắt đầu seed dữ liệu Culinary Blog ===");
 
-        var authors = await identitySeeder.SeedAuthorsAsync(count: 6);
-        var categories = await categorySeeder.SeedAsync(); // >= 20 categories
-        await recipeSeeder.SeedAsync(categories, authors, count: 120); // >= 100 recipes
+        await using var transaction = await context.Database.BeginTransactionAsync();
+        var authors = await identitySeeder.SeedDemoAccountsAsync();
+        var categories = await categorySeeder.SeedAsync();
+        await recipeSeeder.SeedAsync(categories, authors);
+        await transaction.CommitAsync();
 
         logger.LogInformation("=== Seed dữ liệu hoàn tất ===");
     }

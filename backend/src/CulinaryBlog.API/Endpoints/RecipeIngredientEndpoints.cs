@@ -14,7 +14,7 @@ public static class RecipeIngredientEndpoints
 {
     public static IEndpointRouteBuilder MapRecipeIngredientEndpoints(this IEndpointRouteBuilder app)
     {
-        // Role Author/Admin tại endpoint; owner/Admin trên từng recipe do RecipeAuthorizationHandler kiểm tra.
+        // Role Author/Admin tại endpoint; chỉ owner được sửa nguyên liệu.
         var group = app.MapVersionedApiGroup("RecipeIngredients", "recipes/{recipeId:guid}/ingredients")
             .WithTags("Recipe Ingredients")
             .RequireAuthorization(AuthServiceCollectionExtensions.AuthorPolicy)
@@ -24,7 +24,7 @@ public static class RecipeIngredientEndpoints
         group.MapPost("/", AddAsync)
             .WithName("AddRecipeIngredient")
             .WithSummary("Thêm nguyên liệu")
-            .WithDescription("FR-RCP-009. Chỉ owner hoặc Admin. Không gửi orderIndex thì xếp cuối danh sách.")
+            .WithDescription("FR-RCP-009. Chỉ owner. Không gửi orderIndex thì xếp cuối danh sách.")
             .Produces<RecipeIngredientDto>(StatusCodes.Status201Created)
             .ProducesValidationProblem();
 

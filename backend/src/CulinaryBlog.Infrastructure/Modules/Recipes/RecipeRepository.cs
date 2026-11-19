@@ -19,6 +19,33 @@ public class RecipeRepository : IRecipeRepository
     public async Task<Recipe?> GetByIdWithDetailsAsync(Guid id, CancellationToken cancellationToken = default) =>
         await WithDetails().FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
 
+    public async Task<Recipe?> GetDeletedByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
+        await _context.Recipes.IgnoreQueryFilters()
+            .FirstOrDefaultAsync(r => r.Id == id && r.IsDeleted, cancellationToken);
+
+    public async Task<(IReadOnlyList<Recipe> Items, int TotalCount)> GetDeletedPagedAsync(
+        int page,
+        int pageSize,
+        string? ownerId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _context.Recipes.IgnoreQueryFilters().AsNoTracking().Where(r => r.IsDeleted);
+        if (ownerId is not null) query = query.Where(r => r.AuthorId == ownerId);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+        var items = await query
+            .OrderByDescending(r => r.UpdatedAt ?? r.CreatedAt)
+            .ThenBy(r => r.Id)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Include(r => r.Category)
+            .Include(r => r.Author)
+            .Include(r => r.Images.Where(i => i.IsPrimary && !i.IsDeleted))
+            .AsSplitQuery()
+            .ToListAsync(cancellationToken);
+        return (items, totalCount);
+    }
+
     private IQueryable<Recipe> WithDetails() =>
         _context.Recipes
             .Include(r => r.Steps)
@@ -69,6 +96,8 @@ public class RecipeRepository : IRecipeRepository
         IOrderedQueryable<Recipe> ordered = sort switch
         {
             "createdAt" => query.OrderBy(r => r.CreatedAt),
+            "updatedAt" => query.OrderBy(r => r.UpdatedAt ?? r.CreatedAt),
+            "-updatedAt" => query.OrderByDescending(r => r.UpdatedAt ?? r.CreatedAt),
             "title" => query.OrderBy(r => r.Title),
             "-title" => query.OrderByDescending(r => r.Title),
             "cookTime" => query.OrderBy(r => r.CookTime),

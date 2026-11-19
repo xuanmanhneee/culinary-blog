@@ -58,6 +58,8 @@ public static class UserEndpoints
                     return Results.NoContent();
                 }
 
+                await EnsureCanDisableAdministratorAsync(users, user, httpContext.User.GetUserId(), role != Roles.Admin);
+
                 var removed = await users.RemoveFromRolesAsync(user, existingRoles);
                 if (!removed.Succeeded)
                 {
@@ -112,6 +114,8 @@ public static class UserEndpoints
                 var user = await users.FindByIdAsync(id)
                     ?? throw new NotFoundException(ErrorCodes.UserNotFound, $"User '{id}' was not found.");
 
+                await EnsureCanDisableAdministratorAsync(users, user, httpContext.User.GetUserId(), isLocked);
+
                 EnsureSucceeded(await users.SetLockoutEnabledAsync(user, true), "update lockout setting");
                 EnsureSucceeded(
                     await users.SetLockoutEndDateAsync(
@@ -145,6 +149,7 @@ public static class UserEndpoints
                 var logger = loggerFactory.CreateLogger("CulinaryBlog.API.Endpoints.UserEndpoints");
                 var user = await users.FindByIdAsync(id)
                     ?? throw new NotFoundException(ErrorCodes.UserNotFound, $"User '{id}' was not found.");
+                await EnsureCanDisableAdministratorAsync(users, user, httpContext.User.GetUserId(), true);
                 EnsureSucceeded(await users.DeleteAsync(user), "delete user");
 
                 logger.LogInformation(
@@ -181,6 +186,22 @@ public static class UserEndpoints
             throw new InvalidOperationException(
                 $"Unable to {operation}: {FormatIdentityErrors(result)}");
         }
+    }
+
+    private static async Task EnsureCanDisableAdministratorAsync(
+        UserManager<ApplicationUser> users,
+        ApplicationUser target,
+        string? administratorId,
+        bool removesAccess)
+    {
+        if (!removesAccess) return;
+        var targetIsAdmin = await users.IsInRoleAsync(target, Roles.Admin);
+        var administratorCount = targetIsAdmin ? (await users.GetUsersInRoleAsync(Roles.Admin)).Count : 0;
+        if (!UserAdministrationRules.CanRemoveAccess(
+                target.Id, administratorId, targetIsAdmin, administratorCount, removesAccess))
+            throw new ConflictException(
+                ErrorCodes.UserAdminProtected,
+                "Không thể tự vô hiệu hóa tài khoản quản trị hoặc làm mất quản trị viên cuối cùng.");
     }
 
     private static string FormatIdentityErrors(IdentityResult result) =>

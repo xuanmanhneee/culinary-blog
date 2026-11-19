@@ -21,7 +21,7 @@ internal sealed class PublishRecipeCommandHandler
     {
         var recipe = await _recipes.GetByIdWithDetailsAsync(command.RecipeId, ct)
             ?? throw RecipeUseCaseSupport.RecipeNotFound(command.RecipeId);
-        _authorization.EnsureCanModify(recipe);
+        _authorization.EnsureCanModerate(recipe);
         recipe.Publish();
         await _unitOfWork.SaveChangesAsync(ct);
         return RecipeUseCaseSupport.MapDetail(recipe);

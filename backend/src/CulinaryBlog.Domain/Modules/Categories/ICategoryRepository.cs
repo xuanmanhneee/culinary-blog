@@ -11,6 +11,7 @@ namespace CulinaryBlog.Domain.Modules.Categories;
 public interface ICategoryRepository : IRepository<Category>
 {
     Task<Category?> GetBySlugAsync(string slug, CancellationToken cancellationToken = default);
+    Task<bool> SlugExistsAsync(string slug, CancellationToken cancellationToken = default);
     Task<bool> NameExistsAsync(string name, Guid? excludingId = null, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<Category>> GetAllWithRecipeCountAsync(CancellationToken cancellationToken = default);
     Task<IReadOnlyDictionary<Guid, int>> GetRecipeCountsAsync(CancellationToken cancellationToken = default);

@@ -10,7 +10,7 @@ public sealed class RecipeClient(HttpClient httpClient)
         if (string.IsNullOrWhiteSpace(slug)) return null;
 
         using var response = await httpClient.GetAsync($"api/v1/recipes/{Uri.EscapeDataString(slug)}", cancellationToken);
-        if (response.StatusCode == HttpStatusCode.NotFound) return null;
+        if (response.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.Forbidden) return null;
         response.EnsureSuccessStatusCode();
 
         var recipe = await response.Content.ReadFromJsonAsync<RecipeResponse>(cancellationToken);

@@ -11,6 +11,11 @@ namespace CulinaryBlog.Infrastructure.Modules.Persistence.PostgreSql.Migrations
         {
             migrationBuilder.Sql(
                 """
+                ALTER TABLE "Recipes"
+                    ADD COLUMN IF NOT EXISTS "SearchVector" tsvector GENERATED ALWAYS AS (
+                        to_tsvector('simple'::regconfig, coalesce("Title", '') || ' ' || coalesce("Description", ''))
+                    ) STORED;
+
                 DO $migration$
                 BEGIN
                     IF to_regclass('public."IDX_Recipe_SearchVector"') IS NULL

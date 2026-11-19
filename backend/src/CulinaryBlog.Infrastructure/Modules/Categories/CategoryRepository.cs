@@ -16,11 +16,14 @@ public class CategoryRepository : ICategoryRepository
     public async Task<Category?> GetBySlugAsync(string slug, CancellationToken cancellationToken = default) =>
         await _context.Categories.FirstOrDefaultAsync(c => c.Slug == slug, cancellationToken);
 
+    public Task<bool> SlugExistsAsync(string slug, CancellationToken cancellationToken = default) =>
+        _context.Categories.IgnoreQueryFilters().AnyAsync(c => c.Slug == slug, cancellationToken);
+
     public async Task<bool> NameExistsAsync(
         string name,
         Guid? excludingId = null,
         CancellationToken cancellationToken = default) =>
-        await _context.Categories.AnyAsync(
+        await _context.Categories.IgnoreQueryFilters().AnyAsync(
             c => c.Name == name && (!excludingId.HasValue || c.Id != excludingId.Value),
             cancellationToken);
 

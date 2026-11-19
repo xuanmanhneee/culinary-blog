@@ -78,7 +78,8 @@ public static class AuthEndpoints
         .WithSummary("Đăng nhập bằng email và mật khẩu")
         .Produces<AuthResponseDto>()
         .ProducesValidationProblem()
-        .ProducesProblem(StatusCodes.Status401Unauthorized);
+        .ProducesProblem(StatusCodes.Status401Unauthorized)
+        .ProducesProblem(StatusCodes.Status403Forbidden);
 
         // FR-AUTH-003: xác minh Google ID token, tạo/liên kết tài khoản và phát JWT nội bộ.
         group.MapPost("/google", async (

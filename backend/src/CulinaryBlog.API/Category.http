@@ -14,28 +14,35 @@ GET {{host}}/api/v1/categories/khong-ton-tai
 POST {{host}}/api/v1/categories
 Content-Type: application/json
 
-{ "name": "Món khai vị", "slug": "mon-khai-vi", "description": "Các món đầu bữa" }
+{ "name": "Món khai vị", "description": "Các món đầu bữa" }
 
-### 4. Tạo mới lần đầu -> 201 (cần Admin)
+### 4. Tạo mới lần đầu -> 201, slug = mon-khai-vi (cần Admin)
 POST {{host}}/api/v1/categories
 Authorization: Bearer {{token}}
 Content-Type: application/json
 
-{ "name": "Món khai vị", "slug": "mon-khai-vi", "description": "Các món đầu bữa" }
+{ "name": "Món khai vị", "description": "Các món đầu bữa" }
 
 ### 5. Tạo lại cùng tên -> 409, type = CATEGORY_NAME_EXISTS
 POST {{host}}/api/v1/categories
 Authorization: Bearer {{token}}
 Content-Type: application/json
 
-{ "name": "Món khai vị", "slug": "mon-khai-vi-2" }
+{ "name": "Món khai vị" }
 
 ### 6. Tên rỗng -> 422, type = VALIDATION_ERROR kèm errors
 POST {{host}}/api/v1/categories
 Authorization: Bearer {{token}}
 Content-Type: application/json
 
-{ "name": "", "slug": "" }
+{ "name": "" }
 
 ### 7. Lấy lại theo slug -> 200
 GET {{host}}/api/v1/categories/mon-khai-vi
+
+### 8. Khác tên nhưng trùng slug sinh tự động -> 201, slug = mon-khai-vi-2
+POST {{host}}/api/v1/categories
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "name": "Mon khai vi" }

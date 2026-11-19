@@ -18,7 +18,7 @@ public static class RecipeImageEndpoints
 {
     public static IEndpointRouteBuilder MapRecipeImageEndpoints(this IEndpointRouteBuilder app)
     {
-        // Role Author/Admin tại endpoint; owner/Admin trên từng recipe do RecipeAuthorizationHandler kiểm tra.
+        // Role Author/Admin tại endpoint; chỉ owner được sửa ảnh.
         var group = app.MapVersionedApiGroup("RecipeImages", "recipes/{recipeId:guid}/images")
             .WithTags("Recipe Images")
             .RequireAuthorization(AuthServiceCollectionExtensions.AuthorPolicy)
@@ -28,7 +28,7 @@ public static class RecipeImageEndpoints
         group.MapPost("/", UploadAsync)
             .WithName("UploadRecipeImage")
             .WithSummary("Tải ảnh lên cho công thức")
-            .WithDescription("FR-FILE-001. Chỉ owner hoặc Admin; hỗ trợ JPEG, PNG, WebP, AVIF, tối đa 5 MB.")
+            .WithDescription("FR-FILE-001. Chỉ owner; hỗ trợ JPEG, PNG, WebP, AVIF, tối đa 5 MB.")
             .Accepts<IFormFile>("multipart/form-data")
             .Produces<RecipeImageDto>(StatusCodes.Status201Created)
             .ProducesValidationProblem()

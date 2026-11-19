@@ -1,82 +1,49 @@
-using Bogus;
 using CulinaryBlog.Domain.Modules.Identity;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.Extensions.Logging;
 
 namespace CulinaryBlog.Infrastructure.Modules.Persistence.PostgreSql.Seed;
 
-/// <summary>
-/// Seed cho module Identity.
-/// - SeedRolesAsync: cần chạy ở MỌI môi trường (register gán role "Author").
-/// - SeedAuthorsAsync: chỉ dữ liệu mẫu (author1 là Admin), chỉ nên chạy ở Development.
-/// Dùng UserManager để password được hash đúng chuẩn (PBKDF2).
-/// </summary>
-public class IdentitySeeder
+public class IdentitySeeder(UserManager<ApplicationUser> users, RoleManager<IdentityRole> roles)
 {
-    private readonly UserManager<ApplicationUser> _userManager;
-    private readonly RoleManager<IdentityRole> _roleManager;
-    private readonly ILogger<IdentitySeeder> _logger;
-
-    public IdentitySeeder(
-        UserManager<ApplicationUser> userManager,
-        RoleManager<IdentityRole> roleManager,
-        ILogger<IdentitySeeder> logger)
-    {
-        _userManager = userManager;
-        _roleManager = roleManager;
-        _logger = logger;
-    }
-
     public async Task SeedRolesAsync()
     {
         foreach (var role in Roles.All)
         {
-            if (!await _roleManager.RoleExistsAsync(role))
-            {
-                await _roleManager.CreateAsync(new IdentityRole(role));
-            }
+            if (!await roles.RoleExistsAsync(role))
+                RequireSuccess(await roles.CreateAsync(new IdentityRole(role)));
         }
     }
 
-    /// <summary>
-    /// Idempotent: user đã tồn tại thì dùng lại, nên luôn trả về đủ danh sách cho RecipeSeeder.
-    /// </summary>
-    public async Task<List<ApplicationUser>> SeedAuthorsAsync(int count = 5)
+    public async Task<IReadOnlyList<ApplicationUser>> SeedDemoAccountsAsync()
     {
         await SeedRolesAsync();
+        await GetOrCreateAsync("author1", "Quản trị Bếp Nhà", Roles.Admin);
+        return
+        [
+            await GetOrCreateAsync("author2", "Bếp Nhà", Roles.Author),
+            await GetOrCreateAsync("author3", "Linh Nguyễn", Roles.Author),
+            await GetOrCreateAsync("author4", "Minh An", Roles.Author),
+            await GetOrCreateAsync("author5", "Bếp Mộc", Roles.Author)
+        ];
+    }
 
-        var faker = new Faker("vi");
-        var authors = new List<ApplicationUser>();
+    private async Task<ApplicationUser> GetOrCreateAsync(string userName, string displayName, string role)
+    {
+        var email = $"{userName}@culinaryblog.local";
+        var existing = await users.FindByEmailAsync(email);
+        if (existing is not null)
+            return existing;
 
-        for (var i = 0; i < count; i++)
-        {
-            var userName = $"author{i + 1}";
-            var email = $"author{i + 1}@culinaryblog.local";
+        var user = ApplicationUser.Create(displayName, email, userName);
+        user.EmailConfirmed = true;
+        RequireSuccess(await users.CreateAsync(user, "Author@123"));
+        RequireSuccess(await users.AddToRoleAsync(user, role));
+        return user;
+    }
 
-            var existing = await _userManager.FindByEmailAsync(email);
-            if (existing is not null)
-            {
-                authors.Add(existing);
-                continue;
-            }
-
-            var user = ApplicationUser.Create(faker.Name.FullName(), email, userName);
-            user.EmailConfirmed = true;
-            user.Bio = faker.Lorem.Sentence(12);
-
-            var result = await _userManager.CreateAsync(user, "Author@123");
-            if (!result.Succeeded)
-            {
-                _logger.LogWarning("Không tạo được user {Email}: {Errors}", email,
-                    string.Join(", ", result.Errors.Select(e => e.Description)));
-                continue;
-            }
-
-            await _userManager.AddToRoleAsync(user, i == 0 ? Roles.Admin : Roles.Author);
-            authors.Add(user);
-        }
-
-        _logger.LogInformation("Identity seed: {Count} author sẵn sàng.", authors.Count);
-        return authors;
+    private static void RequireSuccess(IdentityResult result)
+    {
+        if (!result.Succeeded)
+            throw new InvalidOperationException($"Identity seed: {string.Join("; ", result.Errors.Select(error => error.Description))}");
     }
 }

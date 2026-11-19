@@ -12,9 +12,12 @@ internal sealed class DeleteCategoryCommandHandler : IRequestHandler<DeleteCateg
     private readonly ICategoryRepository _categories;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICacheService _cache;
+    private readonly IFileDeletionScheduler _fileDeletionScheduler;
 
-    public DeleteCategoryCommandHandler(ICategoryRepository categories, IUnitOfWork unitOfWork, ICacheService cache) =>
-        (_categories, _unitOfWork, _cache) = (categories, unitOfWork, cache);
+    public DeleteCategoryCommandHandler(ICategoryRepository categories, IUnitOfWork unitOfWork,
+        ICacheService cache, IFileDeletionScheduler fileDeletionScheduler) =>
+        (_categories, _unitOfWork, _cache, _fileDeletionScheduler) =
+        (categories, unitOfWork, cache, fileDeletionScheduler);
 
     public async Task Handle(DeleteCategoryCommand command, CancellationToken ct)
     {
@@ -28,6 +31,8 @@ internal sealed class DeleteCategoryCommandHandler : IRequestHandler<DeleteCateg
 
         category.SoftDelete();
         await _unitOfWork.SaveChangesAsync(ct);
+        if (!string.IsNullOrWhiteSpace(category.ImageUrl))
+            _fileDeletionScheduler.Schedule(category.ImageUrl);
         await _cache.EvictByTagAsync("categories", ct);
     }
 }

@@ -2,6 +2,7 @@ using CulinaryBlog.API.Extensions;
 using CulinaryBlog.Application.Categories.Commands.CreateCategory;
 using CulinaryBlog.Application.Categories.Commands.DeleteCategory;
 using CulinaryBlog.Application.Categories.Commands.UpdateCategory;
+using CulinaryBlog.Application.Categories.Commands.UploadCategoryImage;
 using CulinaryBlog.Application.Categories.Models;
 using CulinaryBlog.Application.Categories.Queries.GetCategories;
 using CulinaryBlog.Application.Categories.Queries.GetCategoryBySlug;
@@ -88,6 +89,21 @@ public static class CategoriesEndpoints
             .Produces(StatusCodes.Status204NoContent)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict);
+
+        admin.MapPost("/{id:guid}/image", async (
+            Guid id,
+            [FromForm(Name = "file")] IFormFile file,
+            ISender sender,
+            CancellationToken ct) =>
+                Results.Ok(await sender.Send(new UploadCategoryImageCommand(id, file), ct)))
+            .WithName("UploadCategoryImage")
+            .WithSummary("Tải ảnh danh mục")
+            .Accepts<IFormFile>("multipart/form-data")
+            .Produces<CategoryDto>()
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .RequireRateLimiting(RateLimitPolicies.Upload)
+            .DisableAntiforgery();
         return app;
     }
 }

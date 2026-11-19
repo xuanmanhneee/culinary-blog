@@ -8,9 +8,17 @@ public interface IRecipeRepository : IRepository<Recipe>
 
     Task<Recipe?> GetByIdWithDetailsAsync(Guid id, CancellationToken cancellationToken = default);
 
+    Task<Recipe?> GetDeletedByIdAsync(Guid id, CancellationToken cancellationToken = default);
+
+    Task<(IReadOnlyList<Recipe> Items, int TotalCount)> GetDeletedPagedAsync(
+        int page,
+        int pageSize,
+        string? ownerId = null,
+        CancellationToken cancellationToken = default);
+
     /// <summary>
     /// FR-RCP-001: danh sách phân trang kèm Category, Author và ảnh chính.
-    /// sort: createdAt | title | cookTime, tiền tố "-" là giảm dần; giá trị khác dùng "-createdAt".
+    /// sort: createdAt | updatedAt | title | cookTime, tiền tố "-" là giảm dần; giá trị khác dùng "-createdAt".
     /// Hiển thị: mineOnly = true chỉ lấy công thức của ownerId ở mọi trạng thái;
     /// nếu không thì includeAllStatuses = true (Admin) lấy mọi trạng thái, ngược lại chỉ Published,
     /// cộng thêm recipe của ownerId (Author xem cả Draft/Archived của mình).

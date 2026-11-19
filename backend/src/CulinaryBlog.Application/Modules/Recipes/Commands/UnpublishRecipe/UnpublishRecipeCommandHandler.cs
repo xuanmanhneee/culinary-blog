@@ -21,7 +21,7 @@ internal sealed class UnpublishRecipeCommandHandler
     {
         var recipe = await _recipes.GetByIdWithDetailsAsync(command.RecipeId, ct)
             ?? throw RecipeUseCaseSupport.RecipeNotFound(command.RecipeId);
-        _authorization.EnsureCanModify(recipe);
+        _authorization.EnsureCanModerate(recipe);
         recipe.Unpublish();
         await _unitOfWork.SaveChangesAsync(ct);
         return RecipeUseCaseSupport.MapDetail(recipe);

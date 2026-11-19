@@ -10,16 +10,18 @@ services:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://+:8080
       ConnectionStrings__DefaultConnection: Host=engagement-postgres;Port=5432;Database=engagement;Username=postgres;Password=postgres
-      RecipeApiUrl: http://api:8080/
+      RecipeApiUrl: http://host.docker.internal:5000/
       Jwt__Key: culinary-blog-dev-secret-key-2026
-      Cors__AllowedOrigins__0: http://localhost:3000
     ports:
       - "5100:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     depends_on:
       engagement-postgres:
         condition: service_healthy
-      api:
-        condition: service_started
 
   api:
     image: culinaryblog-api:dev
@@ -48,6 +50,7 @@ services:
       HangfireDashboard__Username: ${HANGFIRE_DASHBOARD_USERNAME:-}
       HangfireDashboard__Password: ${HANGFIRE_DASHBOARD_PASSWORD:-}
       Seq__ServerUrl: http://seq:80
+      Services__Engagement__BaseUrl: http://engagement:8080
       Cors__AllowedOrigins__0: http://localhost:3000
     ports:
       - "5000:8080"

@@ -1,9 +1,11 @@
 using CulinaryBlog.Application;
 using CulinaryBlog.Application.Common.Exceptions;
+using CulinaryBlog.Application.Common.Interfaces;
 using CulinaryBlog.Application.Recipes.Queries.SearchRecipes;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 using CulinaryBlog.Domain.Modules.Recipes;
+using CulinaryBlog.Infrastructure.Modules.Cache;
 
 namespace CulinaryBlog.Tests.Recipes;
 
@@ -55,6 +57,8 @@ public sealed class SearchRecipesQueryTests
         // MediatR 14 dùng ILoggerFactory cho phần kiểm tra license; ASP.NET host
         // đăng ký sẵn, còn test container tối giản phải thêm thủ công.
         services.AddLogging();
+        services.AddDistributedMemoryCache();
+        services.AddScoped<ICacheService, RedisCacheService>();
         services.AddApplicationServices();
         services.AddSingleton(reader);
         return services.BuildServiceProvider(validateScopes: true);

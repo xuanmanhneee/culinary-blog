@@ -47,6 +47,11 @@ builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.Configure<CulinaryBlog.Application.Auth.Models.GoogleAuthOptions>(
     builder.Configuration.GetSection(CulinaryBlog.Application.Auth.Models.GoogleAuthOptions.SectionName));
 builder.Services.AddHttpClient("media");
+builder.Services.AddHttpClient("engagement", client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["Services:Engagement:BaseUrl"] ?? "http://localhost:5100");
+    client.Timeout = TimeSpan.FromSeconds(5);
+});
 
 var telemetryEndpoint = builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"];
 var telemetryBuilder = builder.Services.AddOpenTelemetry()
@@ -149,5 +154,7 @@ app.MapCategoriesEndpoints();
 app.MapUserEndpoints();
 
 app.MapHealthEndpoints();
+
+app.MapEngagementProxyEndpoints();
 
 app.Run();

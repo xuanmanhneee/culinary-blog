@@ -44,7 +44,7 @@ Content-Type: application/json
   "password": "Password@123"
 }
 
-### 5. Login sai mật khẩu (401). Gọi 5 lần liên tiếp sẽ bị khóa (423)
+### 5. Login sai mật khẩu (401). Gọi 5 lần liên tiếp sẽ bị khóa; chỉ mật khẩu đúng mới nhận 403 ACCOUNT_LOCKED
 POST {{baseUrl}}/api/v1/auth/login
 Content-Type: application/json
 

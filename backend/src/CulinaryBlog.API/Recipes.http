@@ -8,7 +8,7 @@
 @categoryId = 00000000-0000-0000-0000-000000000000
 @draftSlugOfAnotherAuthor = slug-cua-recipe-draft-nguoi-khac
 
-### 0. Đăng nhập lấy access token (seed: author1 = Admin, author2..6 = Author, mật khẩu Author@123)
+### 0. Đăng nhập lấy access token (seed: author1 = Admin, author2 = Author, mật khẩu Author@123)
 ###    Các request sửa dữ liệu chỉ thành công với chủ recipe hoặc Admin, người khác nhận 403 RECIPE_FORBIDDEN.
 # @name login
 POST {{baseUrl}}/api/v1/auth/login

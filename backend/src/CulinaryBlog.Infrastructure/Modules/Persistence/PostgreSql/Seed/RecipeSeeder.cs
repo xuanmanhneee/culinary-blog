@@ -1,146 +1,94 @@
-using Bogus;
+using CulinaryBlog.Application.Common.Helpers;
+using CulinaryBlog.Application.Common.Interfaces;
 using CulinaryBlog.Domain.Modules.Categories;
 using CulinaryBlog.Domain.Modules.Identity;
 using CulinaryBlog.Domain.Modules.Recipes;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Http;
 using Microsoft.Extensions.Logging;
 
 namespace CulinaryBlog.Infrastructure.Modules.Persistence.PostgreSql.Seed;
 
-/// <summary>
-/// Sinh dữ liệu mẫu cho module Recipes bằng thư viện Bogus.
-/// Yêu cầu Lab 2: tối thiểu 100 recipes, mỗi recipe >= 10 ingredients và >= 5 steps.
-/// </summary>
-public class RecipeSeeder
+public class RecipeSeeder(
+    CulinaryBlogDbContext context,
+    IFileStorageService storage,
+    IHttpClientFactory httpClientFactory,
+    ILogger<RecipeSeeder> logger)
 {
-    private readonly CulinaryBlogDbContext _context;
-    private readonly ILogger<RecipeSeeder> _logger;
-
-    public RecipeSeeder(CulinaryBlogDbContext context, ILogger<RecipeSeeder> logger)
+    public async Task SeedAsync(IReadOnlyDictionary<string, Category> categories, IReadOnlyList<ApplicationUser> authors)
     {
-        _context = context;
-        _logger = logger;
-    }
+        if (authors.Count == 0)
+            throw new InvalidOperationException("Recipe seed cần ít nhất một author.");
 
-    public async Task SeedAsync(IReadOnlyList<Category> categories, IReadOnlyList<ApplicationUser> authors, int count = 120)
-    {
-        if (categories.Count == 0 || authors.Count == 0)
-        {
-            _logger.LogWarning("Recipe seed: chưa có category hoặc author, bỏ qua.");
-            return;
-        }
-
-        var usedSlugs = (await _context.Recipes
-                .IgnoreQueryFilters()
-                .Select(recipe => recipe.Slug)
-                .ToListAsync())
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var missingCount = Math.Max(0, count - usedSlugs.Count);
-        if (missingCount == 0)
-        {
-            _logger.LogInformation("Recipe seed: {Count} recipe đã sẵn sàng, bỏ qua.", usedSlugs.Count);
-            return;
-        }
-
-        var ingredientFaker = new Faker("vi");
-        var recipeFaker = new Faker("vi");
+        var existingRecipes = await context.Recipes
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .Include(recipe => recipe.Images)
+            .ToDictionaryAsync(recipe => recipe.Slug, StringComparer.OrdinalIgnoreCase);
         var recipes = new List<Recipe>();
+        var imagesAdded = 0;
 
-        for (var i = 0; i < missingCount; i++)
+        for (var index = 0; index < RecipeSeedData.Recipes.Length; index++)
         {
-            var category = recipeFaker.PickRandom(categories.ToArray());
-            var author = recipeFaker.PickRandom(authors.ToArray());
-
-            var dishName = recipeFaker.Commerce.ProductName(); // dùng làm "chất liệu" tên món cho đa dạng
-            var title = $"{recipeFaker.PickRandom(TitlePrefixes)} {dishName}";
-            var slug = MakeUniqueSlug(title, usedSlugs);
-
-            var difficulty = recipeFaker.PickRandom<RecipeDifficulty>();
-            var status = recipeFaker.Random.WeightedRandom(
-                new[] { RecipeStatus.Published, RecipeStatus.Draft, RecipeStatus.Archived },
-                new[] { 0.75f, 0.20f, 0.05f });
-
-            var recipe = Recipe.Create(
-                title: title,
-                slug: slug,
-                description: recipeFaker.Lorem.Sentences(2),
-                instructions: recipeFaker.Lorem.Paragraph(),
-                categoryId: category.Id,
-                authorId: author.Id,
-                prepTime: recipeFaker.Random.Int(5, 45),
-                cookTime: recipeFaker.Random.Int(0, 120),
-                servings: recipeFaker.Random.Int(1, 8),
-                difficulty: difficulty,
-                status: status);
-
-            recipe.SetNutrition(new RecipeNutrition
+            var seed = RecipeSeedData.Recipes[index];
+            var slug = SlugHelper.Generate(seed.Title);
+            if (existingRecipes.TryGetValue(slug, out var existingRecipe))
             {
-                Calories = recipeFaker.Random.Decimal(150, 900),
-                Protein = recipeFaker.Random.Decimal(2, 60),
-                Carbohydrates = recipeFaker.Random.Decimal(5, 120),
-                Fat = recipeFaker.Random.Decimal(1, 50),
-                Fiber = recipeFaker.Random.Decimal(0, 15),
-                Sodium = recipeFaker.Random.Decimal(50, 2000)
-            });
+                if (existingRecipe.Images.Count == 0)
+                {
+                    var imageUrl = await UploadSeedImageAsync(existingRecipe.Id, seed.ImageIndex);
+                    context.RecipeImages.Add(RecipeImage.Create(
+                        existingRecipe.Id, imageUrl, true, 0, $"Ảnh món {seed.Title}"));
+                    imagesAdded++;
+                }
 
-            // >= 10 ingredients / recipe (yêu cầu tối thiểu của Lab 2)
-            var ingredientCount = ingredientFaker.Random.Int(10, 16);
-            for (var j = 0; j < ingredientCount; j++)
-            {
-                recipe.AddIngredient(
-                    name: ingredientFaker.Commerce.ProductMaterial(),
-                    quantity: ingredientFaker.Random.Decimal(1, 500),
-                    unit: ingredientFaker.PickRandom(Units),
-                    notes: ingredientFaker.Random.Bool(0.3f) ? ingredientFaker.Lorem.Word() : null);
+                continue;
             }
 
-            // >= 5 steps / recipe (yêu cầu tối thiểu của Lab 2)
-            var stepCount = recipeFaker.Random.Int(5, 8);
-            for (var j = 0; j < stepCount; j++)
-            {
-                recipe.AddStep(
-                    title: $"Bước {j + 1}: {recipeFaker.Hacker.Verb()} {recipeFaker.Commerce.ProductAdjective()}",
-                    description: recipeFaker.Lorem.Sentences(2),
-                    timerMinutes: recipeFaker.Random.Bool(0.5f) ? recipeFaker.Random.Int(1, 30) : null);
-            }
+            if (!categories.TryGetValue(seed.Category, out var category))
+                continue;
 
-            recipe.AddImage(
-                originalUrl: $"https://picsum.photos/seed/{slug}/1200/800",
-                isPrimary: true,
-                altText: title);
+            var author = authors[index % authors.Count];
+            var recipe = Recipe.Create(seed.Title, slug, seed.Description, seed.Tip, category.Id, author.Id,
+                seed.PrepTime, seed.CookTime, seed.Servings, seed.Difficulty);
+            foreach (var (name, quantity, unit) in seed.Ingredients)
+                recipe.AddIngredient(name, quantity, unit);
+            foreach (var (title, description) in seed.Steps)
+                recipe.AddStep(title, description);
+            await AddSeedImageAsync(recipe, seed.Title, seed.ImageIndex);
 
+            if (!seed.Draft)
+                recipe.Publish();
             recipes.Add(recipe);
         }
 
-        await _context.Recipes.AddRangeAsync(recipes);
-        await _context.SaveChangesAsync();
-
-        _logger.LogInformation(
-            "Recipe seed: đã tạo {Count} recipe (tổng ingredients: {Ing}, tổng steps: {Steps}).",
-            recipes.Count,
-            recipes.Sum(r => r.Ingredients.Count),
-            recipes.Sum(r => r.Steps.Count));
-    }
-
-    private static string MakeUniqueSlug(string title, HashSet<string> usedSlugs)
-    {
-        var baseSlug = CategorySeeder.ToSlug(title);
-        var slug = baseSlug;
-        var suffix = 1;
-        while (!usedSlugs.Add(slug))
+        if (recipes.Count > 0 || imagesAdded > 0)
         {
-            slug = $"{baseSlug}-{suffix++}";
+            if (recipes.Count > 0)
+                context.Recipes.AddRange(recipes);
+            await context.SaveChangesAsync();
         }
-        return slug;
+
+        logger.LogInformation("Recipe seed: thêm {Count} công thức, bổ sung {ImageCount} ảnh.", recipes.Count, imagesAdded);
     }
 
-    private static readonly string[] TitlePrefixes =
+    private async Task AddSeedImageAsync(Recipe recipe, string title, int imageIndex)
     {
-        "Cách làm", "Công thức", "Món", "Bí quyết nấu", "Hướng dẫn làm"
-    };
+        var imageUrl = await UploadSeedImageAsync(recipe.Id, imageIndex);
+        recipe.AddImage(imageUrl, true, $"Ảnh món {title}");
+    }
 
-    private static readonly string[] Units =
+    private async Task<string> UploadSeedImageAsync(Guid recipeId, int imageIndex)
     {
-        "g", "kg", "ml", "l", "thìa cà phê", "thìa canh", "chén", "quả", "củ", "lát", "nhánh"
-    };
+        var sourceUrl = RecipeSeedData.ImageUrls[imageIndex % RecipeSeedData.ImageUrls.Length];
+        var client = httpClientFactory.CreateClient("media");
+        using var response = await client.GetAsync(sourceUrl, HttpCompletionOption.ResponseHeadersRead);
+        response.EnsureSuccessStatusCode();
+
+        await using var imageStream = new MemoryStream();
+        await response.Content.CopyToAsync(imageStream);
+        imageStream.Position = 0;
+        var contentType = response.Content.Headers.ContentType?.MediaType ?? "image/jpeg";
+        return await storage.UploadAsync(recipeId, imageStream, contentType, ".jpg", CancellationToken.None);
+    }
 }

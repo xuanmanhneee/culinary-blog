@@ -1,6 +1,5 @@
 using CulinaryBlog.Application.Categories.Models;
 using CulinaryBlog.Application.Common.Exceptions;
-using CulinaryBlog.Application.Common.Helpers;
 using CulinaryBlog.Application.Common.Interfaces;
 using CulinaryBlog.Domain.Common;
 using CulinaryBlog.Domain.Common.Exceptions;
@@ -26,24 +25,19 @@ internal sealed class UpdateCategoryCommandHandler
 
         var request = command.Request;
         var name = request.Name.Trim();
-        var slug = SlugHelper.Generate(name);
 
         if (await _categories.NameExistsAsync(name, category.Id, ct))
             throw new ConflictException(ErrorCodes.CategoryNameExists, $"Tên danh mục '{name}' đã tồn tại.");
 
-        var existingSlug = await _categories.GetBySlugAsync(slug, ct);
-        if (existingSlug is not null && existingSlug.Id != category.Id)
-            throw new ConflictException(ErrorCodes.CategorySlugExists, $"Slug '{slug}' đã tồn tại.");
-
         category.Update(
             name,
-            slug,
             request.Description?.Trim(),
             request.ImageUrl?.Trim(),
             request.OrderIndex ?? category.OrderIndex);
 
         await _unitOfWork.SaveChangesAsync(ct);
         await _cache.EvictByTagAsync("categories", ct);
+        await _cache.EvictByTagAsync("recipes", ct);
         return CategoryMappings.ToDto(category);
     }
 }
