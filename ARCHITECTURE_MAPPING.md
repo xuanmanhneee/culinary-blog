@@ -13,17 +13,18 @@ Browser
        └─ Auth.js Credentials + Google OAuth tùy cấu hình
             └─ JWT session giữ token backend; refresh/logout qua API
                  └─ HTTP /api/v1
-                      └─ ASP.NET Core Minimal API
+                      └─ ASP.NET Core API/BFF
                            ├─ Auth, users, categories, recipes, ingredients, steps, images
                            ├─ MediatR commands/queries, validators và domain
                            ├─ EF Core + PostgreSQL
                            ├─ Redis cache + health checks
                            ├─ File storage: Local hoặc MinIO
-                           └─ Hangfire jobs / PostgreSQL storage
-       └─ Engagement Minimal API (`:5100`)
-            ├─ Món đã lưu và rating dùng lại JWT của API chính
-            ├─ Xác nhận recipe Published qua CulinaryBlog API
-            └─ PostgreSQL riêng (`:5433`)
+                           ├─ Hangfire jobs / PostgreSQL storage
+                           └─ Proxy saved-recipes/ratings tới Engagement
+                                └─ Engagement Minimal API (Docker internal)
+                                     ├─ Món đã lưu và rating dùng lại JWT của API chính
+                                     ├─ Xác nhận recipe Published qua CulinaryBlog API
+                                     └─ PostgreSQL riêng (`:5433`)
 ```
 
 ### Công nghệ chính
@@ -58,7 +59,7 @@ HTTP request
 - `Program.cs` đăng ký API versioning theo URL segment, JWT, CORS, rate limiting, OpenAPI/Scalar (Development) và OpenTelemetry; nhóm API phiên bản 1 dùng prefix `/api/v1`.
 - Serilog ghi log có cấu trúc ra console và file rolling theo ngày trong `backend/src/CulinaryBlog.API/logs` (giữ tối đa 14 file); các sự kiện auth, đổi role/khóa user, chuyển trạng thái recipe, upload ảnh và exception được ghi kèm các trường ngữ cảnh.
 - Middleware xử lý correlation ID, exception thành ProblemDetails và status-code errors; CORS chạy trước rate limiting/authentication để response lỗi vẫn có CORS headers.
-- `InitializePersistenceAsync` áp dụng EF Core migrations lúc khởi động. Chạy API với `--seed` để seed dữ liệu rồi kết thúc tiến trình.
+- API chính và Engagement áp dụng EF Core migrations của database riêng lúc khởi động. Chạy API với `--seed` để seed dữ liệu rồi kết thúc tiến trình.
 - Local storage phục vụ file từ web root; MinIO trả public URL theo cấu hình. Provider được chọn rõ bằng `Storage:Provider=Local|Minio`.
 - Health endpoints `/health`, `/health/live`, `/health/ready`; các check gồm PostgreSQL, Redis và MinIO khi provider là MinIO.
 - Hangfire dùng PostgreSQL; job nền gồm email xác nhận, tạo ảnh medium/thumbnail, dọn file và tạo sitemap mỗi ngày lúc 02:00 UTC. Dashboard Development yêu cầu Admin.
@@ -131,7 +132,7 @@ Login/Register form
 - Ảnh cover và ảnh từng bước được kiểm tra định dạng/kích thước, xem trước cục bộ bằng object URL có cleanup, rồi tải multipart với Bearer token qua API client dùng chung. Nếu upload lỗi sau khi tạo recipe, UI báo lỗi và dẫn đến trang sửa để tiếp tục.
 - Dashboard cung cấp thao tác xuất bản/hủy xuất bản, lưu trữ và xóa có xác nhận; trang sửa cũng có các hành động trạng thái. Mutation làm mới cache recipe và lỗi API được hiển thị rõ.
 - `/dashboard/users` dành cho Admin có danh sách phân trang, lọc/tìm kiếm, đổi role Admin/Author, khóa/mở khóa và xóa; trạng thái lockout được trả riêng trong DTO.
-- Tab “Món đã lưu” đọc dữ liệu phân trang từ Engagement service; trang chi tiết cho phép lưu/bỏ lưu và chấm 1–5 sao.
+- Tab “Món đã lưu” đọc dữ liệu phân trang từ Engagement qua API/BFF; trang chi tiết cho phép lưu/bỏ lưu và chấm 1–5 sao.
 
 ### 3.3 Trang chi tiết công thức
 
@@ -146,7 +147,7 @@ Trang detail hiện có:
 - Metadata/Open Graph; JSON-LD Schema.org `Recipe` chỉ xuất hiện với recipe công khai, có URL chuẩn, ảnh, tác giả, nguyên liệu và hướng dẫn được sắp thứ tự; dữ liệu được escape an toàn khi serialize.
 - Cảnh báo preview cho draft/archived và robots `noindex, nofollow`.
 - Gallery ảnh, thời gian chuẩn bị/nấu, khẩu phần, độ khó, nguyên liệu có điều chỉnh servings, dinh dưỡng, các bước và ghi chú tác giả.
-- Hành động của chủ sở hữu/Admin, chỉnh sửa và quản lý upload ảnh; hành động in/chia sẻ được giữ lại.
+- Chủ sở hữu được chỉnh sửa và quản lý ảnh; Admin chỉ đổi Published/Draft hoặc xóa; hành động in/chia sẻ được giữ lại.
 - Loading và not-found UI riêng.
 
 ### 3.4 Các trang công khai và mức độ tích hợp API

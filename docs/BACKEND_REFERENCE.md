@@ -224,7 +224,7 @@ Tổng cộng **28 OpenAPI operations**, tất cả có `operationId` duy nhất
 |---|---|---|---|---|
 | GET | `/categories` | Public | `GetCategories` | Sắp theo `orderIndex` |
 | GET | `/categories/{slug}` | Public | `GetCategoryBySlug` | `404 CATEGORY_NOT_FOUND` |
-| POST | `/categories` | Admin | `CreateCategory` | `201`; name/slug phải unique |
+| POST | `/categories` | Admin | `CreateCategory` | `201`; slug tự sinh từ tên nếu bỏ trống, thêm hậu tố khi trùng; tên phải duy nhất |
 
 ```json
 {
@@ -242,13 +242,15 @@ Tổng cộng **28 OpenAPI operations**, tất cả có `operationId` duy nhất
 | GET | `/recipes` | Optional | `GetRecipes` | Danh sách, filter, sort, pagination |
 | GET | `/recipes/search` | Public | `SearchRecipes` | Không dấu + typo/fuzzy, chỉ Published |
 | GET | `/recipes/{slug}` | Optional | `GetRecipeBySlug` | Chi tiết public/owner/admin |
-| GET | `/recipes/by-id/{id}` | Author/Admin | `GetRecipeById` | Dành cho form edit; trả `ETag` |
+| GET | `/recipes/by-id/{id}` | Owner | `GetRecipeById` | Dành cho form edit; trả `ETag` |
 | POST | `/recipes` | Author/Admin | `CreateRecipe` | Tạo Draft |
-| PUT | `/recipes/{id}` | Owner/Admin | `UpdateRecipe` | Gửi `If-Match` hoặc `rowVersion` |
+| PUT | `/recipes/{id}` | Owner | `UpdateRecipe` | Gửi `If-Match` hoặc `rowVersion` |
 | PATCH | `/recipes/{id}/publish` | Owner/Admin | `PublishRecipe` | Cần ít nhất một step |
 | PATCH | `/recipes/{id}/unpublish` | Owner/Admin | `UnpublishRecipe` | Đưa về Draft |
-| PATCH | `/recipes/{id}/archive` | Owner/Admin | `ArchiveRecipe` | Ẩn khỏi public |
-| DELETE | `/recipes/{id}` | Owner/Admin | `DeleteRecipe` | `204`, hard delete |
+| PATCH | `/recipes/{id}/archive` | Owner | `ArchiveRecipe` | Ẩn khỏi public |
+| DELETE | `/recipes/{id}` | Owner/Admin | `DeleteRecipe` | `204`, soft-delete; giữ file để khôi phục |
+| GET | `/recipes/deleted` | Author/Admin | `GetDeletedRecipes` | Author thấy công thức của mình; Admin thấy tất cả |
+| PATCH | `/recipes/{id}/restore` | Owner/Admin | `RestoreRecipe` | Khôi phục soft-delete, giữ nguyên dữ liệu và ảnh |
 
 Query của `GET /recipes`:
 
@@ -259,7 +261,7 @@ Query của `GET /recipes`:
 | `categoryId` |  | UUID |
 | `difficulty` |  | `1..4` |
 | `maxCookTime` |  | `>= 0` |
-| `sort` | `-createdAt` | `createdAt`, `title`, `cookTime`; thêm `-` để giảm dần |
+| `sort` | `-createdAt` | `createdAt`, `updatedAt`, `title`, `cookTime`; thêm `-` để giảm dần. Bản ghi chưa chỉnh sửa dùng ngày tạo khi sắp xếp theo `updatedAt`. |
 
 Query của `GET /recipes/search`: `q`, `page=1`, `pageSize=10` (`1..50`), các filter và `sort` giống `GET /recipes`; bỏ trống `sort` để xếp theo độ liên quan.
 
@@ -303,9 +305,9 @@ Nếu bản ghi đã đổi, backend trả `422 RECIPE_CONCURRENCY_CONFLICT`; fr
 
 | Method | Route | Auth | operationId |
 |---|---|---|---|
-| POST | `/recipes/{recipeId}/ingredients` | Owner/Admin | `AddRecipeIngredient` |
-| PUT | `/recipes/{recipeId}/ingredients/{ingredientId}` | Owner/Admin | `UpdateRecipeIngredient` |
-| DELETE | `/recipes/{recipeId}/ingredients/{ingredientId}` | Owner/Admin | `DeleteRecipeIngredient` |
+| POST | `/recipes/{recipeId}/ingredients` | Owner | `AddRecipeIngredient` |
+| PUT | `/recipes/{recipeId}/ingredients/{ingredientId}` | Owner | `UpdateRecipeIngredient` |
+| DELETE | `/recipes/{recipeId}/ingredients/{ingredientId}` | Owner | `DeleteRecipeIngredient` |
 
 ```json
 {
@@ -321,9 +323,9 @@ Nếu bản ghi đã đổi, backend trả `422 RECIPE_CONCURRENCY_CONFLICT`; fr
 
 | Method | Route | Auth | operationId |
 |---|---|---|---|
-| POST | `/recipes/{recipeId}/steps` | Owner/Admin | `AddRecipeStep` |
-| PUT | `/recipes/{recipeId}/steps/{stepId}` | Owner/Admin | `UpdateRecipeStep` |
-| DELETE | `/recipes/{recipeId}/steps/{stepId}` | Owner/Admin | `DeleteRecipeStep` |
+| POST | `/recipes/{recipeId}/steps` | Owner | `AddRecipeStep` |
+| PUT | `/recipes/{recipeId}/steps/{stepId}` | Owner | `UpdateRecipeStep` |
+| DELETE | `/recipes/{recipeId}/steps/{stepId}` | Owner | `DeleteRecipeStep` |
 
 ```json
 {
@@ -340,9 +342,9 @@ Nếu bản ghi đã đổi, backend trả `422 RECIPE_CONCURRENCY_CONFLICT`; fr
 
 | Method | Route | Auth | operationId | Ghi chú |
 |---|---|---|---|---|
-| POST | `/recipes/{recipeId}/images` | Owner/Admin | `UploadRecipeImage` | `multipart/form-data`, field `file` |
-| PATCH | `/recipes/{recipeId}/images/{imageId}/primary` | Owner/Admin | `SetPrimaryRecipeImage` | Đặt ảnh chính |
-| DELETE | `/recipes/{recipeId}/images/{imageId}` | Owner/Admin | `DeleteRecipeImage` | Xóa DB và object/file |
+| POST | `/recipes/{recipeId}/images` | Owner | `UploadRecipeImage` | `multipart/form-data`, field `file` |
+| PATCH | `/recipes/{recipeId}/images/{imageId}/primary` | Owner | `SetPrimaryRecipeImage` | Đặt ảnh chính |
+| DELETE | `/recipes/{recipeId}/images/{imageId}` | Owner | `DeleteRecipeImage` | Xóa DB và object/file |
 
 Định dạng: JPEG, PNG, WebP, AVIF; tối đa 5 MB; backend kiểm tra cả content type và magic bytes.
 

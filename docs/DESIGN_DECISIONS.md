@@ -36,7 +36,7 @@
 | 19 | Ping sitemap Google | **Bỏ** | ✅ |
 | 20 | CQRS/MediatR vs Service pattern | **Giữ Service pattern** | ✅ |
 | 21 | Tên thuộc tính thời gian | Entity `PrepTime/CookTime`, DTO `*Minutes` | ✅ |
-| 22 | Phân quyền dashboard | Tạo: Author/Admin · Sửa: Owner/Admin | ✅ |
+| 22 | Phân quyền dashboard | Tạo: Author/Admin · Sửa: Owner · Publish/Draft/Xóa: Owner/Admin | ✅ |
 
 ---
 

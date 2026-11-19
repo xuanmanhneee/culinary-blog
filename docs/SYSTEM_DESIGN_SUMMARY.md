@@ -146,7 +146,7 @@ Quy tắc quan trọng:
 
 - Recipe mới luôn là `Draft`.
 - Guest chỉ xem `Published`.
-- Owner hoặc Admin mới được sửa/xóa/đổi trạng thái.
+- Chỉ owner được sửa nội dung; owner hoặc Admin được publish/unpublish/xóa.
 - Publish yêu cầu tối thiểu các dữ liệu mà business rule quy định.
 - Update recipe dùng `RowVersion`/ETag để kiểm soát concurrent writes.
 - Slug là định danh URL công khai và cần ổn định sau khi publish.
@@ -178,7 +178,7 @@ Update/delete category chưa được triển khai.
 
 - `GET /recipes`
 - `GET /recipes/{slug}`
-- `GET /recipes/{id}` - Owner/Admin
+- `GET /recipes/{id}` - Owner
 - `POST /recipes`
 - `PUT /recipes/{id}`
 - `PATCH /recipes/{id}/publish`
@@ -265,7 +265,7 @@ Core API
 
 - Sở hữu upload, MIME validation, resize và object lifecycle.
 - Không được truy cập trực tiếp bảng Recipes.
-- Core API kiểm tra owner/Admin và lưu image metadata.
+- Core API kiểm tra owner và lưu image metadata.
 
 ### Search Service
 

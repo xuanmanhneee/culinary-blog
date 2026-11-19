@@ -30,11 +30,11 @@ Hệ thống theo mô hình Client–Server, giao tiếp qua REST API. Backend t
 |---|---|
 | Frontend | Next.js 14+ (App Router), TypeScript, Tailwind CSS, Auth.js v5, TanStack Query, React Hook Form + Zod |
 | Backend | .NET 10 Minimal APIs, C#, MediatR (CQRS), FluentValidation |
-| Engagement | .NET 10 Minimal API, EF Core; món đã lưu và rating, database riêng |
+| Engagement | .NET 10 microservice, EF Core; món đã lưu và rating, database riêng; truy cập qua API/BFF |
 | Database | PostgreSQL 16 (EF Core Code First, Full-Text Search) |
 | Cache | Adapter boundary available; distributed cache is not enabled yet |
 | Object Storage | Local files (Development), MinIO/S3-compatible (Production) |
-| Reverse Proxy | Nginx |
+| API entry point | ASP.NET Core API/BFF; proxy route Engagement nội bộ |
 | Observability | Serilog + Seq, OpenTelemetry (Grafana/Jaeger) |
 | Background Jobs | Hangfire |
 | Containerization | Docker / Docker Compose |
@@ -157,7 +157,7 @@ Sau khi chạy, ứng dụng khả dụng tại:
 |---|---|
 | Frontend | http://localhost:3000 |
 | Backend API | http://localhost:5000 |
-| Engagement API | http://localhost:5100 |
+| Engagement API | `http://localhost:5100` (frontend vẫn truy cập qua Backend API) |
 | API Docs (Scalar) | http://localhost:5000/scalar |
 | Mailhog (dev only) | http://localhost:8025 |
 
@@ -204,13 +204,13 @@ Hệ thống có 3 vai trò: **Guest**, **Author**, **Admin**, với 3 tầng ki
 
 1. **Role-Based** — phân biệt quyền theo vai trò.
 2. **Resource-Based** — Author chỉ sửa/xoá được recipe của chính mình.
-3. **Policy-Based** — policy `VerifiedAuthor` yêu cầu email đã xác thực; Admin có quyền bypass ownership check.
+3. **Policy-Based** — policy `VerifiedAuthor` yêu cầu email đã xác thực; Admin chỉ bypass ownership check khi xem, publish/đưa về Draft hoặc xóa recipe.
 
 ---
 
 ## 🧪 Kiểm thử
 
-- Dữ liệu seed dùng thư viện **Bogus** (50 recipe mẫu, 5 tác giả mẫu).
+- Seed ở môi trường `Development` gồm 6 danh mục, 14 công thức đã đăng, 1 bản nháp và 2 tài khoản demo. Khi API đang chạy trong Compose, dùng `docker compose exec api dotnet CulinaryBlog.API.dll --seed`.
 - Test API thủ công qua **Postman** hoặc **Scalar UI** (`/scalar`).
 
 ---

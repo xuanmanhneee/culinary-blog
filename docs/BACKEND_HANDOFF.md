@@ -32,3 +32,5 @@ OpenAPI is available at `/openapi/v1.json`; Scalar is enabled in Development.
 Rating and saved recipes live in the standalone `services/CulinaryBlog.Engagement`
 Minimal API. It validates the same JWT, owns a separate PostgreSQL database, and
 checks published recipes through the public Recipes API without sharing tables.
+The frontend still uses the single API base URL; the main API forwards only the
+saved-recipes and ratings routes to Engagement.
