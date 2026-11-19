@@ -19,6 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\CulinaryBlog.API\CulinaryBlog.API.csproj" />
     <ProjectReference Include="..\..\CulinaryBlog.Application\CulinaryBlog.Application.csproj" />
     <ProjectReference Include="..\..\CulinaryBlog.Infrastructure\CulinaryBlog.Infrastructure.csproj" />
     <ProjectReference Include="..\..\..\..\services\CulinaryBlog.Engagement\CulinaryBlog.Engagement.csproj" />
