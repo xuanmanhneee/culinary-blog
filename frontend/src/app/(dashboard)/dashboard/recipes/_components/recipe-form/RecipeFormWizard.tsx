@@ -34,7 +34,7 @@ type RecipeFormWizardProps =
   | { mode: "create"; recipeId?: undefined; initialNotice?: undefined }
   | { mode: "edit"; recipeId: string; initialNotice?: string };
 
-/** Lỗi backend → lỗi theo field; null nếu không gắn được vào field nào. */
+/** Lỗi backend → lỗi theo field (422 validation); null nếu không gắn được vào field nào. */
 function toServerErrors(error: unknown): ServerErrors | null {
   if (!(error instanceof ApiError)) return null;
   if (error.problem.errors) return error.problem.errors;

@@ -69,7 +69,7 @@ export function createRecipe(body: CreateRecipeRequest, token: Token): Promise<R
   return apiFetch(RECIPES, { method: "POST", body, token });
 }
 
-/** PUT /recipes/{id} với If-Match; bản cũ → ApiError 422 RECIPE_CONCURRENCY_CONFLICT (FR-RCP-004). */
+/** PUT /recipes/{id} với If-Match; bản cũ → ApiError 409 RECIPE_CONCURRENCY_CONFLICT (FR-RCP-004). */
 export async function updateRecipe(
   id: string,
   body: UpdateRecipeRequest,

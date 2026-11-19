@@ -58,7 +58,7 @@ Authorization: Bearer {{login.response.body.accessToken}}
 DELETE {{baseUrl}}/api/v1/recipes/{{recipeId}}/steps/00000000-0000-0000-0000-000000000001
 Authorization: Bearer {{login.response.body.accessToken}}
 
-### 6. Dữ liệu không hợp lệ – 400 VALIDATION_ERROR
+### 6. Dữ liệu không hợp lệ – 422 VALIDATION_ERROR
 POST {{baseUrl}}/api/v1/recipes/{{recipeId}}/steps
 Authorization: Bearer {{login.response.body.accessToken}}
 Content-Type: application/json

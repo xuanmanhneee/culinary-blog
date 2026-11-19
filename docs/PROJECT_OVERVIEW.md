@@ -243,7 +243,7 @@ Dev: `docker-compose.yml`; prod: `docker-compose.prod.yml` (`.env.production`). 
 |---|---|---|---|
 | 001 List | `GET /recipes` | Public (M) | Filter `categoryId`, `difficulty`, `maxCookTime`, `minServings`; sort `sort=-createdAt` (mặc định), `title`, `-cookTime`…; page default 1, pageSize default 12 max 50. Guest chỉ Published; Author: Published ∪ (Draft/Archived của mình); Admin: tất cả. COUNT trước phân trang. `categoryId` không tồn tại → 200 rỗng. Output Cache policy `RecipeList` |
 | 002 Detail | `GET /recipes/{slug}` | Public; Draft/Archived: owner/Admin (M) | Eager load Steps (order StepNumber), Ingredients (order), Images, Category, Author, Nutrition. 404 / 403. Output cache tag `recipes`, `recipe:{slug}` |
-| 003 Create | `POST /recipes` | Author/Admin (M) | Body: title (5–200), description, categoryId, prepTimeMinutes, cookTimeMinutes, servings, difficulty, instructions?, nutrition?, steps?[], ingredients?[]. Status=Draft, slug auto. 201 `RecipeDto`. 422 category sai; 409 slug trùng |
+| 003 Create | `POST /recipes` | Author/Admin (M) | Body: title (5–200), description, categoryId, prepTimeMinutes, cookTimeMinutes, servings, difficulty, instructions?, nutrition?, steps?[], ingredients?[]. Status=Draft, slug auto và tự thêm hậu tố nếu trùng. 201 `RecipeDto`; 422 category sai |
 | 004 Update | `PUT /recipes/{id:guid}` | Owner (M) | Resource-based auth + RowVersion (`If-Match`). 403 / 404 / 409 concurrency. Evict cache tag |
 | 005 Publish | `PATCH /recipes/{id}/publish` · `/unpublish` | Owner/Admin (M) | Domain method; thiếu Step → 422/400; idempotent |
 | 006 Archive | `PATCH /recipes/{id}/archive` | Owner (S) | Ẩn khỏi public, không xóa |
@@ -310,7 +310,7 @@ Dev: `docker-compose.yml`; prod: `docker-compose.prod.yml` (`.env.production`). 
 ### HTTP status & Error codes (Phụ lục A, B)
 `200 201 204 400 401 403 404 409 422 429 500 503` (+502 cho Google API down).
 
-Error codes: `AUTH_EMAIL_EXISTS`(409), `AUTH_INVALID_CREDENTIALS`(401), `AUTH_TOKEN_EXPIRED`(401), `AUTH_TOKEN_INVALID`(401), `AUTH_REFRESH_TOKEN_EXPIRED`(401), `AUTH_REFRESH_TOKEN_REVOKED`(401), `AUTH_GOOGLE_TOKEN_INVALID`(400), `AUTH_ACCOUNT_DISABLED`(403), `RECIPE_NOT_FOUND`(404), `RECIPE_SLUG_EXISTS`(409), `RECIPE_PUBLISH_INCOMPLETE`(400), `RECIPE_FORBIDDEN`(403), `RECIPE_CONCURRENCY_CONFLICT`(422), `CATEGORY_NOT_FOUND`(404), `CATEGORY_NAME_EXISTS`(409), `CATEGORY_DELETE_HAS_RECIPES`(409), `FILE_SIZE_EXCEEDED`(400), `FILE_MIME_INVALID`(400), `VALIDATION_ERROR`(400), `RATE_LIMIT_EXCEEDED`(429).
+Error codes: `AUTH_EMAIL_EXISTS`(409), `AUTH_INVALID_CREDENTIALS`(401), `AUTH_TOKEN_EXPIRED`(401), `AUTH_TOKEN_INVALID`(401), `AUTH_REFRESH_TOKEN_EXPIRED`(401), `AUTH_REFRESH_TOKEN_REVOKED`(401), `AUTH_GOOGLE_TOKEN_INVALID`(400), `AUTH_ACCOUNT_DISABLED`(403), `RECIPE_NOT_FOUND`(404), `RECIPE_PUBLISH_INCOMPLETE`(400), `RECIPE_FORBIDDEN`(403), `RECIPE_CONCURRENCY_CONFLICT`(409), `CATEGORY_NOT_FOUND`(404), `CATEGORY_NAME_EXISTS`(409), `CATEGORY_DELETE_HAS_RECIPES`(409), `FILE_SIZE_EXCEEDED`(400), `FILE_MIME_INVALID`(400), `VALIDATION_ERROR`(422), `RATE_LIMIT_EXCEEDED`(429).
 
 > [CODE] `Domain/Common/Exceptions/ErrorCodes.cs` là nơi tập trung mã lỗi — thêm/đối chiếu ở đó. Exception → HTTP mapping nằm ở `GlobalExceptionMiddleware`: `NotFoundException→404`, `ConflictException→409`, `ConcurrencyConflictException→409/422`, `ForbiddenException→403`, `UnauthorizedException→401`, `ValidationException→400/422`, `BusinessRuleViolationException/DomainException→400/422`, còn lại → 500 (không lộ stack trace).
 

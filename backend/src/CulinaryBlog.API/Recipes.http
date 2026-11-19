@@ -34,7 +34,7 @@ GET {{baseUrl}}/api/v1/recipes?page=1&pageSize=5&categoryId={{categoryId}}&diffi
 ### 3. Category không tồn tại – 200 OK, items rỗng
 GET {{baseUrl}}/api/v1/recipes?categoryId=00000000-0000-0000-0000-000000000001
 
-### 4. Tham số không hợp lệ – 400 VALIDATION_ERROR
+### 4. Tham số không hợp lệ – 422 VALIDATION_ERROR
 GET {{baseUrl}}/api/v1/recipes?page=0&pageSize=99&sort=abc
 
 ### 5. Tạo công thức kèm nutrition, ingredients, steps – 201 Created (Status = Draft)
@@ -61,7 +61,7 @@ Content-Type: application/json
   ]
 }
 
-### 6. Gửi lại request 5 – 409 Conflict (RECIPE_SLUG_EXISTS)
+### 6. Gửi lại request 5 – 201 Created, slug = canh-chua-ca-loc-mien-tay-2
 POST {{baseUrl}}/api/v1/recipes
 Authorization: Bearer {{login.response.body.accessToken}}
 Content-Type: application/json
@@ -76,7 +76,7 @@ Content-Type: application/json
   "difficulty": 2
 }
 
-### 7. Dữ liệu không hợp lệ – 400 VALIDATION_ERROR (lỗi theo từng field)
+### 7. Dữ liệu không hợp lệ – 422 VALIDATION_ERROR (lỗi theo từng field)
 POST {{baseUrl}}/api/v1/recipes
 Authorization: Bearer {{login.response.body.accessToken}}
 Content-Type: application/json
@@ -119,7 +119,7 @@ If-Match: {{etag}}
   "nutrition": { "calories": 250 }
 }
 
-### 10. Gửi lại request 9 với ETag cũ – 422 RECIPE_CONCURRENCY_CONFLICT
+### 10. Gửi lại request 9 với ETag cũ – 409 RECIPE_CONCURRENCY_CONFLICT
 PUT {{baseUrl}}/api/v1/recipes/{{recipeId}}
 Authorization: Bearer {{login.response.body.accessToken}}
 Content-Type: application/json
@@ -135,7 +135,7 @@ If-Match: {{etag}}
   "difficulty": 2
 }
 
-### 11. Thiếu If-Match và rowVersion – 400 VALIDATION_ERROR
+### 11. Thiếu If-Match và rowVersion – 422 VALIDATION_ERROR
 PUT {{baseUrl}}/api/v1/recipes/{{recipeId}}
 Authorization: Bearer {{login.response.body.accessToken}}
 Content-Type: application/json
