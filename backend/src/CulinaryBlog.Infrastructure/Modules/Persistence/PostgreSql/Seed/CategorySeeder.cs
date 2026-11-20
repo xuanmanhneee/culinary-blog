@@ -14,7 +14,11 @@ public class CategorySeeder(CulinaryBlogDbContext context, ILogger<CategorySeede
         ("Món chay", "Món làm từ rau củ, đậu hũ và nấm."),
         ("Mì - Phở", "Các món mì, bún và phở dùng làm bữa chính."),
         ("Salad", "Rau trộn và gỏi có vị chua ngọt."),
-        ("Tráng miệng", "Chè và các món ngọt để dùng sau bữa ăn.")
+        ("Tráng miệng", "Chè và các món ngọt để dùng sau bữa ăn."),
+        ("Món kho - rim", "Các món kho, rim đậm đà ăn cùng cơm nóng."),
+        ("Hải sản", "Cá, tôm, mực chế biến nhanh gọn và giữ vị tươi."),
+        ("Cơm - Cháo", "Cơm chiên, cơm tấm và cháo cho bữa sáng hoặc bữa trưa nhanh."),
+        ("Bánh - Ăn vặt", "Bánh mặn, bánh ngọt và món ăn vặt dễ làm tại nhà.")
     ];
 
     public async Task<IReadOnlyDictionary<string, Category>> SeedAsync()

@@ -17,7 +17,7 @@ dotnet run --project backend/src/CulinaryBlog.API/CulinaryBlog.API.csproj
 
 Development seed credentials:
 
-- Email: `author1@culinaryblog.local`
+- Email: `admin@culinaryblog.nhom10`
 - Password: `Author@123`
 
 OpenAPI is available at `/openapi/v1.json`; Scalar is enabled in Development.
