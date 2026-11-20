@@ -243,13 +243,16 @@ Nguyên tắc:
 
 `docker-compose.yml` hiện cung cấp:
 
-- PostgreSQL.
+- Nginx (`nginx:1.27-alpine`): TLS termination, reverse proxy, rate limit thô theo IP, readiness gate (cổng 80/443).
+- Frontend (Next.js standalone).
+- API và Engagement service.
+- PostgreSQL (2 instance: API và Engagement).
 - Redis.
 - MinIO.
 - Seq.
 - Mailhog.
 
-API, frontend và Nginx chưa được container hóa trong compose hiện tại dù SRS mô tả đầy đủ các service này.
+Nginx là điểm vào duy nhất: `/api/*` và `/health*` chuyển tới API, còn lại chuyển tới frontend. Request tới `/` và `/api/` chỉ được chuyển tiếp khi `/health/ready` của API trả 2xx; PostgreSQL lỗi thì Nginx trả 503 (SRS Reliability). Chứng chỉ self-signed được tự sinh cho dev; môi trường production đặt `tls.crt`/`tls.key` vào `nginx/certs/`.
 
 Redis container tồn tại nhưng source mới có `LoggingCacheService`; chưa có distributed cache thật. Health check hiện mới kiểm tra database, chưa kiểm tra Redis/MinIO như mô tả.
 

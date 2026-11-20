@@ -119,64 +119,96 @@ culinary-blog/
 
 ## 🚀 Bắt đầu (Getting Started)
 
-### Yêu cầu môi trường phát triển
+### Cách 1 — Chạy nhanh toàn bộ bằng Docker (khuyến nghị)
 
-| Thành phần | Yêu cầu |
-|---|---|
-| .NET SDK | 10.0.x |
-| Node.js | 20+ LTS (npm 10+) |
-| Docker | Docker Desktop 4.x+ / Docker Engine (để chạy PostgreSQL và Mailhog local) |
-| Git | 2.40+ |
-| IDE | Visual Studio 2022 17.12+ / Rider 2024+ / VS Code + C# Dev Kit |
+Yêu cầu: **Git** và **Docker Desktop/Docker Engine có Docker Compose**. Máy cần trống các cổng `80`, `443`, `1025`, `5000`, `5100`, `5432`, `5433`, `5341`, `6379`, `8025`, `9000` và `9001`.
 
-### Cài đặt
-
-```bash
-# 1. Clone repository
+```powershell
 git clone https://github.com/xuanmanhneee/culinary-blog.git
 cd culinary-blog
-
-# 2. Khởi động các service phụ trợ (PostgreSQL, Mailhog)
-docker compose up -d
-
-# 3. Backend
-cd src/CulinaryBlog.API
-dotnet restore
-dotnet ef database update
-dotnet run
-
-# 4. Frontend
-cd ../../frontend
-npm install
-npm run dev
+docker compose up -d --build
+docker compose ps
 ```
 
-Sau khi chạy, ứng dụng khả dụng tại:
+Compose sẽ build và chạy frontend, API chính, Engagement, Nginx, PostgreSQL, Redis, MinIO, MailHog và Seq. Migration cơ sở dữ liệu được áp dụng tự động khi hai API khởi động.
 
-| Service | URL |
+Khi các container đã chạy, tạo dữ liệu mẫu:
+
+```powershell
+docker compose exec api dotnet CulinaryBlog.API.dll --seed
+```
+
+> Lệnh seed chỉ chạy trong môi trường `Development` và có thể chạy lại an toàn. Thêm `--reset` (`... --seed --reset`) để xóa sạch công thức, danh mục và tài khoản cũ rồi seed lại 10 danh mục, 55 công thức, 1 admin và 5 author.
+
+Mở <https://localhost> để dùng ứng dụng. Lần đầu trình duyệt sẽ cảnh báo vì chứng chỉ local là self-signed; chọn tiếp tục truy cập.
+
+| Thành phần | Địa chỉ |
 |---|---|
-| Frontend | http://localhost:3000 |
-| Backend API | http://localhost:5000 |
-| Engagement API | `http://localhost:5100` (frontend vẫn truy cập qua Backend API) |
-| API Docs (Scalar) | http://localhost:5000/scalar |
-| Mailhog (dev only) | http://localhost:8025 |
+| Website qua Nginx | <https://localhost> |
+| Backend API / Scalar | <http://localhost:5000> / <http://localhost:5000/scalar> |
+| Engagement API | <http://localhost:5100> |
+| Health check | <http://localhost:5000/health/ready> |
+| MailHog | <http://localhost:8025> |
+| MinIO Console | <http://localhost:9001> |
+| Seq | <http://localhost:5341> |
 
-### Triển khai Production
+Tài khoản mẫu sau khi seed:
 
-Toàn bộ hệ thống được container hoá qua **Docker Compose**:
+| Vai trò | Email | Mật khẩu |
+|---|---|---|
+| Admin | `admin@culinaryblog.nhom10` | `Author@123` |
+| Author | `author1@culinaryblog.nhom10` … `author5@culinaryblog.nhom10` | `Author@123` |
 
-```bash
-docker compose -f docker-compose.prod.yml up -d --build
+Các lệnh thường dùng:
+
+```powershell
+docker compose logs -f api frontend engagement # Xem log
+docker compose down                           # Dừng và giữ dữ liệu
+docker compose down -v                        # Dừng và xóa toàn bộ dữ liệu local
 ```
 
-| Service | Image | Port (host:container) |
-|---|---|---|
-| nginx | nginx:alpine | 80:80, 443:443 |
-| api | culinaryblog-api (Dockerfile) | 5000:8080 |
-| frontend | culinaryblog-web (Dockerfile) | 3000:3000 |
-| postgres | postgres:16-alpine | 5432:5432 |
-| redis | redis:7-alpine | 6379:6379 |
-| minio | minio/minio:latest | 9000:9000, 9001:9001 |
+Docker Compose đã có cấu hình mặc định để demo. Google OAuth mặc định tắt; nếu cần bật, khai báo `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` và `GOOGLE_AUTH_ENABLED=true` trong tệp `.env` ở thư mục gốc rồi build lại.
+
+### Cách 2 — Chạy source để phát triển
+
+Ngoài Docker, cần cài **.NET SDK 10**, **Node.js 22** và **pnpm 11**. Tại thư mục gốc, khởi động các dịch vụ hạ tầng trước:
+
+```powershell
+docker compose up -d postgres engagement-postgres redis minio mailhog seq
+```
+
+Mở ba terminal tại thư mục gốc và chạy lần lượt:
+
+```powershell
+# Terminal 1: Engagement API — http://localhost:5100
+dotnet watch --project services/CulinaryBlog.Engagement/CulinaryBlog.Engagement.csproj
+
+# Terminal 2: Backend API — http://localhost:5000
+dotnet watch --project backend/src/CulinaryBlog.API/CulinaryBlog.API.csproj --launch-profile http
+
+# Terminal 3: Frontend — http://localhost:3000
+Copy-Item frontend/.env.example frontend/.env.local
+# Mở frontend/.env.local và điền AUTH_SECRET trước khi chạy hai lệnh sau
+pnpm --dir frontend install --frozen-lockfile
+pnpm --dir frontend dev
+```
+
+Trước khi chạy frontend lần đầu, điền `AUTH_SECRET` trong `frontend/.env.local` bằng một chuỗi ngẫu nhiên dài. Các URL local còn lại trong tệp mẫu đã khớp với cấu hình mặc định.
+
+Để seed khi chạy source, dừng Backend API rồi chạy:
+
+```powershell
+dotnet run --project backend/src/CulinaryBlog.API/CulinaryBlog.API.csproj --launch-profile http -- --seed
+```
+
+Sau đó khởi động lại Backend API bằng lệnh `dotnet watch` ở trên.
+
+### Xử lý lỗi nhanh
+
+- Container chưa sẵn sàng: chạy `docker compose ps` và `docker compose logs <tên-service>`.
+- Cổng đã được sử dụng: dừng ứng dụng đang chiếm cổng hoặc sửa port phía host trong `docker-compose.yml`.
+- Muốn tạo lại dữ liệu từ đầu: chạy `docker compose down -v`, sau đó `docker compose up -d --build` và seed lại. Lệnh này xóa toàn bộ dữ liệu local trong các Docker volume.
+- Frontend không đăng nhập được khi chạy source: kiểm tra `AUTH_SECRET`, `AUTH_URL=http://localhost:3000` và `API_URL=http://localhost:5000` trong `frontend/.env.local`.
 
 ---
 
@@ -210,7 +242,7 @@ Hệ thống có 3 vai trò: **Guest**, **Author**, **Admin**, với 3 tầng ki
 
 ## 🧪 Kiểm thử
 
-- Seed ở môi trường `Development` gồm 6 danh mục, 14 công thức đã đăng, 1 bản nháp và 2 tài khoản demo. Khi API đang chạy trong Compose, dùng `docker compose exec api dotnet CulinaryBlog.API.dll --seed`.
+- Seed ở môi trường `Development` tạo danh mục, công thức và các tài khoản demo. Khi API đang chạy trong Compose, dùng `docker compose exec api dotnet CulinaryBlog.API.dll --seed`.
 - Test API thủ công qua **Postman** hoặc **Scalar UI** (`/scalar`).
 
 ---
@@ -228,7 +260,7 @@ Hệ thống có 3 vai trò: **Guest**, **Author**, **Admin**, với 3 tầng ki
 | _Phan Lê Xuân Mạnh_ | _Nhóm trưởng_ | _2312686_ | [@_xuanmanhneee_](https://github.com/xuanmanhneee) |
 | _Nguyễn Đình Thạch_ | _Thành viên_ | _2314506_ | [@_Thach Nguyen_](https://github.com/nguyendinhthach) |
 | _Lý Ngọc Thảo Nguyên_ | _Thành viên_ | _2312700_ | [@_LeonSK-hav_](https://github.com/LeonSK-hav) |
-| _Trần Tấn Khải_ | _Thành viên_ | _2312642_ | [@__](https://github.com/) |
+| _Trần Tấn Khải_ | _Thành viên_ | _2312642_ | [@_TranTan-Khai_](https://github.com/TranTan-Khai) |
 
 
 ## 👷 Phân công công việc
@@ -242,14 +274,6 @@ Hệ thống có 3 vai trò: **Guest**, **Author**, **Admin**, với 3 tầng ki
 
 ---
 
-## 📅 Tiến độ công việc
-
-| Tuần | Thành viên | Công việc | Trạng thái |
-|---|---|---|---|
-| 1 | Xuân Mạnh | Dựng cấu trúc thư mục Clean Architecture, khởi tạo solution/project, cấu hình `CulinaryBlogDbContext`, seed data mẫu bằng Bogus (50 recipe, 5 author) | ✅ Hoàn thành |
-| 1 | Thảo Nguyên | Xử lý upload file lên MinIO (`IFileStorageService`) | ✅ Hoàn thành |
-| 1 | Tấn Khải | Auth (đăng ký/đăng nhập, JWT) | 🔄 Đang thực hiện |
-| 1 | Đình Thạch | Recipe Management (CRUD công thức) | ✅ Hoàn thành |
 
 ## 📄 Giấy phép
 

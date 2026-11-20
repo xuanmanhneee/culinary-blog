@@ -256,14 +256,14 @@ Các điểm có thể xem là mở rộng hoặc chi tiết hóa ngoài danh s�
 - Local file storage cho development, cùng abstraction với MinIO.
 - API versioning/OpenAPI Scalar và ETag/If-Match được tích hợp xuyên backend-frontend.
 
-Trang newsletter ở Home hiện mới là giao diện `action="#"`, **không được tính là tính năng đã làm**.
+Newsletter ở Home đã có luồng demo hoàn chỉnh: lưu email, gửi thư qua MailHog và Hangfire tổng hợp top rating hằng tuần. Double opt-in và unsubscribe là phần nâng cấp production.
 
 ### 3e. Tính năng/việc chưa làm hoặc chưa hoàn chỉnh
 
 Theo code hiện tại, các FR lõi đã có implementation, nhưng các điểm sau chưa nên tuyên bố hoàn tất tuyệt đối:
 
 - Automated test còn mỏng: mới thấy test cho search, Redis fallback và Hangfire dashboard; chưa phủ đủ toàn bộ Auth, Categories, Recipe CRUD, authorization và integration/E2E như checklist SRS.
-- Newsletter trên Home chưa có backend/subscription flow.
+- Newsletter hiện là MVP phục vụ demo; chưa có double opt-in, unsubscribe hoặc tích hợp nhà cung cấp email production.
 - Next.js 16 đã deprecate `priority`, nhưng code vẫn dùng ở vài ảnh.
 - Nhiều ảnh backend dùng `unoptimized`; pipeline có thumbnail/medium nhưng frontend chưa tận dụng nhất quán mọi biến thể.
 - Tài liệu README/PROJECT_OVERVIEW/DESIGN_DECISIONS có đoạn cũ, chưa đồng bộ hoàn toàn với code cuối.
@@ -275,17 +275,16 @@ Lý do trình bày phù hợp: ưu tiên hoàn thiện luồng nghiệp vụ ch�
 
 Khi gặp tính năng mới, trả lời theo thứ tự: yêu cầu và actor -> data model -> API/use case -> authorization/validation -> frontend -> job/cache -> migration/test/observability -> ưu/nhược điểm. Mỗi tính năng phải giữ Dependency Rule: contract/use case ở Application, entity/rule ở Domain, EF/external service ở Infrastructure, route ở API.
 
-### 1. Đăng ký nhận email khi có recipe mới
+### 1. Đăng ký nhận email món nổi bật hằng tuần
 
-Giải pháp nhỏ nhất nhưng hoàn chỉnh:
+Implementation MVP hiện tại:
 
-1. Thêm entity `EmailSubscription`: Id, Email chuẩn hóa, Status, ConfirmationTokenHash, CreatedAt, ConfirmedAt, UnsubscribedAt; unique index trên email.
-2. Thêm public endpoints `POST /subscriptions`, `GET /subscriptions/confirm`, `POST /subscriptions/unsubscribe`. Luôn trả thông báo chung để tránh dò email.
-3. Gửi email double opt-in bằng Hangfire; chỉ người đã confirm mới nhận tin.
-4. Khi recipe chuyển sang Published lần đầu, phát domain event hoặc ghi outbox event `RecipePublished`; background job lấy subscriber theo batch và gửi email. Không gửi SMTP ngay trong request publish.
-5. Email có link unsubscribe ký token; rate limit form, validate email, chống spam và ghi log số gửi/thất bại.
-6. Frontend nối form newsletter hiện có vào API và hiển thị trạng thái “hãy kiểm tra email”.
-7. Test duplicate subscribe, token hết hạn, unsubscribe idempotent, retry và không gửi cho Draft/Archived.
+1. `EmailSubscription` lưu email đã trim/normalize và có unique index chống đăng ký trùng.
+2. Public endpoint `POST /subscriptions` validate email, lưu subscription và enqueue thư mẫu để kiểm tra ngay trên MailHog.
+3. Engagement cung cấp top recipe theo `AverageRating DESC, RatingCount DESC`.
+4. Hangfire recurring job chạy mỗi thứ Hai, tạo một job gửi riêng cho từng subscriber để retry độc lập.
+5. Frontend nối form newsletter với API và hiển thị trạng thái gửi.
+6. Khi triển khai thật mới bổ sung double opt-in, unsubscribe và nhà cung cấp SMTP production.
 
 Ưu điểm: tái dùng Hangfire/SMTP, request publish nhanh, retry được. Nhược điểm: eventual consistency và phải quản lý consent, bounce, spam reputation. Khi quy mô lớn mới tách nhà cung cấp email/bulk campaign; chưa cần microservice ngay.
 
@@ -413,7 +412,7 @@ Nguyên tắc cuối: validation frontend chỉ cải thiện UX; mọi trust bo
 - Cache: Redis distributed, lỗi Redis thì fallback DB.
 - Jobs: welcome email, delete file, resize image, sitemap 02:00 UTC.
 - Frontend: RSC cho data/SEO, Client Component cho tương tác; TanStack Query/Zustand/URL/RHF đúng loại state.
-- Đừng nhận newsletter là đã hoàn thành; form Home hiện chưa nối backend.
+- Newsletter: MVP đã chạy end-to-end; cần nói rõ double opt-in/unsubscribe chưa thuộc bản demo.
 
 ## Tài liệu kỹ thuật tham khảo
 
