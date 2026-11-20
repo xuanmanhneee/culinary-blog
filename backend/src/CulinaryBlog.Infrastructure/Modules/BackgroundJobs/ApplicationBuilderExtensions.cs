@@ -19,6 +19,12 @@ public static class ApplicationBuilderExtensions
             Cron.Daily(2),
             new RecurringJobOptions { TimeZone = TimeZoneInfo.Utc });
 
+        RecurringJob.AddOrUpdate<NewsletterDigestJob>(
+            "weekly-newsletter",
+            job => job.DispatchAsync(CancellationToken.None),
+            Cron.Weekly(DayOfWeek.Monday, 0),
+            new RecurringJobOptions { TimeZone = TimeZoneInfo.Utc });
+
         return app;
     }
 }

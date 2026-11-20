@@ -110,6 +110,19 @@ saved.MapDelete("/{recipeId:guid}", async (Guid recipeId, ClaimsPrincipal user, 
 });
 
 var ratings = app.MapGroup("/api/v1/ratings");
+ratings.MapGet("/top", async (int? limit, EngagementDbContext db, CancellationToken ct) =>
+{
+    var size = Math.Clamp(limit ?? 5, 1, 10);
+    var aggregates = await db.Ratings.AsNoTracking()
+        .GroupBy(rating => rating.RecipeId)
+        .Select(group => new { RecipeId = group.Key, AverageRating = group.Average(rating => rating.Score), RatingCount = group.Count() })
+        .OrderByDescending(item => item.AverageRating)
+        .ThenByDescending(item => item.RatingCount)
+        .Take(size)
+        .ToListAsync(ct);
+    var items = aggregates.Select(item => new TopRatedRecipe(item.RecipeId, item.AverageRating, item.RatingCount));
+    return Results.Ok(items);
+}).AllowAnonymous();
 ratings.MapGet("/{recipeId:guid}", async (Guid recipeId, ClaimsPrincipal user, EngagementDbContext db, CancellationToken ct) =>
 {
     var query = db.Ratings.AsNoTracking().Where(x => x.RecipeId == recipeId);
