@@ -21,11 +21,9 @@ namespace CulinaryBlog.Infrastructure.Modules.Persistence.PostgreSql.Migrations
                 .HasAnnotation("ProductVersion", "10.0.12")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
-            NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
-
             NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "pg_trgm");
-
             NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "unaccent");
+            NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("CulinaryBlog.Domain.Modules.Categories.Category", b =>
                 {
@@ -212,6 +210,44 @@ namespace CulinaryBlog.Infrastructure.Modules.Persistence.PostgreSql.Migrations
                     b.ToTable("RefreshTokens", (string)null);
                 });
 
+            modelBuilder.Entity("CulinaryBlog.Domain.Modules.Newsletter.EmailSubscription", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(320)
+                        .HasColumnType("character varying(320)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("NormalizedEmail")
+                        .IsRequired()
+                        .HasMaxLength(320)
+                        .HasColumnType("character varying(320)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .HasColumnType("bytea");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NormalizedEmail")
+                        .IsUnique();
+
+                    b.ToTable("EmailSubscriptions", (string)null);
+                });
+
             modelBuilder.Entity("CulinaryBlog.Domain.Modules.Recipes.Recipe", b =>
                 {
                     b.Property<Guid>("Id")
@@ -311,7 +347,6 @@ namespace CulinaryBlog.Infrastructure.Modules.Persistence.PostgreSql.Migrations
                         .HasDatabaseName("IDX_Recipe_SearchTextNormalized_Trgm");
 
                     NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("SearchTextNormalized"), "gin");
-
                     NpgsqlIndexBuilderExtensions.HasOperators(b.HasIndex("SearchTextNormalized"), new[] { "gin_trgm_ops" });
 
                     b.HasIndex("SearchVector")

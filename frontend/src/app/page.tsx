@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/common/ErrorState";
 import { getErrorMessage } from "@/lib/errors";
 import { getLatestPublicRecipes, getPublicCategories } from "@/lib/api/recipes";
+import { NewsletterForm } from "@/components/newsletter/NewsletterForm";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/" },
@@ -122,11 +123,7 @@ export default async function Home() {
           <span className="text-4xl">💌</span>
           <h2 className="font-display mt-5 text-4xl font-bold tracking-[-.04em] text-foreground">Thư ngon gửi từ căn bếp</h2>
           <p className="mt-3 max-w-xl text-sm leading-7 text-muted-foreground">Mỗi tuần một thực đơn nhỏ, một câu chuyện ấm và vài mẹo bếp hữu ích. <br /> Không quảng cáo, chỉ có món ngon.</p>
-          <form className="mt-7 flex w-full max-w-lg flex-col gap-2 sm:flex-row" action="#">
-            <label htmlFor="newsletter-email" className="sr-only">Địa chỉ email</label>
-            <input id="newsletter-email" type="email" required placeholder="ban@email.com" className="h-12 min-w-0 flex-1 rounded-full border border-input bg-card px-5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15" />
-            <Button type="submit" size="lg">Nhận thư bếp</Button>
-          </form>
+          <NewsletterForm />
         </div>
       </section>
     </>

@@ -157,4 +157,6 @@ app.MapHealthEndpoints();
 
 app.MapEngagementProxyEndpoints();
 
+app.MapSubscriptionEndpoints();
+
 app.Run();

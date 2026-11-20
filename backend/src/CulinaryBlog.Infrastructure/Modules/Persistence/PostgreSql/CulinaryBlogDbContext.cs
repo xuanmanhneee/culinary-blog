@@ -2,6 +2,7 @@ using System.Linq.Expressions;
 using CulinaryBlog.Domain.Common;
 using CulinaryBlog.Domain.Modules.Categories;
 using CulinaryBlog.Domain.Modules.Identity;
+using CulinaryBlog.Domain.Modules.Newsletter;
 using CulinaryBlog.Domain.Modules.Recipes;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -24,6 +25,7 @@ public class CulinaryBlogDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<RecipeIngredient> RecipeIngredients => Set<RecipeIngredient>();
     public DbSet<RecipeImage> RecipeImages => Set<RecipeImage>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<EmailSubscription> EmailSubscriptions => Set<EmailSubscription>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

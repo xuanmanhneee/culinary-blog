@@ -26,5 +26,6 @@ public sealed class RecipeRating
 public sealed record RecipeReferenceRequest(string Slug);
 public sealed record RatingRequest(string Slug, int Score);
 public sealed record EngagementSummary(Guid RecipeId, double AverageRating, int RatingCount, bool IsSaved, int? MyRating);
+public sealed record TopRatedRecipe(Guid RecipeId, double AverageRating, int RatingCount);
 public sealed record SavedRecipeDto(Guid RecipeId, string Slug, string Title, string Description, string? PrimaryImageUrl, int TotalTimeMinutes, DateTimeOffset SavedAt);
 public sealed record PagedResponse<T>(IReadOnlyList<T> Items, int TotalCount, int Page, int PageSize, int TotalPages);
