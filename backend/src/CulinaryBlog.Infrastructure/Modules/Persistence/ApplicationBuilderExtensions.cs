@@ -10,7 +10,7 @@ namespace CulinaryBlog.Infrastructure.Modules.Persistence;
 public static class ApplicationBuilderExtensions
 {
     /// <summary>
-    /// Áp dụng migration khi khởi động; với --seed thì seed dữ liệu rồi kết thúc tiến trình.
+    /// Áp dụng migration khi khởi động; với --seed thì seed dữ liệu rồi kết thúc tiến trình (thêm --reset để xóa sạch dữ liệu cũ trước khi seed).
     /// </summary>
     public static async Task<bool> InitializePersistenceAsync(
         this WebApplication app,
@@ -29,7 +29,7 @@ public static class ApplicationBuilderExtensions
         if (!seed)
             return false;
 
-        await app.Services.SeedCulinaryBlogDataAsync();
+        await app.Services.SeedCulinaryBlogDataAsync(args.Contains("--reset", StringComparer.OrdinalIgnoreCase));
         return true;
     }
 }

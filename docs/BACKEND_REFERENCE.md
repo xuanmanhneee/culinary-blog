@@ -60,7 +60,7 @@ powershell -ExecutionPolicy Bypass -File backend/scripts/smoke-test.ps1
 Tài khoản seed:
 
 ```text
-email:    author1@culinaryblog.local
+email:    admin@culinaryblog.nhom10
 password: Author@123
 roles:    Admin, Author
 ```

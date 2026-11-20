@@ -3,6 +3,7 @@ using CulinaryBlog.Application.Common.Interfaces;
 using CulinaryBlog.Domain.Modules.Categories;
 using CulinaryBlog.Domain.Modules.Identity;
 using CulinaryBlog.Domain.Modules.Recipes;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Http;
 using Microsoft.Extensions.Logging;
@@ -53,8 +54,20 @@ public class RecipeSeeder(
                 seed.PrepTime, seed.CookTime, seed.Servings, seed.Difficulty);
             foreach (var (name, quantity, unit) in seed.Ingredients)
                 recipe.AddIngredient(name, quantity, unit);
-            foreach (var (title, description) in seed.Steps)
-                recipe.AddStep(title, description);
+            var stepImages = SeedImages.For(seed.Title)?.Steps ?? [];
+            for (var stepIndex = 0; stepIndex < seed.Steps.Length; stepIndex++)
+            {
+                var (stepTitle, stepDescription) = seed.Steps[stepIndex];
+                string? stepImageUrl = null;
+                if (stepIndex < stepImages.Length && SeedImages.Open(stepImages[stepIndex]) is { } stepStream)
+                {
+                    await using (stepStream)
+                        stepImageUrl = await storage.UploadAsync(
+                            recipe.Id, stepStream, "image/jpeg", ".jpg", CancellationToken.None);
+                }
+
+                recipe.AddStep(stepTitle, stepDescription, null, stepImageUrl);
+            }
             await AddSeedImageAsync(recipe, seed.Title, seed.ImageIndex);
 
             if (!seed.Draft)
@@ -74,12 +87,18 @@ public class RecipeSeeder(
 
     private async Task AddSeedImageAsync(Recipe recipe, string title, int imageIndex)
     {
-        var imageUrl = await UploadSeedImageAsync(recipe.Id, imageIndex);
+        var imageUrl = await UploadSeedImageAsync(recipe.Id, imageIndex, title);
         recipe.AddImage(imageUrl, true, $"Ảnh món {title}");
     }
 
-    private async Task<string> UploadSeedImageAsync(Guid recipeId, int imageIndex)
+    private async Task<string> UploadSeedImageAsync(Guid recipeId, int imageIndex, string? title = null)
     {
+        if (title is not null && SeedImages.For(title)?.Main is { } mainPath && SeedImages.Open(mainPath) is { } local)
+        {
+            await using (local)
+                return await storage.UploadAsync(recipeId, local, "image/jpeg", ".jpg", CancellationToken.None);
+        }
+
         var sourceUrl = RecipeSeedData.ImageUrls[imageIndex % RecipeSeedData.ImageUrls.Length];
         var client = httpClientFactory.CreateClient("media");
         using var response = await client.GetAsync(sourceUrl, HttpCompletionOption.ResponseHeadersRead);
@@ -90,5 +109,31 @@ public class RecipeSeeder(
         imageStream.Position = 0;
         var contentType = response.Content.Headers.ContentType?.MediaType ?? "image/jpeg";
         return await storage.UploadAsync(recipeId, imageStream, contentType, ".jpg", CancellationToken.None);
+    }
+}
+
+/// <summary>Ảnh seed đóng gói trong thư mục SeedImages (manifest.json: tên món → ảnh chính và ảnh từng bước).</summary>
+internal static class SeedImages
+{
+    internal sealed record Entry(string? Main, string[] Steps);
+
+    private static readonly string Root = Path.Combine(AppContext.BaseDirectory, "SeedImages");
+    private static readonly Lazy<Dictionary<string, Entry>> Manifest = new(Load);
+
+    internal static Entry? For(string title) => Manifest.Value.GetValueOrDefault(title);
+
+    internal static Stream? Open(string? relativePath)
+    {
+        if (string.IsNullOrWhiteSpace(relativePath)) return null;
+        var path = Path.Combine(Root, relativePath);
+        return File.Exists(path) ? File.OpenRead(path) : null;
+    }
+
+    private static Dictionary<string, Entry> Load()
+    {
+        var file = Path.Combine(Root, "manifest.json");
+        if (!File.Exists(file)) return [];
+        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+        return JsonSerializer.Deserialize<Dictionary<string, Entry>>(File.ReadAllText(file), options) ?? [];
     }
 }

@@ -1,6 +1,6 @@
 param(
     [string]$BaseUrl = "http://localhost:5000",
-    [string]$Email = "author2@culinaryblog.local",
+    [string]$Email = "author1@culinaryblog.nhom10",
     [string]$Password = "Author@123"
 )
 
