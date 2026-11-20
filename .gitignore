@@ -28,3 +28,6 @@ frontend/.pnpm-store/
 /.codex-artifacts/
 backend/src/CulinaryBlog.API/logs/
 ~$*.docx
+
+# TLS certs cho nginx (không commit private key)
+nginx/certs/
