@@ -225,15 +225,15 @@ Các điểm đáng nhớ nhất:
 
 ### 3c. Hướng giải quyết mâu thuẫn và lý do
 
-Nguyên tắc là chọn một hợp đồng duy nhất, ghi vào decision/ADR, cập nhật OpenAPI và test theo hợp đồng đó. Code hiện đang chọn:
+Nguyên tắc là chọn một hợp đồng duy nhất, ghi vào decision/ADR, cập nhật OpenAPI và test theo hợp đồng đó. Nhóm đã chốt (xem `DESIGN_DECISIONS.md`):
 
-| Vấn đề | Quyết định trong code hiện tại | Lý do |
+| Vấn đề | Quyết định của nhóm | Lý do |
 |---|---|---|
-| Validation | 400 + RFC 7807 | Thống nhất middleware hiện tại; field errors vẫn rõ ràng |
-| Concurrency | 422 | Client hiểu request đúng nhưng row version đã cũ; cần reload |
+| Validation | 422 + RFC 7807 | Request đúng cú pháp nhưng sai ngữ nghĩa; lỗi hiển thị theo từng trường; 400 dành cho sai cú pháp và vi phạm business rule |
+| Concurrency | 409 `RECIPE_CONCURRENCY_CONFLICT` | Xung đột trạng thái tài nguyên: row version đã cũ, client cần reload; 422 dành cho validation |
 | Delete recipe | Soft delete DB, enqueue xóa file ảnh | Giữ khả năng audit/khôi phục dữ liệu; dọn object storage bất đồng bộ |
 | Publish | Cần ít nhất một Step | Bám FR chi tiết và domain rule hiện tại |
-| Slug trùng | 409 Conflict | Không âm thầm đổi URL do người dùng nhập tiêu đề |
+| Slug trùng | Tự thêm hậu tố `-2`, `-3`... | Giống danh mục; 409 chỉ dùng cho trùng dữ liệu unique khác (email, tên đăng nhập) |
 | Register | `fullName`, `userName`, `email`, `password` | Khớp UI và validator hiện tại |
 | Sort | `sort` với tiền tố `-` | Một tham số, dễ bookmark và validate |
 | Pagination | `PagedResult<T>` phẳng | Ít nesting, frontend đã dùng trực tiếp |
@@ -405,7 +405,7 @@ Nguyên tắc cuối: validation frontend chỉ cải thiện UX; mọi trust bo
 - Kiến trúc thực tế: modular monolith, Clean Architecture, CQRS/MediatR.
 - Dependency: API/Infrastructure hướng vào Application/Domain; Domain không biết framework ngoài.
 - Pagination: offset, `Skip/Take`, có stable tie-breaker bằng Id.
-- Concurrency: ETag/If-Match + RowVersion; code hiện map conflict sang 422.
+- Concurrency: ETag/If-Match + RowVersion; conflict trả 409 `RECIPE_CONCURRENCY_CONFLICT`.
 - Detail query: `AsSplitQuery` để tránh Cartesian Explosion.
 - Auth: JWT access token stateless, refresh token stateful và rotate/revoke.
 - Authorization: Author role chưa đủ; còn phải email-confirmed và owner/Admin.

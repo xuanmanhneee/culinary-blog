@@ -20,6 +20,8 @@
 
 ## 1. Trạng thái repo hiện tại [CODE]
 
+> **Lưu ý:** mục này là ảnh chụp ở giai đoạn đầu (đầu tháng 9/2026, trước khi có Auth, tìm kiếm, ảnh, CQRS và dịch vụ Engagement). Trạng thái hiện hành xem `ARCHITECTURE_MAPPING.md` và `BACKEND_REFERENCE.md`.
+
 Solution gốc: `culinary-blog/backend/src`. Branch: `feature/domain-repository-uow-api`.
 
 ```
@@ -70,7 +72,7 @@ CulinaryBlog.Infrastructure
 
 ### [⚠] Khác biệt lớn giữa SRS và code
 
-1. **SRS bắt buộc CQRS + MediatR** (CONS-002) với pipeline behaviors; **code hiện dùng Service pattern** (`ICategoryService`, `IRecipeService`, `IRecipeIngredientService`) — không có thư mục Commands/Queries/Handlers/Behaviors. → Đã chốt **giữ Service pattern**, không dùng MediatR (xem `DESIGN_DECISIONS.md` mục 20).
+1. **SRS bắt buộc CQRS + MediatR** (CONS-002) với pipeline behaviors; **code hiện dùng Service pattern** (`ICategoryService`, `IRecipeService`, `IRecipeIngredientService`) — không có thư mục Commands/Queries/Handlers/Behaviors. → Ở giai đoạn đầu nhóm giữ Service pattern; sau đó đã chuyển sang **CQRS + MediatR** theo SRS (30/10/2026, xem `DESIGN_DECISIONS.md` mục 20).
 2. **SRS đặt module-first ở Domain** không rõ; code tổ chức theo `Modules/<Feature>` ở Domain/Infrastructure và `<Feature>/{Models,Services}` ở Application. **Giữ nguyên cấu trúc này** khi thêm code.
 3. Validation: SRS yêu cầu FluentValidation qua pipeline (CONS-008); tree không có validators. Nếu chưa có FluentValidation, validation hiện đang nằm ở service/domain → xác nhận trước khi thêm.
 4. Tên file DTO gộp (`RecipeRequests.cs`, `RecipeDto.cs`) — thêm DTO mới theo cùng convention.
@@ -208,7 +210,7 @@ Dev: `docker-compose.yml`; prod: `docker-compose.prod.yml` (`.env.production`). 
 - Xóa Step → **renumber** StepNumber liên tục (1,2,3…). Thêm Step: `StepNumber = max + 1`.
 - Ảnh đầu tiên tự `IsPrimary = true`; set primary → các ảnh khác false; xóa ảnh primary còn ảnh khác → tự chọn ảnh đầu còn lại làm primary.
 - Category: **không xóa được nếu còn recipe** (kể cả Draft). Đổi tên category **không đổi slug**.
-- Slug trùng → thêm hậu tố `-2`, `-3`… (category/recipe); xem [⚠] về 409 vs auto-suffix.
+- Slug trùng → thêm hậu tố `-2`, `-3`… (category/recipe).
 - Email/UserName **không đổi** qua `PATCH /auth/me`.
 - Concurrency: `RowVersion` (ETag/`If-Match`) khi PUT recipe; mismatch → `ConcurrencyConflictException`.
 
@@ -245,7 +247,7 @@ Dev: `docker-compose.yml`; prod: `docker-compose.prod.yml` (`.env.production`). 
 | 002 Detail | `GET /recipes/{slug}` | Public; Draft/Archived: owner/Admin (M) | Eager load Steps (order StepNumber), Ingredients (order), Images, Category, Author, Nutrition. 404 / 403. Output cache tag `recipes`, `recipe:{slug}` |
 | 003 Create | `POST /recipes` | Author/Admin (M) | Body: title (5–200), description, categoryId, prepTimeMinutes, cookTimeMinutes, servings, difficulty, instructions?, nutrition?, steps?[], ingredients?[]. Status=Draft, slug auto và tự thêm hậu tố nếu trùng. 201 `RecipeDto`; 422 category sai |
 | 004 Update | `PUT /recipes/{id:guid}` | Owner (M) | Resource-based auth + RowVersion (`If-Match`). 403 / 404 / 409 concurrency. Evict cache tag |
-| 005 Publish | `PATCH /recipes/{id}/publish` · `/unpublish` | Owner/Admin (M) | Domain method; thiếu Step → 422/400; idempotent |
+| 005 Publish | `PATCH /recipes/{id}/publish` · `/unpublish` | Owner/Admin (M) | Domain method; thiếu Step → 400 `RECIPE_PUBLISH_INCOMPLETE`; idempotent |
 | 006 Archive | `PATCH /recipes/{id}/archive` | Owner (S) | Ẩn khỏi public, không xóa |
 | 007 Delete | `DELETE /recipes/{id:guid}` | Owner/Admin (M) | Cascade Steps/Ingredients/Images; xóa file MinIO **async qua Hangfire**; evict cache; 204 |
 | 008 Images | `POST /recipes/{id}/images` · `PATCH .../images/{imgId}/primary` · `DELETE .../images/{imgId}` | Owner (M) | multipart field `file`; validate MIME + size + **magic bytes** (JPEG `FF D8 FF`, PNG `89 50 4E 47`); path `recipes/{recipeId}/{guid}.{ext}`; 201 `{url,isPrimary}`; MinIO down → 503 |
@@ -312,7 +314,7 @@ Dev: `docker-compose.yml`; prod: `docker-compose.prod.yml` (`.env.production`). 
 
 Error codes: `AUTH_EMAIL_EXISTS`(409), `AUTH_INVALID_CREDENTIALS`(401), `AUTH_TOKEN_EXPIRED`(401), `AUTH_TOKEN_INVALID`(401), `AUTH_REFRESH_TOKEN_EXPIRED`(401), `AUTH_REFRESH_TOKEN_REVOKED`(401), `AUTH_GOOGLE_TOKEN_INVALID`(400), `AUTH_ACCOUNT_DISABLED`(403), `RECIPE_NOT_FOUND`(404), `RECIPE_PUBLISH_INCOMPLETE`(400), `RECIPE_FORBIDDEN`(403), `RECIPE_CONCURRENCY_CONFLICT`(409), `CATEGORY_NOT_FOUND`(404), `CATEGORY_NAME_EXISTS`(409), `CATEGORY_DELETE_HAS_RECIPES`(409), `FILE_SIZE_EXCEEDED`(400), `FILE_MIME_INVALID`(400), `VALIDATION_ERROR`(422), `RATE_LIMIT_EXCEEDED`(429).
 
-> [CODE] `Domain/Common/Exceptions/ErrorCodes.cs` là nơi tập trung mã lỗi — thêm/đối chiếu ở đó. Exception → HTTP mapping nằm ở `GlobalExceptionMiddleware`: `NotFoundException→404`, `ConflictException→409`, `ConcurrencyConflictException→409/422`, `ForbiddenException→403`, `UnauthorizedException→401`, `ValidationException→400/422`, `BusinessRuleViolationException/DomainException→400/422`, còn lại → 500 (không lộ stack trace).
+> [CODE] `Domain/Common/Exceptions/ErrorCodes.cs` là nơi tập trung mã lỗi — thêm/đối chiếu ở đó. Exception → HTTP mapping nằm ở `GlobalExceptionMiddleware`: `NotFoundException→404`, `ConflictException→409`, `ConcurrencyConflictException→409`, `ForbiddenException→403`, `UnauthorizedException→401`, `ValidationException→422`, `BusinessRuleViolationException/DomainException→400`, còn lại → 500 (không lộ stack trace).
 
 ---
 
@@ -389,7 +391,7 @@ Một số quyết định ảnh hưởng nhiều nhất:
 - Validation → **422**; concurrency conflict → **409**.
 - Recipe dùng **soft delete**; publish chỉ cần **≥ 1 Step**; slug trùng → **tự thêm hậu tố**.
 - Cache dùng **Redis**; response không wrapper (`PagedResult` phẳng); sort theo `sort=-field`.
-- **Giữ Service pattern**, không dùng MediatR/CQRS.
+- Dùng **CQRS + MediatR** (đã chuyển từ Service pattern ngày 30/10/2026); backend tổ chức theo modular monolith.
 
 ---
 

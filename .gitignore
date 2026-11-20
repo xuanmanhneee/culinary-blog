@@ -23,3 +23,8 @@ frontend/.pnpm-store/
 .DS_Store
 
 .clinerules/
+
+# Generated artifacts
+/.codex-artifacts/
+backend/src/CulinaryBlog.API/logs/
+~$*.docx

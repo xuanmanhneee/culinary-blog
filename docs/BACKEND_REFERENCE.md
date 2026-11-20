@@ -147,12 +147,12 @@ Frontend nên xử lý theo `status` và `type`, không so sánh chuỗi `detail
 
 | Status | Ý nghĩa |
 |---:|---|
-| `400` | Body/query sai hoặc vi phạm business rule |
+| `400` | Yêu cầu sai cú pháp, file không hợp lệ hoặc vi phạm business rule |
 | `401` | Thiếu/hết hạn/sai token |
 | `403` | Đã đăng nhập nhưng thiếu role hoặc không sở hữu resource |
 | `404` | Resource không tồn tại |
-| `409` | Trùng email, username, slug hoặc dữ liệu unique |
-| `422` | Optimistic concurrency conflict |
+| `409` | Trùng email, username hoặc dữ liệu unique khác; xung đột cập nhật đồng thời (`RECIPE_CONCURRENCY_CONFLICT`) |
+| `422` | Lỗi kiểm tra dữ liệu (validation), kèm lỗi theo từng trường |
 | `429` | Rate limit; đọc header `Retry-After` |
 | `500` | Lỗi hệ thống ngoài dự kiến |
 
@@ -299,7 +299,7 @@ Update dùng cùng các field chính nhưng không có `ingredients`/`steps`; g�
 If-Match: "<ETag nhận từ GET /recipes/by-id/{id}>"
 ```
 
-Nếu bản ghi đã đổi, backend trả `422 RECIPE_CONCURRENCY_CONFLICT`; frontend cần tải lại dữ liệu.
+Nếu bản ghi đã đổi, backend trả `409 RECIPE_CONCURRENCY_CONFLICT`; frontend cần tải lại dữ liệu.
 
 ### Ingredients
 
@@ -388,7 +388,7 @@ Không tự đặt `Content-Type` khi gửi `FormData`; browser cần thêm mult
 
 1. Gọi `GET /recipes/by-id/{id}` và giữ `ETag` response header.
 2. Gửi `PUT /recipes/{id}` với `If-Match`.
-3. Nếu `422`, báo dữ liệu đã thay đổi và cho người dùng tải lại.
+3. Nếu `409` với mã `RECIPE_CONCURRENCY_CONFLICT`, báo dữ liệu đã thay đổi và cho người dùng tải lại.
 4. Ingredients, steps và images cập nhật qua endpoint riêng.
 
 ## 8. Cấu hình

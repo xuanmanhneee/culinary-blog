@@ -1,5 +1,7 @@
 # Culinary Blog - System Design Summary
 
+> **Lưu ý:** tài liệu này là ảnh chụp trạng thái ở giai đoạn đầu (trước khi chuyển sang CQRS, chia mô đun, thêm Auth, tìm kiếm, ảnh và dịch vụ Engagement). Một số nhận định về Service pattern, cache và container không còn đúng; trạng thái hiện hành xem `ARCHITECTURE_MAPPING.md`, `BACKEND_REFERENCE.md` và `DESIGN_DECISIONS.md`.
+
 > Mục đích: bản đồ ngắn gọn giúp thành viên nắm toàn bộ hệ thống trước khi đọc chi tiết source.
 >
 > Trạng thái rà soát: 2026-10-20. Source đang checkout tại nhánh `2312686_lab05`; nhánh này đang đi trước `main` 4 commit tại thời điểm rà soát.
