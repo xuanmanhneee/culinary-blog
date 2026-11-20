@@ -192,7 +192,7 @@ Các mục dưới đây được xác nhận từ log người dùng gửi ho�
 - **Yêu thích và rating:** đã được tách thành `CulinaryBlog.Engagement` Minimal API, xác thực bằng JWT hiện tại và dùng PostgreSQL riêng. Service lưu snapshot tối thiểu của recipe sau khi xác nhận recipe Published qua API chính.
 - **Đổi / quên mật khẩu:** API đổi mật khẩu, quên mật khẩu và đặt lại mật khẩu chưa có trong backend hiện tại. “Quên mật khẩu?” trên login chỉ là chữ, không điều hướng; form đổi mật khẩu đã không còn trong account.
 - **Ghi nhớ đăng nhập:** checkbox “Ghi nhớ tôi” trên login không có tên hoặc xử lý state; không thay đổi thời hạn session.
-- **Newsletter:** form ở trang chủ dùng `action="#"`, input không có `name` và không nối API/dịch vụ gửi email; gửi form không đăng ký nhận thư.
+- **Newsletter:** form trang chủ đã gọi `POST /subscriptions`; email được lưu duy nhất theo dạng chuẩn hóa, Hangfire gửi thư mẫu ngay khi đăng ký và chạy bản tin top rating mỗi thứ Hai. Bản demo chưa có double opt-in hoặc unsubscribe.
 - **Cài đặt tài khoản:** thông báo, ngôn ngữ và bảo mật đều ghi “Sắp có”, chưa có workflow hoặc lưu cấu hình.
 - **Quản lý người dùng:** đã có UI và API admin cho danh sách, đổi role, khóa/mở khóa và xóa. Các thao tác vẫn cần được kiểm thử tích hợp với backend/Identity và dữ liệu thực tế.
 - **Xác nhận email:** hệ thống tạo email xác nhận và có endpoint xác nhận, nhưng đăng nhập backend không kiểm tra `EmailConfirmed`; tài khoản có thể đăng nhập trước khi xác nhận.
