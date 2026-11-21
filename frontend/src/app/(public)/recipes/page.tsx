@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { SlidersHorizontal } from "lucide-react";
+import { ChevronDown, SlidersHorizontal } from "lucide-react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/common/ErrorState";
 import { Pagination } from "@/components/common/Pagination";
 import { RecipeCard } from "@/components/recipes/RecipeCard";
 import { getPublicCategories, getPublicRecipes } from "@/lib/api/recipes";
+import { getRatingSummaries } from "@/lib/api/engagement";
 import { getErrorMessage } from "@/lib/errors";
 import { RECIPE_DIFFICULTY_LABELS, RecipeDifficulty, type RecipeQuery, type RecipeSort } from "@/lib/types/recipe";
 
@@ -76,13 +77,23 @@ export default async function RecipesPage({ searchParams }: { searchParams: Prom
   }
 
   const recipes = recipesResult.value;
+  const ratings = await getRatingSummaries(recipes.items.map((recipe) => recipe.id));
   const categories = categoriesResult.value;
+  const activeFilters = Object.values(filters).filter((value) => value !== undefined).length;
 
   return (
-    <section className="site-container py-14 sm:py-20">
-      <PageHeader eyebrow="Kho công thức" align="center" title="Món ngon cho mọi ngày" description="Lọc theo loại món, độ khó và thời gian để tìm cảm hứng vào bếp hôm nay." />
+    <section className="site-container py-8 sm:py-12">
+      <PageHeader eyebrow="Kho công thức" title="Món ngon cho mọi ngày" description="Lọc theo loại món, độ khó và thời gian để tìm cảm hứng vào bếp hôm nay." />
 
-      <form key={recipeUrl(filters, 1)} action="/recipes" method="get" aria-label="Lọc và sắp xếp công thức" className="mx-auto mt-10 grid max-w-5xl gap-4 rounded-2xl border border-border bg-card p-4 shadow-sm sm:grid-cols-2 lg:grid-cols-3">
+      <details open={activeFilters > 0} className="group mt-8">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-4 border-b border-border pb-4 [&::-webkit-details-marker]:hidden">
+          <div className="flex items-baseline gap-3"><h2 className="font-display text-2xl font-bold text-foreground">Kết quả</h2><p className="text-sm text-muted-foreground">{recipes.totalCount} công thức</p></div>
+          <span className="inline-flex h-10 items-center gap-2 rounded-full border border-border bg-card px-4 text-sm font-semibold text-foreground transition-colors hover:border-primary group-open:border-primary">
+            <SlidersHorizontal className="size-4" aria-hidden />Bộ lọc{activeFilters > 0 && <span className="grid size-5 place-items-center rounded-full bg-primary text-xs text-primary-foreground">{activeFilters}</span>}
+            <ChevronDown className="size-4 transition-transform group-open:rotate-180" aria-hidden />
+          </span>
+        </summary>
+      <form key={recipeUrl(filters, 1)} action="/recipes" method="get" aria-label="Lọc và sắp xếp công thức" className="mt-4 grid gap-4 rounded-2xl border border-border bg-card p-4 shadow-sm sm:grid-cols-2 lg:grid-cols-3">
         <label className="text-sm font-semibold text-foreground">Danh mục
           <select name="categoryId" defaultValue={filters.categoryId ?? ""} className={controlClass}>
             <option value="">Tất cả danh mục</option>
@@ -110,9 +121,8 @@ export default async function RecipesPage({ searchParams }: { searchParams: Prom
           <Button type="submit"><SlidersHorizontal />Áp dụng</Button>
         </div>
       </form>
-
-      <div className="mt-14 flex items-end justify-between gap-4 border-b border-border pb-5"><h2 className="font-display text-3xl font-bold text-foreground">Kết quả</h2><p className="text-sm text-muted-foreground">{recipes.totalCount} công thức</p></div>
-      {recipes.items.length ? <div className="mt-9 grid gap-x-7 gap-y-12 md:grid-cols-2 lg:grid-cols-3">{recipes.items.map((recipe) => <RecipeCard key={recipe.id} recipe={recipe} />)}</div> : <p className="mt-10 rounded-2xl border border-dashed border-border bg-card p-10 text-center text-sm text-muted-foreground">Không tìm thấy công thức phù hợp với bộ lọc.</p>}
+      </details>
+      {recipes.items.length ? <div className="mt-8 grid gap-x-7 gap-y-12 md:grid-cols-2 lg:grid-cols-3">{recipes.items.map((recipe) => <RecipeCard key={recipe.id} recipe={recipe} rating={ratings[recipe.id]} />)}</div> : <p className="mt-8 rounded-2xl border border-dashed border-border bg-card p-10 text-center text-sm text-muted-foreground">Không tìm thấy công thức phù hợp với bộ lọc.</p>}
       <div className="mt-16"><Pagination currentPage={recipes.page} totalPages={recipes.totalPages} hrefForPage={(nextPage) => recipeUrl(filters, nextPage)} /></div>
     </section>
   );
