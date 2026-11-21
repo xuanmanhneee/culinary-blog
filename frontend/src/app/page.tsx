@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/common/ErrorState";
 import { getErrorMessage } from "@/lib/errors";
 import { getLatestPublicRecipes, getPublicCategories } from "@/lib/api/recipes";
+import { getRatingSummaries } from "@/lib/api/engagement";
 import { NewsletterForm } from "@/components/newsletter/NewsletterForm";
 
 export const metadata: Metadata = {
@@ -22,6 +23,7 @@ export default async function Home() {
   ]);
   const categories = categoriesResult.status === "fulfilled" ? categoriesResult.value : null;
   const recipes = recipesResult.status === "fulfilled" ? recipesResult.value.items : null;
+  const ratings = await getRatingSummaries(recipes?.map((recipe) => recipe.id) ?? []);
 
   return (
     <>
@@ -110,7 +112,7 @@ export default async function Home() {
             <div className="mt-8"><ErrorState title="Không tải được công thức" message={getErrorMessage(recipesResult.reason)} /></div>
           ) : recipes?.length ? (
             <div className="mt-12 grid gap-x-7 gap-y-12 md:grid-cols-2 lg:grid-cols-3">
-              {recipes.map((recipe, index) => <RecipeCard key={recipe.id} recipe={recipe} priority={index < 3} />)}
+              {recipes.map((recipe, index) => <RecipeCard key={recipe.id} recipe={recipe} rating={ratings[recipe.id]} priority={index < 3} />)}
             </div>
           ) : (
             <p className="mt-8 rounded-xl bg-card p-6 text-center text-sm text-muted-foreground">Chưa có công thức công khai nào.</p>

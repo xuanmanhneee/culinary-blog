@@ -3,6 +3,7 @@
 import { Dices, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { RecipeCard } from "@/components/recipes/RecipeCard";
+import type { RatingMap } from "@/lib/api/engagement";
 import { Button } from "@/components/ui/button";
 import type { CategoryDto } from "@/lib/types/category";
 import { RECIPE_DIFFICULTY_LABELS, type RecipeListItemDto } from "@/lib/types/recipe";
@@ -36,7 +37,7 @@ function randomItem(items: RecipeListItemDto[]): RecipeListItemDto | null {
   return items.length ? items[Math.floor(Math.random() * items.length)] : null;
 }
 
-export function RandomRecipePicker({ recipes, categories }: { recipes: RecipeListItemDto[]; categories: CategoryDto[] }) {
+export function RandomRecipePicker({ recipes, categories, ratings }: { recipes: RecipeListItemDto[]; categories: CategoryDto[]; ratings: RatingMap }) {
   const [meal, setMeal] = useState<Meal>("any");
   const [categoryId, setCategoryId] = useState("");
   const [difficulty, setDifficulty] = useState("");
@@ -91,7 +92,7 @@ export function RandomRecipePicker({ recipes, categories }: { recipes: RecipeLis
 
         {recipe ? (
           <div className={`mx-auto mt-5 w-full max-w-4xl text-left transition-transform ${isSpinning ? "scale-[.985] opacity-80" : "scale-100 opacity-100"}`} aria-live="polite">
-            <RecipeCard recipe={recipe} priority featured />
+            <RecipeCard recipe={recipe} rating={ratings[recipe.id]} priority featured />
           </div>
         ) : (
           <p className="mx-auto mt-8 max-w-xl rounded-2xl border border-dashed border-border bg-card p-7 text-center text-sm text-muted-foreground">Thử nới lỏng một bộ lọc để Bếp Nhà tìm được món cho bạn nhé.</p>
