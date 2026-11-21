@@ -34,6 +34,7 @@ public static class DbSeederRunner
         var authors = await identitySeeder.SeedDemoAccountsAsync();
         var categories = await categorySeeder.SeedAsync();
         await recipeSeeder.SeedAsync(categories, authors);
+        await categorySeeder.AssignImagesFromRecipesAsync();
         await transaction.CommitAsync();
 
         logger.LogInformation("=== Seed dữ liệu hoàn tất ===");

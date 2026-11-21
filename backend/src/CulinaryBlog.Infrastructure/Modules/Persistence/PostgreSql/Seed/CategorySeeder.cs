@@ -50,4 +50,28 @@ public class CategorySeeder(CulinaryBlogDbContext context, ILogger<CategorySeede
         logger.LogInformation("Category seed: thêm {Count} danh mục.", added);
         return result;
     }
+
+    /// <summary>Danh mục chưa có ảnh dùng ảnh chính của một công thức thuộc danh mục đó (chạy sau khi seed công thức).</summary>
+    public async Task AssignImagesFromRecipesAsync()
+    {
+        var categories = await context.Categories.Where(category => category.ImageUrl == null).ToListAsync();
+        var assigned = 0;
+        foreach (var category in categories)
+        {
+            var imageUrl = await context.RecipeImages
+                .Where(image => image.IsPrimary && image.Recipe!.CategoryId == category.Id)
+                .OrderBy(image => image.Recipe!.Title)
+                .Select(image => image.OriginalUrl)
+                .FirstOrDefaultAsync();
+            if (imageUrl is null) continue;
+
+            category.Update(category.Name, category.Description, imageUrl, category.OrderIndex);
+            assigned++;
+        }
+
+        if (assigned > 0)
+            await context.SaveChangesAsync();
+
+        logger.LogInformation("Category seed: gán ảnh cho {Count} danh mục.", assigned);
+    }
 }
