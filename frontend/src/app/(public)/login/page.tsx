@@ -3,9 +3,10 @@
 import { ArrowRight, Eye, LockKeyhole, Mail } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { signIn } from "next-auth/react";
+import { getSession, signIn } from "next-auth/react";
 import { type FormEvent, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Roles } from "@/lib/types/auth";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -28,11 +29,16 @@ export default function LoginPage() {
       });
 
       if (!result || result.error) {
-        setError("Email hoặc mật khẩu không đúng.");
+        setError(
+          result?.code === "account_locked"
+            ? "Tài khoản đang bị khóa. Vui lòng liên hệ quản trị viên hoặc thử lại sau."
+            : "Email hoặc mật khẩu không đúng.",
+        );
         return;
       }
 
-      router.push(getCallbackUrl(callbackFallback));
+      const session = await getSession();
+      router.push(session?.user.roles?.includes(Roles.Admin) ? "/dashboard" : getCallbackUrl(callbackFallback));
     } catch (loginError) {
       setError(
         loginError instanceof Error
@@ -46,34 +52,34 @@ export default function LoginPage() {
 
   return (
     <section className="site-container grid min-h-[720px] items-center gap-12 py-14 lg:grid-cols-2">
-      <div className="hidden h-[620px] overflow-hidden rounded-[2rem] bg-[linear-gradient(145deg,#1f4b3f,#2f6958)] p-12 text-white lg:flex lg:flex-col lg:justify-between">
-        <p className="text-xs font-bold uppercase tracking-[.18em] text-[#e2c3ad]">Căn bếp của riêng bạn</p>
+      <div className="hidden h-[620px] overflow-hidden rounded-2xl bg-primary p-12 text-white lg:flex lg:flex-col lg:justify-between">
+        <p className="text-xs font-bold uppercase tracking-[.18em] text-accent-soft">Căn bếp của riêng bạn</p>
         <blockquote className="font-display max-w-lg text-5xl leading-[1.08] font-bold tracking-[-.04em]">“Mỗi công thức được lưu là một kỷ niệm có thể nếm lại.”</blockquote>
-        <div className="flex items-center gap-3 text-sm text-white/70"><span className="grid size-10 place-items-center rounded-full bg-white/10">🍲</span>Tham gia cùng hơn 2.000 người yêu bếp</div>
+        <div className="flex items-center gap-3 text-sm text-white/70"><span className="grid size-10 place-items-center rounded-full bg-card">🍲</span>Tham gia cùng hơn 2.000 người yêu bếp</div>
       </div>
       <div className="mx-auto w-full max-w-md">
-        <p className="text-xs font-bold uppercase tracking-[.17em] text-[#b65338]">Chào mừng trở lại</p>
-        <h1 className="font-display mt-3 text-5xl font-bold tracking-[-.045em] text-[#2f2925]">Vào bếp thôi!</h1>
-        <p className="mt-3 text-sm leading-7 text-[#746a62]">Đăng nhập để lưu món yêu thích và chia sẻ công thức của riêng bạn.</p>
+        <p className="text-xs font-bold uppercase tracking-[.17em] text-accent">Chào mừng trở lại</p>
+        <h1 className="font-display mt-3 text-5xl font-bold tracking-[-.045em] text-foreground">Vào bếp thôi!</h1>
+        <p className="mt-3 text-sm leading-7 text-muted-foreground">Đăng nhập để lưu món yêu thích và chia sẻ công thức của riêng bạn.</p>
         <form onSubmit={handleSubmit} className="mt-8 space-y-5">
-          <label className="block"><span className="mb-2 block text-sm font-bold text-[#48413b]">Email</span><span className="flex items-center gap-3 rounded-xl border border-[#d9cdbf] bg-white px-4"><Mail className="size-4 text-[#998e84]" /><input name="email" type="email" required className="h-12 w-full bg-transparent text-sm outline-none" /></span></label>
-          <label className="block"><span className="mb-2 block text-sm font-bold text-[#48413b]">Mật khẩu</span><span className="flex items-center gap-3 rounded-xl border border-[#d9cdbf] bg-white px-4"><LockKeyhole className="size-4 text-[#998e84]" /><input name="password" type={showPassword ? "text" : "password"} required className="h-12 w-full bg-transparent text-sm outline-none" /><button type="button" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}><Eye className="size-4 text-[#776d65]" /></button></span></label>
-          <div className="flex items-center justify-between text-xs"><label className="flex items-center gap-2 text-[#6d645c]"><input type="checkbox" className="accent-[#1f4b3f]" />Ghi nhớ tôi</label><span className="font-bold text-[#8a8078]">Quên mật khẩu?</span></div>
-          {error && <p role="alert" className="text-sm text-red-700">{error}</p>}<Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>{isSubmitting ? "Đang đăng nhập..." : "Đăng nhập"} <ArrowRight /></Button>
+          <label className="block"><span className="mb-2 block text-sm font-bold text-foreground">Email</span><span className="flex items-center gap-3 rounded-xl border border-border bg-card px-4"><Mail className="size-4 text-muted-foreground" /><input name="email" type="email" required className="h-12 w-full bg-transparent text-sm outline-none" /></span></label>
+          <label className="block"><span className="mb-2 block text-sm font-bold text-foreground">Mật khẩu</span><span className="flex items-center gap-3 rounded-xl border border-border bg-card px-4"><LockKeyhole className="size-4 text-muted-foreground" /><input name="password" type={showPassword ? "text" : "password"} required className="h-12 w-full bg-transparent text-sm outline-none" /><button type="button" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}><Eye className="size-4 text-muted-foreground" /></button></span></label>
+          <div className="flex items-center justify-between text-xs"><label className="flex items-center gap-2 text-muted-foreground"><input type="checkbox" className="accent-primary" />Ghi nhớ tôi</label><span className="font-bold text-muted-foreground">Quên mật khẩu?</span></div>
+          {error && <p role="alert" className="text-sm text-destructive">{error}</p>}<Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>{isSubmitting ? "Đang đăng nhập..." : "Đăng nhập"} <ArrowRight /></Button>
         </form>
-        <div className="my-5 flex items-center gap-3 text-xs text-[#9a9087]"><span className="h-px flex-1 bg-[#ded3c5]" /><span>HOẶC</span><span className="h-px flex-1 bg-[#ded3c5]" /></div>
+        <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground"><span className="h-px flex-1 bg-muted" /><span>HOẶC</span><span className="h-px flex-1 bg-muted" /></div>
         <Button
           type="button"
           variant="outline"
-          className="h-12 w-full bg-white"
+          className="h-12 w-full bg-card"
           disabled={!googleEnabled}
           title={googleEnabled ? undefined : "Google OAuth chưa được cấu hình"}
           onClick={() => void signIn("google", { redirectTo: getCallbackUrl(callbackFallback) })}
         >
-          <span className="grid size-6 place-items-center rounded-full border border-[#ded3c5] text-sm font-bold text-[#4285f4]">G</span>
+          <span className="grid size-6 place-items-center rounded-full border border-border text-sm font-bold text-[#4285f4]">G</span>
           Đăng nhập bằng Google
         </Button>
-        <p className="mt-5 text-center text-sm text-[#746a62]">Chưa có tài khoản? <Link href="/register" onClick={(event) => { event.preventDefault(); router.push(`/register?callbackUrl=${encodeURIComponent(getCallbackUrl(callbackFallback))}`); }} className="font-bold text-[#b65338]">Đăng ký miễn phí</Link></p>
+        <p className="mt-5 text-center text-sm text-muted-foreground">Chưa có tài khoản? <Link href="/register" onClick={(event) => { event.preventDefault(); router.push(`/register?callbackUrl=${encodeURIComponent(getCallbackUrl(callbackFallback))}`); }} className="font-bold text-accent">Đăng ký miễn phí</Link></p>
       </div>
     </section>
   );

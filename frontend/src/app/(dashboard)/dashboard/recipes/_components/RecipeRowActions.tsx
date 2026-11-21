@@ -32,7 +32,7 @@ const noticeOf: Record<RecipeAction, string> = {
  * Menu "Thao tác khác" của một công thức: xuất bản / hủy xuất bản (FR-RCP-005), lưu trữ (006),
  * xóa (007). Danh sách được render ở server nên xong thao tác thì làm mới trang.
  */
-export function RecipeRowActions({ recipe }: { recipe: RecipeListItemDto }) {
+export function RecipeRowActions({ recipe, allowArchive = true }: { recipe: RecipeListItemDto; allowArchive?: boolean }) {
   const router = useRouter();
   const [confirm, setConfirm] = useState<"archive" | "delete" | null>(null);
   const [isRefreshing, startRefresh] = useTransition();
@@ -80,7 +80,7 @@ export function RecipeRowActions({ recipe }: { recipe: RecipeListItemDto }) {
               {recipe.status === RecipeStatus.Archived ? "Xuất bản lại" : "Xuất bản"}
             </DropdownMenuItem>
           )}
-          {recipe.status !== RecipeStatus.Archived && (
+          {allowArchive && recipe.status !== RecipeStatus.Archived && (
             <DropdownMenuItem onSelect={() => setConfirm("archive")}>
               <Archive />
               Lưu trữ
@@ -94,19 +94,21 @@ export function RecipeRowActions({ recipe }: { recipe: RecipeListItemDto }) {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <ConfirmDialog
-        open={confirm === "archive"}
-        onOpenChange={(open) => !open && setConfirm(null)}
-        title="Lưu trữ công thức?"
-        description={
-          <>
-            <strong>{recipe.title}</strong> sẽ bị ẩn khỏi trang công khai nhưng vẫn được giữ lại. Bạn có thể xuất bản
-            lại bất cứ lúc nào.
-          </>
-        }
-        confirmLabel="Lưu trữ"
-        onConfirm={() => void run("archive")}
-      />
+      {allowArchive && (
+        <ConfirmDialog
+          open={confirm === "archive"}
+          onOpenChange={(open) => !open && setConfirm(null)}
+          title="Lưu trữ công thức?"
+          description={
+            <>
+              <strong>{recipe.title}</strong> sẽ bị ẩn khỏi trang công khai nhưng vẫn được giữ lại. Bạn có thể xuất bản
+              lại bất cứ lúc nào.
+            </>
+          }
+          confirmLabel="Lưu trữ"
+          onConfirm={() => void run("archive")}
+        />
+      )}
       <ConfirmDialog
         open={confirm === "delete"}
         onOpenChange={(open) => !open && setConfirm(null)}

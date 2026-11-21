@@ -8,9 +8,17 @@ public interface IRecipeRepository : IRepository<Recipe>
 
     Task<Recipe?> GetByIdWithDetailsAsync(Guid id, CancellationToken cancellationToken = default);
 
+    Task<Recipe?> GetDeletedByIdAsync(Guid id, CancellationToken cancellationToken = default);
+
+    Task<(IReadOnlyList<Recipe> Items, int TotalCount)> GetDeletedPagedAsync(
+        int page,
+        int pageSize,
+        string? ownerId = null,
+        CancellationToken cancellationToken = default);
+
     /// <summary>
     /// FR-RCP-001: danh sách phân trang kèm Category, Author và ảnh chính.
-    /// sort: createdAt | title | cookTime, tiền tố "-" là giảm dần; giá trị khác dùng "-createdAt".
+    /// sort: createdAt | updatedAt | title | cookTime, tiền tố "-" là giảm dần; giá trị khác dùng "-createdAt".
     /// Hiển thị: mineOnly = true chỉ lấy công thức của ownerId ở mọi trạng thái;
     /// nếu không thì includeAllStatuses = true (Admin) lấy mọi trạng thái, ngược lại chỉ Published,
     /// cộng thêm recipe của ownerId (Author xem cả Draft/Archived của mình).
@@ -23,10 +31,10 @@ public interface IRecipeRepository : IRepository<Recipe>
         string? ownerId = null,
         Guid? categoryId = null,
         RecipeDifficulty? difficulty = null,
-        RecipeStatus? status = null,
         int? minPrepTime = null,
         int? maxCookTime = null,
         int? minServings = null,
+        RecipeStatus? status = null,
         string? sort = null,
         CancellationToken cancellationToken = default);
 
@@ -49,14 +57,4 @@ public interface IRecipeRepository : IRepository<Recipe>
     void AddStep(RecipeStep step);
 
     Task<bool> SlugExistsAsync(string slug, CancellationToken cancellationToken = default);
-
-    Task<bool> IsFavoriteAsync(Guid recipeId, string userId, CancellationToken cancellationToken = default);
-
-    Task<bool> ToggleFavoriteAsync(Guid recipeId, string userId, CancellationToken cancellationToken = default);
-
-    Task<(IReadOnlyList<Recipe> Items, int TotalCount)> GetFavoritesPagedAsync(
-        string userId,
-        int page,
-        int pageSize,
-        CancellationToken cancellationToken = default);
 }

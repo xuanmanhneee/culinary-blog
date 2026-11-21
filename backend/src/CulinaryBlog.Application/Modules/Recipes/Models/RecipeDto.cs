@@ -16,6 +16,7 @@ public sealed record RecipeListItemDto(
     RecipeDifficulty Difficulty,
     RecipeStatus Status,
     DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt,
     DateTimeOffset? PublishedAt,
     string? PrimaryImageUrl,
     RecipeCategoryDto? Category,

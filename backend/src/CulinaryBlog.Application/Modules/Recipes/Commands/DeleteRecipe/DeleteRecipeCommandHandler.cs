@@ -1,5 +1,4 @@
 using CulinaryBlog.Application.Recipes.Services;
-using CulinaryBlog.Application.Common.Interfaces;
 using CulinaryBlog.Domain.Common;
 using CulinaryBlog.Domain.Modules.Recipes;
 using MediatR;
@@ -12,26 +11,15 @@ internal sealed class DeleteRecipeCommandHandler
     private readonly IRecipeRepository _recipes;
     private readonly IUnitOfWork _unitOfWork;
     private readonly RecipeAuthorizationHandler _authorization;
-    private readonly IFileDeletionScheduler _fileDeletionScheduler;
-
     public DeleteRecipeCommandHandler(IRecipeRepository recipes, IUnitOfWork unitOfWork,
-        RecipeAuthorizationHandler authorization, IFileDeletionScheduler fileDeletionScheduler) =>
-        (_recipes, _unitOfWork, _authorization, _fileDeletionScheduler) =
-        (recipes, unitOfWork, authorization, fileDeletionScheduler);
+        RecipeAuthorizationHandler authorization) =>
+        (_recipes, _unitOfWork, _authorization) = (recipes, unitOfWork, authorization);
 
     public async Task Handle(DeleteRecipeCommand command, CancellationToken ct)
     {
         var recipe = await _recipes.GetByIdWithDetailsAsync(command.RecipeId, ct)
             ?? throw RecipeUseCaseSupport.RecipeNotFound(command.RecipeId);
-        _authorization.EnsureCanModify(recipe);
-        foreach (var url in recipe.Images
-                     .SelectMany(image => new[] { image.OriginalUrl, image.MediumUrl, image.ThumbnailUrl })
-                     .Where(url => !string.IsNullOrWhiteSpace(url))
-                     .Distinct(StringComparer.Ordinal))
-        {
-            _fileDeletionScheduler.Schedule(url!);
-        }
-
+        _authorization.EnsureCanModerate(recipe);
         recipe.SoftDelete();
         await _unitOfWork.SaveChangesAsync(ct);
     }

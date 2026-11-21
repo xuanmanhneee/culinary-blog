@@ -11,6 +11,7 @@ public record SearchRecipesQuery(
     Guid? CategoryId = null,
     RecipeDifficulty? Difficulty = null,
     int? MaxCookTime = null,
-    int? MinServings = null)
+    int? MinServings = null,
+    string? Sort = null)
     : IRequest<PagedResult<RecipeSummaryDto>>;
 

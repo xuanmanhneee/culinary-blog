@@ -3,9 +3,9 @@ import { cn } from "@/lib/utils";
 import { RECIPE_STATUS_LABELS, RecipeStatus } from "@/lib/types/recipe";
 
 const statusClassNames: Record<RecipeStatus, string> = {
-  [RecipeStatus.Draft]: "border-amber-200 bg-amber-50 text-amber-800",
-  [RecipeStatus.Published]: "border-emerald-200 bg-emerald-50 text-emerald-800",
-  [RecipeStatus.Archived]: "border-zinc-200 bg-zinc-100 text-zinc-600",
+  [RecipeStatus.Draft]: "border-accent-soft bg-accent-soft text-accent-hover",
+  [RecipeStatus.Published]: "border-primary-soft bg-primary-soft text-primary",
+  [RecipeStatus.Archived]: "border-border bg-muted text-muted-foreground",
 };
 
 /** Bản nháp / Đã xuất bản / Đã lưu trữ (FR-RCP-005, FR-RCP-006). */

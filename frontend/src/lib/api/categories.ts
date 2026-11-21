@@ -18,3 +18,9 @@ export function updateCategory(id: string, body: UpdateCategoryRequest, token: T
 export function deleteCategory(id: string, token: Token): Promise<void> {
   return apiFetch(`/categories/${id}`, { method: "DELETE", token });
 }
+
+export function uploadCategoryImage(id: string, file: File, token: Token): Promise<CategoryDto> {
+  const body = new FormData();
+  body.append("file", file);
+  return apiFetch(`/categories/${id}/image`, { method: "POST", body, token });
+}

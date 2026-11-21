@@ -13,13 +13,18 @@ Browser
        └─ Auth.js Credentials + Google OAuth tùy cấu hình
             └─ JWT session giữ token backend; refresh/logout qua API
                  └─ HTTP /api/v1
-                      └─ ASP.NET Core Minimal API
+                      └─ ASP.NET Core API/BFF
                            ├─ Auth, users, categories, recipes, ingredients, steps, images
                            ├─ MediatR commands/queries, validators và domain
                            ├─ EF Core + PostgreSQL
                            ├─ Redis cache + health checks
                            ├─ File storage: Local hoặc MinIO
-                           └─ Hangfire jobs / PostgreSQL storage
+                           ├─ Hangfire jobs / PostgreSQL storage
+                           └─ Proxy saved-recipes/ratings tới Engagement
+                                └─ Engagement Minimal API (Docker internal)
+                                     ├─ Món đã lưu và rating dùng lại JWT của API chính
+                                     ├─ Xác nhận recipe Published qua CulinaryBlog API
+                                     └─ PostgreSQL riêng (`:5433`)
 ```
 
 ### Công nghệ chính
@@ -54,7 +59,7 @@ HTTP request
 - `Program.cs` đăng ký API versioning theo URL segment, JWT, CORS, rate limiting, OpenAPI/Scalar (Development) và OpenTelemetry; nhóm API phiên bản 1 dùng prefix `/api/v1`.
 - Serilog ghi log có cấu trúc ra console và file rolling theo ngày trong `backend/src/CulinaryBlog.API/logs` (giữ tối đa 14 file); các sự kiện auth, đổi role/khóa user, chuyển trạng thái recipe, upload ảnh và exception được ghi kèm các trường ngữ cảnh.
 - Middleware xử lý correlation ID, exception thành ProblemDetails và status-code errors; CORS chạy trước rate limiting/authentication để response lỗi vẫn có CORS headers.
-- `InitializePersistenceAsync` áp dụng EF Core migrations lúc khởi động. Chạy API với `--seed` để seed dữ liệu rồi kết thúc tiến trình.
+- API chính và Engagement áp dụng EF Core migrations của database riêng lúc khởi động. Chạy API với `--seed` để seed dữ liệu rồi kết thúc tiến trình.
 - Local storage phục vụ file từ web root; MinIO trả public URL theo cấu hình. Provider được chọn rõ bằng `Storage:Provider=Local|Minio`.
 - Health endpoints `/health`, `/health/live`, `/health/ready`; các check gồm PostgreSQL, Redis và MinIO khi provider là MinIO.
 - Hangfire dùng PostgreSQL; job nền gồm email xác nhận, tạo ảnh medium/thumbnail, dọn file và tạo sitemap mỗi ngày lúc 02:00 UTC. Dashboard Development yêu cầu Admin.
@@ -67,7 +72,7 @@ Các endpoint dùng prefix `/api/v1`.
 | Nhóm | Endpoint/chức năng |
 |---|---|
 | Auth | `POST /auth/register`, `/auth/login`, `/auth/google`, `/auth/refresh`, `/auth/logout`; `GET /auth/confirm-email`; `GET/PATCH /auth/me` |
-| Users | `GET /users` — danh sách phân trang; `PATCH /users/{id}/role` — đổi role Admin/Author/Reader; `PATCH /users/{id}/status` — khóa/mở khóa; `DELETE /users/{id}` — xóa tài khoản. Tất cả chỉ Admin |
+| Users | `GET /users` — danh sách phân trang; `PATCH /users/{id}/role` — đổi role Admin/Author; `PATCH /users/{id}/status` — khóa/mở khóa; `DELETE /users/{id}` — xóa tài khoản. Tất cả chỉ Admin |
 | Recipe public | `GET /recipes`, `GET /recipes/search` (q, categoryId, difficulty, thời gian, khẩu phần), `GET /recipes/{slug}` |
 | Recipe management | `GET /recipes/by-id/{id}`, `POST /recipes`, `PUT /recipes/{id}`, publish/unpublish/archive và xóa |
 | Recipe ingredients | Thêm, sửa, xóa ingredient theo recipe |
@@ -126,8 +131,8 @@ Login/Register form
 - Tạo mới gửi recipe; sửa dùng `GET /recipes/by-id/{id}` để lấy ETag, `PUT` với `If-Match`, sau đó đồng bộ ingredients và steps. Nếu ETag xung đột, UI yêu cầu tải lại phiên bản mới.
 - Ảnh cover và ảnh từng bước được kiểm tra định dạng/kích thước, xem trước cục bộ bằng object URL có cleanup, rồi tải multipart với Bearer token qua API client dùng chung. Nếu upload lỗi sau khi tạo recipe, UI báo lỗi và dẫn đến trang sửa để tiếp tục.
 - Dashboard cung cấp thao tác xuất bản/hủy xuất bản, lưu trữ và xóa có xác nhận; trang sửa cũng có các hành động trạng thái. Mutation làm mới cache recipe và lỗi API được hiển thị rõ.
-- `/dashboard/users` dành cho Admin có danh sách phân trang, lọc/tìm kiếm, đổi role Admin/Author/Reader, khóa/mở khóa và xóa; trạng thái lockout được trả riêng trong DTO.
-- Tab “Món đã lưu” hiện là placeholder; chưa có luồng favorites/save đồng bộ backend.
+- `/dashboard/users` dành cho Admin có danh sách phân trang, lọc/tìm kiếm, đổi role Admin/Author, khóa/mở khóa và xóa; trạng thái lockout được trả riêng trong DTO.
+- Tab “Món đã lưu” đọc dữ liệu phân trang từ Engagement qua API/BFF; trang chi tiết cho phép lưu/bỏ lưu và chấm 1–5 sao.
 
 ### 3.3 Trang chi tiết công thức
 
@@ -142,7 +147,7 @@ Trang detail hiện có:
 - Metadata/Open Graph; JSON-LD Schema.org `Recipe` chỉ xuất hiện với recipe công khai, có URL chuẩn, ảnh, tác giả, nguyên liệu và hướng dẫn được sắp thứ tự; dữ liệu được escape an toàn khi serialize.
 - Cảnh báo preview cho draft/archived và robots `noindex, nofollow`.
 - Gallery ảnh, thời gian chuẩn bị/nấu, khẩu phần, độ khó, nguyên liệu có điều chỉnh servings, dinh dưỡng, các bước và ghi chú tác giả.
-- Hành động của chủ sở hữu/Admin, chỉnh sửa và quản lý upload ảnh; hành động in/chia sẻ được giữ lại.
+- Chủ sở hữu được chỉnh sửa và quản lý ảnh; Admin chỉ đổi Published/Draft hoặc xóa; hành động in/chia sẻ được giữ lại.
 - Loading và not-found UI riêng.
 
 ### 3.4 Các trang công khai và mức độ tích hợp API
@@ -184,10 +189,10 @@ Các mục dưới đây được xác nhận từ log người dùng gửi ho�
 ### 5.2 Chức năng có giao diện nhưng chưa hoàn chỉnh
 
 - **Google login:** luồng đã có ở frontend và backend, nhưng không bật mặc định. `.env.example` để trống `AUTH_GOOGLE_ID`/`AUTH_GOOGLE_SECRET` và đặt `NEXT_PUBLIC_GOOGLE_AUTH_ENABLED=false`; backend cũng cần `Google:ClientId`. Vì chưa có file env trong workspace, Google login hiện chưa sẵn sàng chạy. Cờ hiển thị nút và cấu hình provider là hai điều kiện riêng: bật cờ mà thiếu credentials vẫn không đăng ký provider.
-- **Yêu thích / “Món đã lưu”:** tab trong dashboard chỉ hiển thị trạng thái rỗng tĩnh; chưa có thao tác lưu/bỏ lưu, API hay lưu trữ favorites.
+- **Yêu thích và rating:** đã được tách thành `CulinaryBlog.Engagement` Minimal API, xác thực bằng JWT hiện tại và dùng PostgreSQL riêng. Service lưu snapshot tối thiểu của recipe sau khi xác nhận recipe Published qua API chính.
 - **Đổi / quên mật khẩu:** API đổi mật khẩu, quên mật khẩu và đặt lại mật khẩu chưa có trong backend hiện tại. “Quên mật khẩu?” trên login chỉ là chữ, không điều hướng; form đổi mật khẩu đã không còn trong account.
 - **Ghi nhớ đăng nhập:** checkbox “Ghi nhớ tôi” trên login không có tên hoặc xử lý state; không thay đổi thời hạn session.
-- **Newsletter:** form ở trang chủ dùng `action="#"`, input không có `name` và không nối API/dịch vụ gửi email; gửi form không đăng ký nhận thư.
+- **Newsletter:** form trang chủ đã gọi `POST /subscriptions`; email được lưu duy nhất theo dạng chuẩn hóa, Hangfire gửi thư mẫu ngay khi đăng ký và chạy bản tin top rating mỗi thứ Hai. Bản demo chưa có double opt-in hoặc unsubscribe.
 - **Cài đặt tài khoản:** thông báo, ngôn ngữ và bảo mật đều ghi “Sắp có”, chưa có workflow hoặc lưu cấu hình.
 - **Quản lý người dùng:** đã có UI và API admin cho danh sách, đổi role, khóa/mở khóa và xóa. Các thao tác vẫn cần được kiểm thử tích hợp với backend/Identity và dữ liệu thực tế.
 - **Xác nhận email:** hệ thống tạo email xác nhận và có endpoint xác nhận, nhưng đăng nhập backend không kiểm tra `EmailConfirmed`; tài khoản có thể đăng nhập trước khi xác nhận.
@@ -195,7 +200,7 @@ Các mục dưới đây được xác nhận từ log người dùng gửi ho�
 
 ### 5.3 Vấn đề tích hợp / độ tin cậy cần lưu ý
 
-- **Sitemap:** Hangfire sinh URL `/categories/{slug}`, nhưng frontend hiện chỉ có route `/categories`, không có trang chi tiết danh mục theo slug; các URL danh mục sinh ra sẽ không có route tương ứng. Job ghi `sitemap.xml` vào web root của backend, trong khi website chạy bằng Next.js riêng và không có route sitemap Next.js; cần xác minh cách public sitemap trên domain website trước khi dựa vào nó cho SEO.
+- **Sitemap:** Hangfire sinh URL công thức, bộ lọc danh mục và trang tĩnh vào web root backend; frontend công khai file tại `/sitemap.xml` và `/robots.txt` khai báo URL sitemap.
 - **Cấu hình API trong Docker:** `frontend/.env.example` dùng `localhost:5000` cho môi trường host và ghi chú dùng `http://api:8080` khi frontend chạy cùng Docker network. Service API lắng nghe port `8080` bên trong container và publish thành `localhost:5000` trên host.
 - **Không có frontend test suite trong repository;** backend hiện chỉ có 2 test và đều kiểm tra handler/validation của search. Chưa có kiểm thử tích hợp API/database, Auth/Google, UI hoặc end-to-end để xác nhận các luồng chính.
 - `README.md` còn nội dung không khớp implementation hiện tại (ví dụ cấu trúc thư mục/API và mô tả Redis cache), nên không nên dùng riêng README làm nguồn chuẩn khi dựng hoặc đánh giá hệ thống.
@@ -205,4 +210,3 @@ Các mục dưới đây được xác nhận từ log người dùng gửi ho�
 - Log terminal ở mục 5.1 là bằng chứng runtime người dùng cung cấp; chúng xác nhận cấu hình Auth.js thiếu secret và frontend không kết nối được backend tại thời điểm chạy thử.
 - Các mục 5.2–5.3 là rà soát tĩnh mã nguồn/cấu hình và thiếu endpoint/route; chưa chạy từng tích hợp với Google, SMTP, PostgreSQL, Redis hay MinIO trong môi trường thực tế.
 - Các thay đổi endpoint và logging backend trong LAB 8 đã build thành công với 0 warning/0 error; 2 backend tests hiện có đều pass. Chưa chạy kiểm thử tích hợp các endpoints với PostgreSQL/Identity trong môi trường thực tế.
- 

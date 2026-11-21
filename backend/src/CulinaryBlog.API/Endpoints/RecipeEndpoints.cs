@@ -4,15 +4,14 @@ using CulinaryBlog.Application.Recipes.Commands.ArchiveRecipe;
 using CulinaryBlog.Application.Recipes.Commands.CreateRecipe;
 using CulinaryBlog.Application.Recipes.Commands.DeleteRecipe;
 using CulinaryBlog.Application.Recipes.Commands.PublishRecipe;
+using CulinaryBlog.Application.Recipes.Commands.RestoreRecipe;
 using CulinaryBlog.Application.Recipes.Commands.UnpublishRecipe;
 using CulinaryBlog.Application.Recipes.Commands.UpdateRecipe;
 using CulinaryBlog.Application.Recipes.Models;
 using CulinaryBlog.Application.Recipes.Queries.GetRecipeById;
+using CulinaryBlog.Application.Recipes.Queries.GetDeletedRecipes;
 using CulinaryBlog.Application.Recipes.Queries.GetRecipeBySlug;
 using CulinaryBlog.Application.Recipes.Queries.GetRecipes;
-using CulinaryBlog.Application.Recipes.Commands.ToggleFavorite;
-using CulinaryBlog.Application.Recipes.Queries.GetFavoriteStatus;
-using CulinaryBlog.Application.Recipes.Queries.GetSavedRecipes;
 using CulinaryBlog.Application.Recipes.Queries.SearchRecipes;
 using CulinaryBlog.Application.Recipes.Services;
 using CulinaryBlog.Application.Common.Exceptions;
@@ -31,6 +30,7 @@ namespace CulinaryBlog.API.Endpoints;
 /// FR-RCP-005: PATCH /api/v1/recipes/{id:guid}/publish | /unpublish
 /// FR-RCP-006: PATCH /api/v1/recipes/{id:guid}/archive
 /// FR-RCP-007: DELETE /api/v1/recipes/{id:guid}
+/// FR-RCP-011: GET /api/v1/recipes/deleted, PATCH /api/v1/recipes/{id:guid}/restore
 /// </summary>
 public static class RecipeEndpoints
 {
@@ -47,36 +47,17 @@ public static class RecipeEndpoints
             .WithDescription(
                 "FR-RCP-001. Không gửi token: chỉ recipe Published. Gửi token: thêm Draft/Archived của chính mình; " +
                 "mine=true: chỉ lấy công thức của người hiện tại ở mọi trạng thái. Admin thấy mọi trạng thái khi mine=false. " +
-                "sort: createdAt | title | cookTime, thêm \"-\" để giảm dần (mặc định -createdAt). " +
+                "sort: createdAt | updatedAt | title | cookTime, thêm \"-\" để giảm dần (mặc định -createdAt). " +
                 "pageSize 1–50 (mặc định 12). categoryId không tồn tại trả danh sách rỗng.")
             .Produces<PagedResult<RecipeListItemDto>>()
-            .ProducesValidationProblem();
+            .ProducesValidationProblem(StatusCodes.Status422UnprocessableEntity);
 
         group.MapGet("/search", SearchAsync)
             .WithName("SearchRecipes")
             .WithSummary("Tìm kiếm toàn văn công thức đã xuất bản")
-            .WithDescription("FR-SEARCH-001. Tìm theo từ khóa q (tối thiểu 2 ký tự), lọc categoryId tùy chọn, hỗ trợ phân trang bằng page và pageSize (1–50).")
+            .WithDescription("FR-SEARCH-001/003. Tìm theo từ khóa q (tối thiểu 2 ký tự), lọc categoryId, phân trang và sắp xếp theo createdAt, title hoặc cookTime; thêm '-' để giảm dần.")
             .Produces<PagedResult<RecipeSummaryDto>>()
-            .ProducesValidationProblem();
-
-        group.MapGet("/favorites", GetFavoritesAsync)
-            .RequireAuthorization()
-            .WithName("GetSavedRecipes")
-            .WithSummary("Danh sách công thức yêu thích của người dùng hiện tại")
-            .Produces<PagedResult<RecipeListItemDto>>()
-            .ProducesAuthProblems();
-
-        group.MapGet("/{id:guid}/is-favorite", GetIsFavoriteAsync)
-            .WithName("GetRecipeIsFavorite")
-            .WithSummary("Kiểm tra công thức đã được lưu chưa")
-            .Produces<object>();
-
-        group.MapPost("/{id:guid}/favorite", ToggleFavoriteAsync)
-            .RequireAuthorization()
-            .WithName("ToggleRecipeFavorite")
-            .WithSummary("Lưu hoặc bỏ lưu công thức yêu thích")
-            .Produces<object>()
-            .ProducesAuthProblems();
+            .ProducesValidationProblem(StatusCodes.Status422UnprocessableEntity);
 
         group.MapGet("/{slug}", GetBySlugAsync)
             .WithName("GetRecipeBySlug")
@@ -89,16 +70,24 @@ public static class RecipeEndpoints
             .ProducesNotFoundProblem();
 
         // Yêu cầu role Author/Admin (401 nếu chưa đăng nhập, 403 nếu thiếu role);
-        // quyền trên từng recipe (owner/Admin) do RecipeAuthorizationHandler kiểm tra.
+        // quyền trên từng recipe do RecipeAuthorizationHandler kiểm tra: sửa nội dung chỉ owner;
+        // publish/unpublish/delete cho owner hoặc Admin.
         var authorized = group.MapGroup(string.Empty)
             .RequireAuthorization(AuthServiceCollectionExtensions.AuthorPolicy)
             .ProducesAuthProblems();
+
+        authorized.MapGet("/deleted", GetDeletedAsync)
+            .WithName("GetDeletedRecipes")
+            .WithSummary("Danh sách công thức đã xóa")
+            .WithDescription("FR-RCP-011. Author chỉ thấy công thức của mình; Admin thấy mọi công thức đã xóa.")
+            .Produces<PagedResult<RecipeListItemDto>>()
+            .ProducesValidationProblem(StatusCodes.Status422UnprocessableEntity);
 
         // {id:guid} khai báo riêng để không bị route {slug} bắt mất.
         authorized.MapGet("/by-id/{id:guid}", GetByIdAsync)
             .WithName("GetRecipeById")
             .WithSummary("Chi tiết công thức theo id (trang chỉnh sửa)")
-            .WithDescription("FR-RCP-004. Chỉ owner hoặc Admin. Trả header ETag = rowVersion, gửi lại qua If-Match khi cập nhật.")
+            .WithDescription("FR-RCP-004. Chỉ owner. Trả header ETag = rowVersion, gửi lại qua If-Match khi cập nhật.")
             .Produces<RecipeDetailDto>()
             .ProducesNotFoundProblem();
 
@@ -106,23 +95,21 @@ public static class RecipeEndpoints
             .WithName("CreateRecipe")
             .WithSummary("Tạo công thức")
             .WithDescription(
-                "FR-RCP-003. Tác giả là người đang đăng nhập; recipe mới luôn ở trạng thái Draft, slug sinh từ title. " +
-                "Có thể gửi kèm nutrition, ingredients, steps. Trùng slug: 409 RECIPE_SLUG_EXISTS.")
+                "FR-RCP-003. Tác giả là người đang đăng nhập; recipe mới luôn ở trạng thái Draft, slug sinh từ title và tự thêm hậu tố nếu trùng. " +
+                "Có thể gửi kèm nutrition, ingredients, steps.")
             .Produces<RecipeDetailDto>(StatusCodes.Status201Created)
-            .ProducesValidationProblem()
-            .ProducesProblem(StatusCodes.Status409Conflict);
+            .ProducesValidationProblem(StatusCodes.Status422UnprocessableEntity);
 
         authorized.MapPut("/{id:guid}", UpdateAsync)
             .WithName("UpdateRecipe")
             .WithSummary("Cập nhật công thức (kiểm soát đồng thời bằng If-Match)")
             .WithDescription(
-                "FR-RCP-004. Gửi rowVersion qua header If-Match (hoặc field rowVersion). Bản cũ: 422 RECIPE_CONCURRENCY_CONFLICT. " +
-                "Slug chỉ đổi theo title khi còn Draft (trùng: 409). Response kèm ETag mới.")
+                "FR-RCP-004. Gửi rowVersion qua header If-Match (hoặc field rowVersion). Bản cũ: 409 RECIPE_CONCURRENCY_CONFLICT. " +
+                "Slug chỉ đổi theo title khi còn Draft và tự thêm hậu tố nếu trùng. Response kèm ETag mới.")
             .Produces<RecipeDetailDto>()
-            .ProducesValidationProblem()
+            .ProducesValidationProblem(StatusCodes.Status422UnprocessableEntity)
             .ProducesNotFoundProblem()
-            .ProducesProblem(StatusCodes.Status409Conflict)
-            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+            .ProducesProblem(StatusCodes.Status409Conflict);
 
         authorized.MapPatch("/{id:guid}/publish", PublishAsync)
             .WithName("PublishRecipe")
@@ -150,7 +137,14 @@ public static class RecipeEndpoints
         authorized.MapDelete("/{id:guid}", DeleteAsync)
             .WithName("DeleteRecipe")
             .WithSummary("Xóa mềm công thức")
-            .WithDescription("FR-RCP-007. Đánh dấu công thức đã xóa và ẩn khỏi các truy vấn; file ảnh được dọn bằng background job.")
+            .WithDescription("FR-RCP-007. Đánh dấu công thức đã xóa và ẩn khỏi các truy vấn; giữ file ảnh để có thể khôi phục.")
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesNotFoundProblem();
+
+        authorized.MapPatch("/{id:guid}/restore", RestoreAsync)
+            .WithName("RestoreRecipe")
+            .WithSummary("Khôi phục công thức đã xóa")
+            .WithDescription("FR-RCP-011. Owner khôi phục công thức của mình; Admin khôi phục được mọi công thức.")
             .Produces(StatusCodes.Status204NoContent)
             .ProducesNotFoundProblem();
 
@@ -165,6 +159,22 @@ public static class RecipeEndpoints
         await sender.Send(new DeleteRecipeCommand(id), cancellationToken);
         return Results.NoContent();
     }
+
+    private static async Task<IResult> RestoreAsync(
+        Guid id,
+        ISender sender,
+        CancellationToken cancellationToken)
+    {
+        await sender.Send(new RestoreRecipeCommand(id), cancellationToken);
+        return Results.NoContent();
+    }
+
+    private static async Task<IResult> GetDeletedAsync(
+        ISender sender,
+        CancellationToken cancellationToken,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 12) =>
+        Results.Ok(await sender.Send(new GetDeletedRecipesQuery(page, pageSize), cancellationToken));
 
     private static async Task<IResult> PublishAsync(
         Guid id,
@@ -264,10 +274,11 @@ public static class RecipeEndpoints
         [FromQuery] Guid? categoryId = null,
         [FromQuery] CulinaryBlog.Domain.Modules.Recipes.RecipeDifficulty? difficulty = null,
         [FromQuery] int? maxCookTime = null,
-        [FromQuery] int? minServings = null) =>
+        [FromQuery] int? minServings = null,
+        [FromQuery] string? sort = null) =>
         Results.Ok(await sender.Send(
             new SearchRecipesQuery(searchTerm ?? string.Empty, page, pageSize, categoryId,
-                difficulty, maxCookTime, minServings),
+                difficulty, maxCookTime, minServings, sort),
             cancellationToken));
 
     private static async Task<IResult> GetBySlugAsync(
@@ -294,23 +305,4 @@ public static class RecipeEndpoints
             cancellationToken);
         return Results.Created($"{ApiVersioningExtensions.V1Path}/recipes/{recipe.Slug}", recipe);
     }
-
-    private static async Task<IResult> GetFavoritesAsync(
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 10,
-        ISender sender = default!,
-        CancellationToken cancellationToken = default) =>
-        Results.Ok(await sender.Send(new GetSavedRecipesQuery(page, pageSize), cancellationToken));
-
-    private static async Task<IResult> GetIsFavoriteAsync(
-        Guid id,
-        ISender sender,
-        CancellationToken cancellationToken) =>
-        Results.Ok(new { isFavorite = await sender.Send(new GetFavoriteStatusQuery(id), cancellationToken) });
-
-    private static async Task<IResult> ToggleFavoriteAsync(
-        Guid id,
-        ISender sender,
-        CancellationToken cancellationToken) =>
-        Results.Ok(new { isFavorite = await sender.Send(new ToggleFavoriteCommand(id), cancellationToken) });
 }

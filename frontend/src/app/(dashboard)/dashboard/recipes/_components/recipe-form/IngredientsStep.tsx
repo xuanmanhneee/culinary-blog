@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useFieldArray, useForm } from "react-hook-form";
+import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowDown, ArrowUp, Plus, Trash2, Wheat } from "lucide-react";
 import { EmptyState } from "@/components/common/EmptyState";
@@ -31,12 +31,12 @@ export function IngredientsStep({ serverErrors }: { serverErrors?: ServerErrors 
     keyName: "fieldKey",
   });
   const errors = form.formState.errors.ingredients;
+  const ingredients = useWatch({ control: form.control, name: "ingredients" });
   useServerErrors(form.setError, serverErrors, 1);
 
   useEffect(() => {
-    const subscription = form.watch((values) => setIngredients((values.ingredients ?? []) as IngredientDraft[]));
-    return () => subscription.unsubscribe();
-  }, [form, setIngredients]);
+    setIngredients((ingredients ?? []) as IngredientDraft[]);
+  }, [ingredients, setIngredients]);
 
   return (
     <form
@@ -64,7 +64,7 @@ export function IngredientsStep({ serverErrors }: { serverErrors?: ServerErrors 
           {fields.map((field, index) => {
             const itemErrors = errors?.[index];
             return (
-              <li key={field.fieldKey} className="rounded-lg border bg-background p-4">
+              <li key={field.fieldKey} className="rounded-xl border bg-card p-4">
                 <div className="grid gap-4 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)]">
                   <Field data-invalid={!!itemErrors?.name}>
                     <FieldLabel htmlFor={`ingredient-${index}-name`}>Tên nguyên liệu</FieldLabel>

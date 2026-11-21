@@ -4,20 +4,21 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full text-sm font-semibold transition-all outline-none focus-visible:ring-2 focus-visible:ring-[#1f4b3f]/35 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full text-sm font-semibold transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/35 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
-        default: "bg-[#1f4b3f] text-white shadow-[0_8px_24px_rgba(31,75,63,.18)] hover:-translate-y-0.5 hover:bg-[#16382f]",
-        secondary: "bg-[#efe4d3] text-[#3a2f27] hover:bg-[#e5d4bd]",
-        outline: "border border-[#d9cdbd] bg-white/70 text-[#2e2925] hover:border-[#1f4b3f] hover:text-[#1f4b3f]",
-        ghost: "text-[#4e4741] hover:bg-[#f2eadf] hover:text-[#1f4b3f]",
-        destructive: "bg-[#b5442f] text-white hover:bg-[#963522]",
+        default: "bg-primary text-primary-foreground hover:bg-primary-hover",
+        accent: "bg-accent text-accent-foreground hover:bg-accent-hover",
+        secondary: "bg-muted text-foreground hover:bg-border",
+        outline: "border border-input bg-card text-foreground hover:border-primary hover:text-primary",
+        ghost: "text-muted-foreground hover:bg-muted hover:text-primary",
+        destructive: "bg-destructive text-destructive-foreground hover:opacity-90",
       },
       size: {
         default: "h-11 px-5",
         sm: "h-9 px-4 text-xs",
-        lg: "h-13 px-7 text-base",
+        lg: "h-12 px-7 text-base",
         icon: "size-10 p-0",
       },
     },

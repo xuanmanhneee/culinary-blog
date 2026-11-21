@@ -21,6 +21,8 @@ interface UserManagementTableProps {
   role?: Role;
   search?: string;
   token: string;
+  currentUserId: string;
+  adminCount: number;
 }
 
 export function UserManagementTable({
@@ -31,6 +33,8 @@ export function UserManagementTable({
   role,
   search,
   token,
+  currentUserId,
+  adminCount,
 }: UserManagementTableProps) {
   const router = useRouter();
   const [users, setUsers] = useState(initialUsers);
@@ -39,7 +43,7 @@ export function UserManagementTable({
   const [deletingUser, setDeletingUser] = useState<AdminUserListItem | null>(null);
 
   async function changeRole(user: AdminUserListItem, nextRole: Role) {
-    if (busyUserId || user.roles.length === 1 && user.roles[0] === nextRole) return;
+    if (busyUserId || user.roles.length === 1 && user.roles[0] === nextRole || cannotRemoveAdmin(user, nextRole)) return;
 
     const previousRoles = user.roles;
     setBusyUserId(user.id);
@@ -62,7 +66,7 @@ export function UserManagementTable({
   }
 
   async function toggleLock(user: AdminUserListItem) {
-    if (busyUserId) return;
+    if (busyUserId || !user.isLocked && cannotDisable(user)) return;
 
     const nextIsLocked = !user.isLocked;
     setBusyUserId(user.id);
@@ -85,7 +89,7 @@ export function UserManagementTable({
   }
 
   async function removeUser() {
-    if (!deletingUser || busyUserId) return;
+    if (!deletingUser || busyUserId || cannotDisable(deletingUser)) return;
 
     const target = deletingUser;
     const previousIndex = users.findIndex((user) => user.id === target.id);
@@ -125,30 +129,38 @@ export function UserManagementTable({
     return query ? `/dashboard/users?${query}` : "/dashboard/users";
   }
 
+  function cannotDisable(user: AdminUserListItem): boolean {
+    return user.id === currentUserId || user.roles.includes(Roles.Admin) && adminCount <= 1;
+  }
+
+  function cannotRemoveAdmin(user: AdminUserListItem, nextRole: Role): boolean {
+    return nextRole !== Roles.Admin && cannotDisable(user);
+  }
+
   return (
     <>
       <div className="flex items-center justify-between gap-4">
-        <p className="text-sm text-[#786e66]" aria-live="polite">
+        <p className="text-sm text-muted-foreground" aria-live="polite">
           Hiển thị {users.length} trong tổng số {totalCount} tài khoản
         </p>
-        <div className="rounded-2xl border border-[#d8cbbc] bg-[#f1e7da] px-5 py-3">
-          <span className="text-xs font-semibold text-[#776d65]">Tổng tài khoản</span>
-          <strong className="ml-3 font-display text-2xl text-[#1f4b3f]">{totalCount}</strong>
+        <div className="rounded-2xl border border-border bg-card px-5 py-3">
+          <span className="text-xs font-semibold text-muted-foreground">Tổng tài khoản</span>
+          <strong className="ml-3  text-2xl text-primary">{totalCount}</strong>
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-[1.5rem] border border-[#ddd1c3] bg-[#fffdf9] shadow-[0_16px_45px_rgba(75,57,41,.06)]">
+      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
         {users.length === 0 ? (
           <div className="grid min-h-64 place-items-center px-6 text-center">
             <div>
-              <h2 className="font-display text-xl font-bold">Không tìm thấy người dùng</h2>
-              <p className="mt-1 text-sm text-[#786e66]">Thử thay đổi vai trò hoặc từ khóa tìm kiếm.</p>
+              <h2 className="text-lg font-bold">Không tìm thấy người dùng</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Thử thay đổi vai trò hoặc từ khóa tìm kiếm.</p>
             </div>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[1050px] text-left text-sm">
-              <thead className="border-b border-[#e1d7cb] bg-[#f6efe6] text-xs uppercase tracking-wide text-[#746b63]">
+              <thead className="border-b border-border bg-muted text-xs uppercase tracking-wide text-muted-foreground">
                 <tr>
                   <th scope="col" className="px-5 py-3">Người dùng</th>
                   <th scope="col" className="px-5 py-3">Vai trò</th>
@@ -158,7 +170,7 @@ export function UserManagementTable({
                   <th scope="col" className="px-5 py-3"><span className="sr-only">Thao tác</span></th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#ebe3d9]">
+              <tbody className="divide-y divide-border">
                 {users.map((user) => {
                   const isBusy = busyUserId === user.id;
                   const selectedRole = user.roles[0] ?? "";
@@ -167,61 +179,59 @@ export function UserManagementTable({
                     : user.isActive
                       ? "Hoạt động"
                       : "Ngừng hoạt động";
+                  const protectedAdmin = cannotDisable(user);
 
                   return (
-                    <tr key={user.id} className="hover:bg-[#fbf7f1]">
+                    <tr key={user.id} className="hover:bg-muted">
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
-                          <span className="relative grid size-10 shrink-0 place-items-center overflow-hidden rounded-full bg-[#1f4b3f] font-bold text-white">
+                          <span className="relative grid size-10 shrink-0 place-items-center overflow-hidden rounded-full bg-primary font-bold text-white">
                             {user.avatarUrl
                               ? <Image src={user.avatarUrl} alt="" fill sizes="40px" unoptimized className="object-cover" />
                               : initials(user.fullName, user.email)}
                           </span>
                           <span className="min-w-0">
-                            <strong className="block truncate text-[#342e29]">{user.fullName}</strong>
-                            <span className="block truncate text-xs text-[#81776f]">{user.email} · @{user.userName}</span>
+                            <strong className="block truncate text-foreground">{user.fullName}</strong>
+                            <span className="block truncate text-xs text-muted-foreground">{user.email} · @{user.userName}</span>
                           </span>
                         </div>
                       </td>
                       <td className="px-5 py-4">
-                        <div className="flex flex-wrap items-center gap-2">
-                          {user.roles.map((item) => (
-                            <Badge key={item} variant={item === Roles.Admin ? "default" : "outline"}>{item}</Badge>
-                          ))}
+                        <div>
                           <label className="sr-only" htmlFor={`role-${user.id}`}>Đổi vai trò cho {user.fullName}</label>
                           <select
                             id={`role-${user.id}`}
                             value={selectedRole}
-                            disabled={busyUserId !== null}
+                            disabled={busyUserId !== null || protectedAdmin}
                             onChange={(event) => {
                               const nextRole = parseRole(event.target.value);
                               if (nextRole) void changeRole(user, nextRole);
                             }}
-                            className="h-9 max-w-32 rounded-full border border-[#d9cdbd] bg-white px-3 text-xs font-semibold text-[#3a342f] outline-none focus-visible:ring-2 focus-visible:ring-[#1f4b3f]/35 disabled:opacity-50"
+                            className="h-9 max-w-32 rounded-full border border-border bg-card px-3 text-xs font-semibold text-foreground outline-none focus-visible:ring-2 focus-visible:ring-primary/35 disabled:opacity-50"
                           >
                             {!selectedRole && <option value="">Chọn vai trò</option>}
                             <option value={Roles.Admin}>Admin</option>
                             <option value={Roles.Author}>Author</option>
-                            <option value={Roles.Reader}>Reader</option>
                           </select>
                         </div>
                       </td>
                       <td className="px-5 py-4">
                         {user.emailConfirmed
-                          ? <span className="text-emerald-700">Đã xác nhận</span>
-                          : <span className="text-amber-700">Chưa xác nhận</span>}
+                          ? <span className="text-primary">Đã xác nhận</span>
+                          : <span className="text-accent-hover">Chưa xác nhận</span>}
                       </td>
                       <td className="px-5 py-4">
                         <Badge variant={user.isLocked || !user.isActive ? "warm" : "outline"}>{statusLabel}</Badge>
                       </td>
-                      <td className="px-5 py-4 text-[#6f665e]">{formatDate(user.createdAt)}</td>
+                      <td className="px-5 py-4 text-muted-foreground">{formatDate(user.createdAt)}</td>
                       <td className="px-5 py-4">
                         <div className="flex items-center justify-end gap-2">
                           <Button
                             type="button"
                             variant="outline"
                             size="sm"
-                            disabled={busyUserId !== null || !user.isActive && !user.isLocked}
+                            disabled={busyUserId !== null || !user.isActive && !user.isLocked || !user.isLocked && protectedAdmin}
+                            title={!user.isLocked && protectedAdmin ? user.id === currentUserId ? "Bạn không thể tự khóa tài khoản." : "Không thể khóa Admin cuối cùng." : undefined}
                             onClick={() => void toggleLock(user)}
                           >
                             {isBusy ? "Đang lưu…" : user.isLocked ? "Mở khóa" : "Khóa"}
@@ -230,7 +240,8 @@ export function UserManagementTable({
                             type="button"
                             variant="destructive"
                             size="sm"
-                            disabled={busyUserId !== null}
+                            disabled={busyUserId !== null || protectedAdmin}
+                            title={protectedAdmin ? user.id === currentUserId ? "Bạn không thể tự xóa tài khoản." : "Không thể xóa Admin cuối cùng." : undefined}
                             onClick={() => setDeletingUser(user)}
                           >
                             Xóa
@@ -290,7 +301,7 @@ function problemMessage(error: unknown): string {
 }
 
 function parseRole(value: string): Role | null {
-  return value === Roles.Admin || value === Roles.Author || value === Roles.Reader
+  return value === Roles.Admin || value === Roles.Author
     ? value
     : null;
 }

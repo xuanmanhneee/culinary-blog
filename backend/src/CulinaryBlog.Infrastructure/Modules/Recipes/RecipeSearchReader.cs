@@ -23,6 +23,7 @@ public sealed class RecipeSearchReader : IRecipeSearchReader
         RecipeDifficulty? difficulty = null,
         int? maxCookTime = null,
         int? minServings = null,
+        string? sort = null,
         CancellationToken cancellationToken = default)
     {
         var terms = Regex.Matches(searchTerm, @"[\p{L}\p{N}]+")
@@ -46,14 +47,23 @@ public sealed class RecipeSearchReader : IRecipeSearchReader
         if (minServings.HasValue) query = query.Where(recipe => recipe.Servings >= minServings.Value);
 
         var totalCount = await query.CountAsync(cancellationToken);
-        var items = await query
-            .OrderByDescending(recipe =>
+        IOrderedQueryable<Recipe> ordered = sort switch
+        {
+            "createdAt" => query.OrderBy(recipe => recipe.CreatedAt),
+            "-createdAt" => query.OrderByDescending(recipe => recipe.CreatedAt),
+            "title" => query.OrderBy(recipe => recipe.Title),
+            "-title" => query.OrderByDescending(recipe => recipe.Title),
+            "cookTime" => query.OrderBy(recipe => recipe.CookTime),
+            "-cookTime" => query.OrderByDescending(recipe => recipe.CookTime),
+            _ => query.OrderByDescending(recipe =>
                 EF.Property<NpgsqlTsVector>(recipe, "SearchVector")!
                     .Rank(EF.Functions.ToTsQuery("simple", queryText))
                 + EF.Functions.TrigramsWordSimilarity(
                     fuzzyQuery,
                     EF.Property<string>(recipe, "SearchTextNormalized")))
-            .ThenBy(recipe => recipe.Id)
+        };
+
+        var items = await ordered.ThenBy(recipe => recipe.Id)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .Select(recipe => new RecipeSearchItem(

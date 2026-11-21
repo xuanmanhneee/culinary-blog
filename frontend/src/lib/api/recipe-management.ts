@@ -69,7 +69,7 @@ export function createRecipe(body: CreateRecipeRequest, token: Token): Promise<R
   return apiFetch(RECIPES, { method: "POST", body, token });
 }
 
-/** PUT /recipes/{id} với If-Match; bản cũ → ApiError 422 RECIPE_CONCURRENCY_CONFLICT (FR-RCP-004). */
+/** PUT /recipes/{id} với If-Match; bản cũ → ApiError 409 RECIPE_CONCURRENCY_CONFLICT (FR-RCP-004). */
 export async function updateRecipe(
   id: string,
   body: UpdateRecipeRequest,
@@ -95,6 +95,11 @@ export function changeRecipeStatus(id: string, action: RecipeStatusAction, token
 /** DELETE /recipes/{id} – xóa mềm (FR-RCP-007). */
 export function deleteRecipe(id: string, token: Token): Promise<void> {
   return apiFetch(`${RECIPES}/${id}`, { method: "DELETE", token });
+}
+
+/** PATCH /recipes/{id}/restore – khôi phục công thức đã xóa mềm (FR-RCP-011). */
+export function restoreRecipe(id: string, token: Token): Promise<void> {
+  return apiFetch(`${RECIPES}/${id}/restore`, { method: "PATCH", token });
 }
 
 // ---------------------------------------------------------------- Nguyên liệu (FR-RCP-009)
@@ -162,22 +167,3 @@ export function uploadRecipeImage(recipeId: string, file: File, token: Token): P
 export function listCategories(): Promise<CategoryDto[]> {
   return apiFetch("/categories");
 }
-
-// ---------------------------------------------------------------- Yêu thích / Món đã lưu
-
-export interface FavoriteStatusResponse {
-  isFavorite: boolean;
-}
-
-export function toggleFavoriteRecipe(recipeId: string, token: Token): Promise<FavoriteStatusResponse> {
-  return apiFetch(`${RECIPES}/${encodeURIComponent(recipeId)}/favorite`, { method: "POST", token });
-}
-
-export function getRecipeFavoriteStatus(recipeId: string, token: Token): Promise<FavoriteStatusResponse> {
-  return apiFetch(`${RECIPES}/${encodeURIComponent(recipeId)}/is-favorite`, { token });
-}
-
-export function getSavedRecipes(page = 1, pageSize = 10, token: Token): Promise<PagedResult<RecipeListItemDto>> {
-  return apiFetch(`${RECIPES}/favorites?page=${page}&pageSize=${pageSize}`, { token, cache: "no-store" });
-}
-

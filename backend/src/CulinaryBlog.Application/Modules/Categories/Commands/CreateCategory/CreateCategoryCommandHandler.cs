@@ -1,5 +1,6 @@
 using CulinaryBlog.Application.Categories.Models;
 using CulinaryBlog.Application.Common.Exceptions;
+using CulinaryBlog.Application.Common.Helpers;
 using CulinaryBlog.Application.Common.Interfaces;
 using CulinaryBlog.Domain.Common;
 using CulinaryBlog.Domain.Common.Exceptions;
@@ -22,12 +23,23 @@ internal sealed class CreateCategoryCommandHandler
     {
         var request = command.Request;
         var name = request.Name.Trim();
-        var slug = request.Slug.Trim().ToLowerInvariant();
-
         if (await _categories.NameExistsAsync(name, cancellationToken: ct))
             throw new ConflictException(ErrorCodes.CategoryNameExists, $"Tên danh mục '{name}' đã tồn tại.");
-        if (await _categories.GetBySlugAsync(slug, ct) is not null)
-            throw new ConflictException(ErrorCodes.CategorySlugExists, $"Slug '{slug}' đã tồn tại.");
+
+        string slug;
+        if (string.IsNullOrWhiteSpace(request.Slug))
+        {
+            var baseSlug = SlugHelper.Generate(name);
+            slug = baseSlug;
+            for (var suffix = 2; await _categories.SlugExistsAsync(slug, ct); suffix++)
+                slug = $"{baseSlug}-{suffix}";
+        }
+        else
+        {
+            slug = request.Slug.Trim().ToLowerInvariant();
+            if (await _categories.SlugExistsAsync(slug, ct))
+                throw new ConflictException(ErrorCodes.CategorySlugExists, $"Slug '{slug}' đã tồn tại.");
+        }
 
         var category = Category.Create(
             name,

@@ -1,4 +1,28 @@
 services:
+  engagement:
+    image: culinaryblog-engagement:dev
+    build:
+      context: .
+      dockerfile: services/CulinaryBlog.Engagement/Dockerfile
+    container_name: culinaryblog-engagement
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__DefaultConnection: Host=engagement-postgres;Port=5432;Database=engagement;Username=postgres;Password=postgres
+      RecipeApiUrl: http://host.docker.internal:5000/
+      Jwt__Key: culinary-blog-dev-secret-key-2026
+    ports:
+      - "5100:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    depends_on:
+      engagement-postgres:
+        condition: service_healthy
+
   api:
     image: culinaryblog-api:dev
     build:
@@ -22,8 +46,16 @@ services:
       Smtp__Host: mailhog
       Smtp__Port: "1025"
       Smtp__From: noreply@culinaryblog.local
-      Smtp__PublicApiUrl: http://localhost:5000
+      Smtp__PublicApiUrl: https://localhost
+      # Tin X-Forwarded-For/Proto từ nginx (IP thật cho rate limiting, scheme https).
+      ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
+      HangfireDashboard__Username: ${HANGFIRE_DASHBOARD_USERNAME:-}
+      HangfireDashboard__Password: ${HANGFIRE_DASHBOARD_PASSWORD:-}
+      Seq__ServerUrl: http://seq:80
+      Services__Engagement__BaseUrl: http://engagement:8080
       Cors__AllowedOrigins__0: http://localhost:3000
+      Cors__AllowedOrigins__1: https://localhost
+      Google__ClientId: ${GOOGLE_CLIENT_ID:-}
     ports:
       - "5000:8080"
     depends_on:
@@ -35,6 +67,55 @@ services:
         condition: service_started
       mailhog:
         condition: service_started
+      seq:
+        condition: service_started
+
+  frontend:
+    image: culinaryblog-frontend:dev
+    build:
+      context: ./frontend
+      args:
+        # Trình duyệt gọi API cùng origin qua nginx: https://localhost/api/v1
+        NEXT_PUBLIC_API_URL: ${PUBLIC_SITE_URL:-https://localhost}
+        NEXT_PUBLIC_SITE_URL: ${PUBLIC_SITE_URL:-https://localhost}
+        NEXT_PUBLIC_GOOGLE_AUTH_ENABLED: ${GOOGLE_AUTH_ENABLED:-false}
+    container_name: culinaryblog-frontend
+    restart: unless-stopped
+    environment:
+      # SSR gọi thẳng service api trong mạng Docker, không vòng qua nginx.
+      API_URL: http://api:8080
+      AUTH_URL: ${PUBLIC_SITE_URL:-https://localhost}
+      AUTH_TRUST_HOST: "true"
+      AUTH_GOOGLE_ID: ${GOOGLE_CLIENT_ID:-}
+      AUTH_GOOGLE_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      AUTH_SECRET: ${AUTH_SECRET:-dev-only-auth-secret-change-me-0123456789}
+    expose:
+      - "3000"
+    depends_on:
+      - api
+
+  nginx:
+    image: culinaryblog-nginx:dev
+    build:
+      context: ./nginx
+    container_name: culinaryblog-nginx
+    restart: unless-stopped
+    environment:
+      TLS_COMMON_NAME: ${TLS_COMMON_NAME:-localhost}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      # Prod: đặt tls.crt/tls.key vào ./nginx/certs. Để trống thì tự sinh self-signed.
+      - ./nginx/certs:/etc/nginx/certs
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      - frontend
+      - api
 
   postgres:
     image: postgres:16-alpine
@@ -50,6 +131,24 @@ services:
       - culinaryblog-postgres-data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d culinaryblog"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  engagement-postgres:
+    image: postgres:16-alpine
+    container_name: culinaryblog-engagement-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: engagement
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - culinaryblog-engagement-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d engagement"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -93,7 +192,22 @@ services:
     volumes:
       - culinaryblog-minio-data:/data
 
+  seq:
+    image: datalust/seq:latest
+    container_name: culinaryblog-seq
+    restart: unless-stopped
+    environment:
+      ACCEPT_EULA: "Y"
+      SEQ_FIRSTRUN_ADMINUSERNAME: admin
+      SEQ_FIRSTRUN_ADMINPASSWORD: ${SEQ_ADMIN_PASSWORD:-SeqAdmin@123}
+    ports:
+      - "5341:80"
+    volumes:
+      - culinaryblog-seq-data:/data
+
 volumes:
   culinaryblog-postgres-data:
+  culinaryblog-engagement-postgres-data:
   culinaryblog-redis-data:
   culinaryblog-minio-data:
+  culinaryblog-seq-data:

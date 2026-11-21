@@ -19,6 +19,33 @@ public class RecipeRepository : IRecipeRepository
     public async Task<Recipe?> GetByIdWithDetailsAsync(Guid id, CancellationToken cancellationToken = default) =>
         await WithDetails().FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
 
+    public async Task<Recipe?> GetDeletedByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
+        await _context.Recipes.IgnoreQueryFilters()
+            .FirstOrDefaultAsync(r => r.Id == id && r.IsDeleted, cancellationToken);
+
+    public async Task<(IReadOnlyList<Recipe> Items, int TotalCount)> GetDeletedPagedAsync(
+        int page,
+        int pageSize,
+        string? ownerId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _context.Recipes.IgnoreQueryFilters().AsNoTracking().Where(r => r.IsDeleted);
+        if (ownerId is not null) query = query.Where(r => r.AuthorId == ownerId);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+        var items = await query
+            .OrderByDescending(r => r.UpdatedAt ?? r.CreatedAt)
+            .ThenBy(r => r.Id)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Include(r => r.Category)
+            .Include(r => r.Author)
+            .Include(r => r.Images.Where(i => i.IsPrimary && !i.IsDeleted))
+            .AsSplitQuery()
+            .ToListAsync(cancellationToken);
+        return (items, totalCount);
+    }
+
     private IQueryable<Recipe> WithDetails() =>
         _context.Recipes
             .Include(r => r.Steps)
@@ -36,10 +63,10 @@ public class RecipeRepository : IRecipeRepository
         string? ownerId = null,
         Guid? categoryId = null,
         RecipeDifficulty? difficulty = null,
-        RecipeStatus? status = null,
         int? minPrepTime = null,
         int? maxCookTime = null,
         int? minServings = null,
+        RecipeStatus? status = null,
         string? sort = null,
         CancellationToken cancellationToken = default)
     {
@@ -59,16 +86,18 @@ public class RecipeRepository : IRecipeRepository
         }
         if (categoryId.HasValue) query = query.Where(r => r.CategoryId == categoryId.Value);
         if (difficulty.HasValue) query = query.Where(r => r.Difficulty == difficulty.Value);
-        if (status.HasValue) query = query.Where(r => r.Status == status.Value);
         if (minPrepTime.HasValue) query = query.Where(r => r.PrepTime >= minPrepTime.Value);
         if (maxCookTime.HasValue) query = query.Where(r => r.CookTime <= maxCookTime.Value);
         if (minServings.HasValue) query = query.Where(r => r.Servings >= minServings.Value);
+        if (status.HasValue) query = query.Where(r => r.Status == status.Value);
 
         var totalCount = await query.CountAsync(cancellationToken);
 
         IOrderedQueryable<Recipe> ordered = sort switch
         {
             "createdAt" => query.OrderBy(r => r.CreatedAt),
+            "updatedAt" => query.OrderBy(r => r.UpdatedAt ?? r.CreatedAt),
+            "-updatedAt" => query.OrderByDescending(r => r.UpdatedAt ?? r.CreatedAt),
             "title" => query.OrderBy(r => r.Title),
             "-title" => query.OrderByDescending(r => r.Title),
             "cookTime" => query.OrderBy(r => r.CookTime),
@@ -114,7 +143,7 @@ public class RecipeRepository : IRecipeRepository
         _context.Entry(step).State = EntityState.Added;
 
     // IgnoreQueryFilters: unique index IDX_Recipe_Slug vẫn tính recipe đã xóa mềm, nên phải kiểm tra cả chúng
-    // (không thì tạo lại tiêu đề trùng recipe đã xóa sẽ lỗi 500 thay vì 409 RECIPE_SLUG_EXISTS).
+    // để logic thêm hậu tố không chọn slug vẫn bị unique index giữ chỗ.
     public async Task<bool> SlugExistsAsync(string slug, CancellationToken cancellationToken = default) =>
         await _context.Recipes.IgnoreQueryFilters().AnyAsync(r => r.Slug == slug, cancellationToken);
 
@@ -124,53 +153,4 @@ public class RecipeRepository : IRecipeRepository
     public void Update(Recipe entity) => _context.Recipes.Update(entity);
 
     public void Remove(Recipe entity) => _context.Recipes.Remove(entity);
-
-    public async Task<bool> IsFavoriteAsync(Guid recipeId, string userId, CancellationToken cancellationToken = default) =>
-        await _context.RecipeFavorites
-            .AnyAsync(rf => rf.RecipeId == recipeId && rf.UserId == userId, cancellationToken);
-
-    public async Task<bool> ToggleFavoriteAsync(Guid recipeId, string userId, CancellationToken cancellationToken = default)
-    {
-        var existing = await _context.RecipeFavorites
-            .FirstOrDefaultAsync(rf => rf.RecipeId == recipeId && rf.UserId == userId, cancellationToken);
-
-        if (existing is not null)
-        {
-            _context.RecipeFavorites.Remove(existing);
-            await _context.SaveChangesAsync(cancellationToken);
-            return false;
-        }
-
-        var favorite = RecipeFavorite.Create(recipeId, userId);
-        await _context.RecipeFavorites.AddAsync(favorite, cancellationToken);
-        await _context.SaveChangesAsync(cancellationToken);
-        return true;
-    }
-
-    public async Task<(IReadOnlyList<Recipe> Items, int TotalCount)> GetFavoritesPagedAsync(
-        string userId,
-        int page,
-        int pageSize,
-        CancellationToken cancellationToken = default)
-    {
-        var query = _context.RecipeFavorites
-            .Where(rf => rf.UserId == userId && rf.Recipe != null)
-            .OrderByDescending(rf => rf.CreatedAt);
-
-        var totalCount = await query.CountAsync(cancellationToken);
-
-        var favorites = await query
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .Include(rf => rf.Recipe)
-                .ThenInclude(r => r!.Category)
-            .Include(rf => rf.Recipe)
-                .ThenInclude(r => r!.Author)
-            .Include(rf => rf.Recipe)
-                .ThenInclude(r => r!.Images.Where(i => i.IsPrimary))
-            .AsSplitQuery()
-            .ToListAsync(cancellationToken);
-
-        return (favorites.Select(favorite => favorite.Recipe!).ToList(), totalCount);
-    }
 }

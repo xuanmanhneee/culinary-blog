@@ -7,6 +7,8 @@ frontend/.next
 frontend/.env
 backend/src/**/bin
 backend/src/**/obj
+services/**/bin
+services/**/obj
 backend/src/CulinaryBlog.API/wwwroot/uploads
 *.user
 *.suo

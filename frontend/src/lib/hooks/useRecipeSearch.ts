@@ -23,12 +23,13 @@ export function useRecipeSearch(
   searchTerm: string,
   categoryId: string,
   page: number,
+  sort = "",
   pageSize = 10,
 ) {
   const query = searchTerm.trim();
   const selectedCategoryId = categoryId.trim();
   const requestKey = query.length >= 2
-    ? `${query}\u0000${selectedCategoryId}\u0000${page}\u0000${pageSize}`
+    ? `${query}\u0000${selectedCategoryId}\u0000${sort}\u0000${page}\u0000${pageSize}`
     : null;
   const [state, setState] = useState<RecipeSearchState>({
     key: null,
@@ -46,6 +47,7 @@ export function useRecipeSearch(
       pageSize: String(pageSize),
     });
     if (selectedCategoryId) params.set("categoryId", selectedCategoryId);
+    if (sort) params.set("sort", sort);
 
     void apiFetch<PagedResult<SearchRecipeItem>>(
       `/recipes/search?${params}`,
@@ -70,7 +72,7 @@ export function useRecipeSearch(
     );
 
     return () => controller.abort();
-  }, [requestKey, query, selectedCategoryId, page, pageSize]);
+  }, [requestKey, query, selectedCategoryId, sort, page, pageSize]);
 
   if (!requestKey) {
     return { data: null, isLoading: false, error: null };

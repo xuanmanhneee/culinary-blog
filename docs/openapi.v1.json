@@ -7,7 +7,7 @@
   },
   "servers": [
     {
-      "url": "http://localhost:5000/"
+      "url": "http://127.0.0.1:5077/"
     }
   ],
   "paths": {
@@ -39,8 +39,8 @@
               }
             }
           },
-          "400": {
-            "description": "Bad Request",
+          "422": {
+            "description": "Unprocessable Entity",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -125,8 +125,8 @@
               }
             }
           },
-          "400": {
-            "description": "Bad Request",
+          "422": {
+            "description": "Unprocessable Entity",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -137,6 +137,77 @@
           },
           "401": {
             "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/google": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Đăng nhập hoặc đăng ký bằng Google",
+        "operationId": "GoogleLogin",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GoogleLoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponseDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -176,8 +247,8 @@
               }
             }
           },
-          "400": {
-            "description": "Bad Request",
+          "422": {
+            "description": "Unprocessable Entity",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -320,8 +391,8 @@
               }
             }
           },
-          "400": {
-            "description": "Bad Request",
+          "422": {
+            "description": "Unprocessable Entity",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -364,7 +435,7 @@
           "Recipes"
         ],
         "summary": "Danh sách công thức (phân trang, lọc, sắp xếp)",
-        "description": "FR-RCP-001. Không gửi token: chỉ recipe Published. Gửi token: thêm Draft/Archived của chính mình; Admin thấy mọi trạng thái. sort: createdAt | title | cookTime, thêm \"-\" để giảm dần (mặc định -createdAt). pageSize 1–50 (mặc định 12). categoryId không tồn tại trả danh sách rỗng.",
+        "description": "FR-RCP-001. Không gửi token: chỉ recipe Published. Gửi token: thêm Draft/Archived của chính mình; mine=true: chỉ lấy công thức của người hiện tại ở mọi trạng thái. Admin thấy mọi trạng thái khi mine=false. sort: createdAt | updatedAt | title | cookTime, thêm \"-\" để giảm dần (mặc định -createdAt). pageSize 1–50 (mặc định 12). categoryId không tồn tại trả danh sách rỗng.",
         "operationId": "GetRecipes",
         "parameters": [
           {
@@ -445,10 +516,25 @@
             }
           },
           {
+            "name": "Status",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/RecipeStatus"
+            }
+          },
+          {
             "name": "Sort",
             "in": "query",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "Mine",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
             }
           }
         ],
@@ -463,8 +549,8 @@
               }
             }
           },
-          "400": {
-            "description": "Bad Request",
+          "422": {
+            "description": "Unprocessable Entity",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -480,7 +566,7 @@
           "Recipes"
         ],
         "summary": "Tạo công thức",
-        "description": "FR-RCP-003. Tác giả là người đang đăng nhập; recipe mới luôn ở trạng thái Draft, slug sinh từ title. Có thể gửi kèm nutrition, ingredients, steps. Trùng slug: 409 RECIPE_SLUG_EXISTS.",
+        "description": "FR-RCP-003. Tác giả là người đang đăng nhập; recipe mới luôn ở trạng thái Draft, slug sinh từ title và tự thêm hậu tố nếu trùng. Có thể gửi kèm nutrition, ingredients, steps.",
         "operationId": "CreateRecipe",
         "requestBody": {
           "content": {
@@ -523,22 +609,12 @@
               }
             }
           },
-          "400": {
-            "description": "Bad Request",
+          "422": {
+            "description": "Unprocessable Entity",
             "content": {
               "application/problem+json": {
                 "schema": {
                   "$ref": "#/components/schemas/HttpValidationProblemDetails"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Conflict",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -557,7 +633,7 @@
           "Recipes"
         ],
         "summary": "Tìm kiếm toàn văn công thức đã xuất bản",
-        "description": "Tìm theo tiêu đề và mô tả; hỗ trợ phân trang, pageSize từ 1 đến 50.",
+        "description": "FR-SEARCH-001/003. Tìm theo từ khóa q (tối thiểu 2 ký tự), lọc categoryId, phân trang và sắp xếp theo createdAt, title hoặc cookTime; thêm '-' để giảm dần.",
         "operationId": "SearchRecipes",
         "parameters": [
           {
@@ -631,6 +707,13 @@
               ],
               "format": "int32"
             }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -644,8 +727,8 @@
               }
             }
           },
-          "400": {
-            "description": "Bad Request",
+          "422": {
+            "description": "Unprocessable Entity",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -709,13 +792,98 @@
         }
       }
     },
+    "/api/v1/recipes/deleted": {
+      "get": {
+        "tags": [
+          "Recipes"
+        ],
+        "summary": "Danh sách công thức đã xóa",
+        "description": "FR-RCP-011. Author chỉ thấy công thức của mình; Admin thấy mọi công thức đã xóa.",
+        "operationId": "GetDeletedRecipes",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32",
+              "default": 12
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResultOfRecipeListItemDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
     "/api/v1/recipes/by-id/{id}": {
       "get": {
         "tags": [
           "Recipes"
         ],
         "summary": "Chi tiết công thức theo id (trang chỉnh sửa)",
-        "description": "FR-RCP-004. Chỉ owner hoặc Admin. Trả header ETag = rowVersion, gửi lại qua If-Match khi cập nhật.",
+        "description": "FR-RCP-004. Chỉ owner. Trả header ETag = rowVersion, gửi lại qua If-Match khi cập nhật.",
         "operationId": "GetRecipeById",
         "parameters": [
           {
@@ -783,7 +951,7 @@
           "Recipes"
         ],
         "summary": "Cập nhật công thức (kiểm soát đồng thời bằng If-Match)",
-        "description": "FR-RCP-004. Gửi rowVersion qua header If-Match (hoặc field rowVersion). Bản cũ: 422 RECIPE_CONCURRENCY_CONFLICT. Slug chỉ đổi theo title khi còn Draft (trùng: 409). Response kèm ETag mới.",
+        "description": "FR-RCP-004. Gửi rowVersion qua header If-Match (hoặc field rowVersion). Bản cũ: 409 RECIPE_CONCURRENCY_CONFLICT. Slug chỉ đổi theo title khi còn Draft và tự thêm hậu tố nếu trùng. Response kèm ETag mới.",
         "operationId": "UpdateRecipe",
         "parameters": [
           {
@@ -837,8 +1005,8 @@
               }
             }
           },
-          "400": {
-            "description": "Bad Request",
+          "422": {
+            "description": "Unprocessable Entity",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -866,16 +1034,6 @@
                 }
               }
             }
-          },
-          "422": {
-            "description": "Unprocessable Entity",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
           }
         },
         "security": [
@@ -888,8 +1046,8 @@
         "tags": [
           "Recipes"
         ],
-        "summary": "Xóa vĩnh viễn công thức",
-        "description": "FR-RCP-007. Hard delete; nguyên liệu, bước, ảnh bị xóa theo (cascade).",
+        "summary": "Xóa mềm công thức",
+        "description": "FR-RCP-007. Đánh dấu công thức đã xóa và ẩn khỏi các truy vấn; giữ file ảnh để có thể khôi phục.",
         "operationId": "DeleteRecipe",
         "parameters": [
           {
@@ -1158,13 +1316,74 @@
         ]
       }
     },
+    "/api/v1/recipes/{id}/restore": {
+      "patch": {
+        "tags": [
+          "Recipes"
+        ],
+        "summary": "Khôi phục công thức đã xóa",
+        "description": "FR-RCP-011. Owner khôi phục công thức của mình; Admin khôi phục được mọi công thức.",
+        "operationId": "RestoreRecipe",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
     "/api/v1/recipes/{recipeId}/ingredients": {
       "post": {
         "tags": [
           "Recipe Ingredients"
         ],
         "summary": "Thêm nguyên liệu",
-        "description": "FR-RCP-009. Chỉ owner hoặc Admin. Không gửi orderIndex thì xếp cuối danh sách.",
+        "description": "FR-RCP-009. Chỉ owner. Không gửi orderIndex thì xếp cuối danh sách.",
         "operationId": "AddRecipeIngredient",
         "parameters": [
           {
@@ -1228,8 +1447,8 @@
               }
             }
           },
-          "400": {
-            "description": "Bad Request",
+          "422": {
+            "description": "Unprocessable Entity",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1325,8 +1544,8 @@
               }
             }
           },
-          "400": {
-            "description": "Bad Request",
+          "422": {
+            "description": "Unprocessable Entity",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1481,8 +1700,8 @@
               }
             }
           },
-          "400": {
-            "description": "Bad Request",
+          "422": {
+            "description": "Unprocessable Entity",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1578,8 +1797,8 @@
               }
             }
           },
-          "400": {
-            "description": "Bad Request",
+          "422": {
+            "description": "Unprocessable Entity",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1670,7 +1889,7 @@
           "Recipe Images"
         ],
         "summary": "Tải ảnh lên cho công thức",
-        "description": "FR-FILE-001. Chỉ owner hoặc Admin; hỗ trợ JPEG, PNG, WebP, AVIF, tối đa 5 MB.",
+        "description": "FR-FILE-001. Chỉ owner; hỗ trợ JPEG, PNG, WebP, AVIF, tối đa 5 MB.",
         "operationId": "UploadRecipeImage",
         "parameters": [
           {
@@ -1742,8 +1961,8 @@
               }
             }
           },
-          "400": {
-            "description": "Bad Request",
+          "422": {
+            "description": "Unprocessable Entity",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1918,8 +2137,8 @@
               }
             }
           },
-          "400": {
-            "description": "Bad Request",
+          "422": {
+            "description": "Unprocessable Entity",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2074,8 +2293,8 @@
               }
             }
           },
-          "400": {
-            "description": "Bad Request",
+          "422": {
+            "description": "Unprocessable Entity",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2196,10 +2415,25 @@
             }
           },
           {
+            "name": "Status",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/RecipeStatus"
+            }
+          },
+          {
             "name": "Sort",
             "in": "query",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "Mine",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
             }
           }
         ],
@@ -2224,8 +2458,8 @@
               }
             }
           },
-          "400": {
-            "description": "Bad Request",
+          "422": {
+            "description": "Unprocessable Entity",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2331,10 +2565,25 @@
             }
           },
           {
+            "name": "Status",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/RecipeStatus"
+            }
+          },
+          {
             "name": "Sort",
             "in": "query",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "Mine",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
             }
           }
         ],
@@ -2359,8 +2608,8 @@
               }
             }
           },
-          "400": {
-            "description": "Bad Request",
+          "422": {
+            "description": "Unprocessable Entity",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2431,8 +2680,8 @@
               }
             }
           },
-          "400": {
-            "description": "Bad Request",
+          "422": {
+            "description": "Unprocessable Entity",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2535,6 +2784,481 @@
             "Bearer": [ ]
           }
         ]
+      }
+    },
+    "/api/v1/categories/{id}/image": {
+      "post": {
+        "tags": [
+          "Categories"
+        ],
+        "summary": "Tải ảnh danh mục",
+        "operationId": "UploadCategoryImage",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "required": [
+                  "file"
+                ],
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "$ref": "#/components/schemas/IFormFile"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/users/{id}/role": {
+      "patch": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Thay đổi vai trò người dùng",
+        "operationId": "UpdateUserRole",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserRoleRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/users/{id}/status": {
+      "patch": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Khóa hoặc mở khóa tài khoản người dùng",
+        "operationId": "UpdateUserStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserStatusRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/users/{id}": {
+      "delete": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Xóa tài khoản người dùng",
+        "operationId": "DeleteUser",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/users": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Danh sách người dùng dành cho quản trị viên",
+        "description": "Phân trang, tìm theo tên/email/tên đăng nhập và lọc theo vai trò Admin hoặc Author.",
+        "operationId": "GetUsers",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32",
+              "default": 20
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResultOfUserListItemDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/saved-recipes/{path}": {
+      "get": {
+        "tags": [
+          "EngagementProxyEndpoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "EngagementProxyEndpoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "EngagementProxyEndpoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/ratings/{path}": {
+      "get": {
+        "tags": [
+          "EngagementProxyEndpoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "EngagementProxyEndpoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "EngagementProxyEndpoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
       }
     }
   },
@@ -2670,8 +3394,7 @@
       },
       "CreateCategoryRequest": {
         "required": [
-          "name",
-          "slug"
+          "name"
         ],
         "type": "object",
         "properties": {
@@ -2679,7 +3402,10 @@
             "type": "string"
           },
           "slug": {
-            "type": "string"
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "description": {
             "type": [
@@ -2861,6 +3587,17 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "GoogleLoginRequest": {
+        "required": [
+          "idToken"
+        ],
+        "type": "object",
+        "properties": {
+          "idToken": {
+            "type": "string"
           }
         }
       },
@@ -3056,6 +3793,55 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/RecipeSummaryDto"
+            }
+          },
+          "totalCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "page": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "pageSize": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "totalPages": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "hasNextPage": {
+            "type": "boolean"
+          },
+          "hasPreviousPage": {
+            "type": "boolean"
+          }
+        }
+      },
+      "PagedResultOfUserListItemDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserListItemDto"
             }
           },
           "totalCount": {
@@ -3414,6 +4200,7 @@
           "difficulty",
           "status",
           "createdAt",
+          "updatedAt",
           "publishedAt",
           "primaryImageUrl",
           "category",
@@ -3465,6 +4252,10 @@
             "$ref": "#/components/schemas/RecipeStatus"
           },
           "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
             "type": "string",
             "format": "date-time"
           },
@@ -3782,6 +4573,12 @@
               "null",
               "string"
             ]
+          },
+          "bio": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -3916,6 +4713,85 @@
           }
         }
       },
+      "UpdateUserRoleRequest": {
+        "required": [
+          "role"
+        ],
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string"
+          }
+        }
+      },
+      "UpdateUserStatusRequest": {
+        "required": [
+          "isLocked"
+        ],
+        "type": "object",
+        "properties": {
+          "isLocked": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          }
+        }
+      },
+      "UserListItemDto": {
+        "required": [
+          "id",
+          "fullName",
+          "email",
+          "userName",
+          "avatarUrl",
+          "roles",
+          "emailConfirmed",
+          "isActive",
+          "isLocked",
+          "createdAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "fullName": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "userName": {
+            "type": "string"
+          },
+          "avatarUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "emailConfirmed": {
+            "type": "boolean"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "isLocked": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "UserProfileDto": {
         "required": [
           "id",
@@ -3923,6 +4799,7 @@
           "email",
           "userName",
           "avatarUrl",
+          "bio",
           "roles",
           "emailConfirmed",
           "createdAt"
@@ -3942,6 +4819,12 @@
             "type": "string"
           },
           "avatarUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "bio": {
             "type": [
               "null",
               "string"
@@ -3990,6 +4873,12 @@
     },
     {
       "name": "Categories"
+    },
+    {
+      "name": "Users"
+    },
+    {
+      "name": "EngagementProxyEndpoints"
     }
   ]
 }

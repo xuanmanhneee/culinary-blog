@@ -18,7 +18,7 @@ internal static class RecipeUseCaseSupport
     private const int TitleMinLength = 5;
     private const int TitleMaxLength = 200;
     private static readonly string[] SortOptions =
-        ["createdAt", "-createdAt", "title", "-title", "cookTime", "-cookTime"];
+        ["createdAt", "-createdAt", "updatedAt", "-updatedAt", "title", "-title", "cookTime", "-cookTime"];
 
     public static void ValidateQuery(RecipeQuery query)
     {
@@ -30,8 +30,6 @@ internal static class RecipeUseCaseSupport
         if (query.MinPrepTime is < 0) errors["minPrepTime"] = ["minPrepTime không được âm."];
         if (query.MaxCookTime is < 0) errors["maxCookTime"] = ["maxCookTime không được âm."];
         if (query.MinServings is < 0) errors["minServings"] = ["minServings không được âm."];
-        if (query.MinPrepTime.HasValue && query.MaxCookTime.HasValue && query.MinPrepTime > query.MaxCookTime)
-            errors["minPrepTime"] = ["minPrepTime không được lớn hơn maxCookTime."];
         if (query.Sort is not null && !SortOptions.Contains(query.Sort)) errors["sort"] = [$"sort chỉ nhận: {string.Join(", ", SortOptions)}."];
         if (errors.Count > 0) throw new ValidationException(errors);
     }
@@ -63,6 +61,19 @@ internal static class RecipeUseCaseSupport
     public static NotFoundException RecipeNotFound(Guid id) =>
         new(ErrorCodes.RecipeNotFound, $"Recipe '{id}' không tồn tại.");
 
+    public static async Task<string> GenerateUniqueSlugAsync(
+        string title,
+        IRecipeRepository recipes,
+        CancellationToken ct,
+        string? currentSlug = null)
+    {
+        var baseSlug = SlugHelper.Generate(title);
+        var slug = baseSlug;
+        for (var suffix = 2; slug != currentSlug && await recipes.SlugExistsAsync(slug, ct); suffix++)
+            slug = $"{baseSlug}-{suffix}";
+        return slug;
+    }
+
     public static RecipeNutrition MapNutrition(NutritionRequest nutrition) => new()
     {
         Calories = nutrition.Calories, Protein = nutrition.Protein,
@@ -92,7 +103,7 @@ internal static class RecipeUseCaseSupport
 
     public static RecipeListItemDto MapListItem(Recipe recipe) => new(
         recipe.Id, recipe.Title, recipe.Slug, recipe.Description, recipe.PrepTime, recipe.CookTime,
-        recipe.Servings, recipe.Difficulty, recipe.Status, recipe.CreatedAt, recipe.PublishedAt,
+        recipe.Servings, recipe.Difficulty, recipe.Status, recipe.CreatedAt, recipe.UpdatedAt ?? recipe.CreatedAt, recipe.PublishedAt,
         recipe.Images.FirstOrDefault(i => i.IsPrimary)?.OriginalUrl,
         recipe.Category is null ? null : new RecipeCategoryDto(recipe.Category.Id, recipe.Category.Name, recipe.Category.Slug),
         recipe.Author is null ? null : new RecipeAuthorDto(recipe.Author.Id, recipe.Author.DisplayName, recipe.Author.AvatarUrl));

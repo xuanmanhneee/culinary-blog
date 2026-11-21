@@ -1,5 +1,7 @@
 # Culinary Blog - System Design Summary
 
+> **Lưu ý:** tài liệu này là ảnh chụp trạng thái ở giai đoạn đầu (trước khi chuyển sang CQRS, chia mô đun, thêm Auth, tìm kiếm, ảnh và dịch vụ Engagement). Một số nhận định về Service pattern, cache và container không còn đúng; trạng thái hiện hành xem `ARCHITECTURE_MAPPING.md`, `BACKEND_REFERENCE.md` và `DESIGN_DECISIONS.md`.
+
 > Mục đích: bản đồ ngắn gọn giúp thành viên nắm toàn bộ hệ thống trước khi đọc chi tiết source.
 >
 > Trạng thái rà soát: 2026-10-20. Source đang checkout tại nhánh `2312686_lab05`; nhánh này đang đi trước `main` 4 commit tại thời điểm rà soát.
@@ -146,7 +148,7 @@ Quy tắc quan trọng:
 
 - Recipe mới luôn là `Draft`.
 - Guest chỉ xem `Published`.
-- Owner hoặc Admin mới được sửa/xóa/đổi trạng thái.
+- Chỉ owner được sửa nội dung; owner hoặc Admin được publish/unpublish/xóa.
 - Publish yêu cầu tối thiểu các dữ liệu mà business rule quy định.
 - Update recipe dùng `RowVersion`/ETag để kiểm soát concurrent writes.
 - Slug là định danh URL công khai và cần ổn định sau khi publish.
@@ -178,7 +180,7 @@ Update/delete category chưa được triển khai.
 
 - `GET /recipes`
 - `GET /recipes/{slug}`
-- `GET /recipes/{id}` - Owner/Admin
+- `GET /recipes/{id}` - Owner
 - `POST /recipes`
 - `PUT /recipes/{id}`
 - `PATCH /recipes/{id}/publish`
@@ -241,13 +243,16 @@ Nguyên tắc:
 
 `docker-compose.yml` hiện cung cấp:
 
-- PostgreSQL.
+- Nginx (`nginx:1.27-alpine`): TLS termination, reverse proxy, rate limit thô theo IP, readiness gate (cổng 80/443).
+- Frontend (Next.js standalone).
+- API và Engagement service.
+- PostgreSQL (2 instance: API và Engagement).
 - Redis.
 - MinIO.
 - Seq.
 - Mailhog.
 
-API, frontend và Nginx chưa được container hóa trong compose hiện tại dù SRS mô tả đầy đủ các service này.
+Nginx là điểm vào duy nhất: `/api/*` và `/health*` chuyển tới API, còn lại chuyển tới frontend. Request tới `/` và `/api/` chỉ được chuyển tiếp khi `/health/ready` của API trả 2xx; PostgreSQL lỗi thì Nginx trả 503 (SRS Reliability). Chứng chỉ self-signed được tự sinh cho dev; môi trường production đặt `tls.crt`/`tls.key` vào `nginx/certs/`.
 
 Redis container tồn tại nhưng source mới có `LoggingCacheService`; chưa có distributed cache thật. Health check hiện mới kiểm tra database, chưa kiểm tra Redis/MinIO như mô tả.
 
@@ -265,7 +270,7 @@ Core API
 
 - Sở hữu upload, MIME validation, resize và object lifecycle.
 - Không được truy cập trực tiếp bảng Recipes.
-- Core API kiểm tra owner/Admin và lưu image metadata.
+- Core API kiểm tra owner và lưu image metadata.
 
 ### Search Service
 

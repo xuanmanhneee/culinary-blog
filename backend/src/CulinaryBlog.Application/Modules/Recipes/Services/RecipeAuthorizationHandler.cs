@@ -8,7 +8,7 @@ namespace CulinaryBlog.Application.Recipes.Services;
 /// <summary>
 /// NFR-SEC-006: kiểm tra quyền trên từng recipe tại Application Layer (resource ownership).
 /// Endpoint đã chặn theo role (AuthorPolicy); lớp này chặn tiếp theo chủ sở hữu:
-/// Author chỉ thao tác trên recipe của mình, Admin thao tác trên mọi recipe.
+/// Author chỉ thao tác trên recipe của mình; Admin chỉ được kiểm duyệt trạng thái hoặc xóa recipe của người khác.
 /// </summary>
 public sealed class RecipeAuthorizationHandler
 {
@@ -36,14 +36,22 @@ public sealed class RecipeAuthorizationHandler
         (_currentUser.UserId is { } userId &&
          string.Equals(recipe.AuthorId, userId, StringComparison.Ordinal));
 
-    /// <summary>Sửa, xóa, đổi trạng thái, quản lý nguyên liệu/bước/ảnh: chỉ owner hoặc Admin.</summary>
+    /// <summary>Sửa nội dung, lưu trữ, quản lý nguyên liệu/bước/ảnh: chỉ owner.</summary>
     public void EnsureCanModify(Recipe recipe)
     {
-        if (!IsOwnerOrAdmin(recipe))
+        if (!string.Equals(recipe.AuthorId, CurrentUserId, StringComparison.Ordinal))
             throw new ForbiddenException(ErrorCodes.RecipeForbidden, "Bạn không có quyền thao tác trên công thức này.");
         if (!_currentUser.IsAdmin && !_currentUser.IsEmailConfirmed)
             throw new ForbiddenException(ErrorCodes.RecipeForbidden, "Tài khoản cần xác nhận email trước khi quản lý công thức.");
+    }
 
+    /// <summary>Xuất bản, đưa về bản nháp hoặc xóa: owner hoặc Admin.</summary>
+    public void EnsureCanModerate(Recipe recipe)
+    {
+        if (!IsOwnerOrAdmin(recipe))
+            throw new ForbiddenException(ErrorCodes.RecipeForbidden, "Bạn không có quyền kiểm duyệt công thức này.");
+        if (!_currentUser.IsAdmin && !_currentUser.IsEmailConfirmed)
+            throw new ForbiddenException(ErrorCodes.RecipeForbidden, "Tài khoản cần xác nhận email trước khi quản lý công thức.");
     }
 
     /// <summary>FR-RCP-002: recipe Published ai cũng xem được; Draft/Archived chỉ owner hoặc Admin.</summary>

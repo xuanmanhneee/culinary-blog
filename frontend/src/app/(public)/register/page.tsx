@@ -67,29 +67,29 @@ export default function RegisterPage() {
 
   return (
     <section className="site-container grid min-h-[calc(100vh-74px)] items-center gap-8 py-6 sm:py-10 lg:grid-cols-2 lg:gap-12">
-      <div className="hidden h-[560px] overflow-hidden rounded-[2rem] bg-[linear-gradient(145deg,#b65338,#7d3828)] p-10 text-white lg:flex lg:flex-col lg:justify-between">
-        <p className="text-xs font-bold uppercase tracking-[.18em] text-[#f3d7c6]">Gia nhập Bếp Nhà</p>
+      <div className="hidden h-[560px] overflow-hidden rounded-2xl bg-primary p-10 text-white lg:flex lg:flex-col lg:justify-between">
+        <p className="text-xs font-bold uppercase tracking-[.18em] text-accent-soft">Gia nhập Bếp Nhà</p>
         <blockquote className="font-display max-w-lg text-4xl leading-[1.08] font-bold tracking-[-.04em]">“Món ngon nhất luôn bắt đầu từ một căn bếp có người sẻ chia.”</blockquote>
         <p className="text-sm text-white/70">Lưu món yêu thích · Viết công thức · Kể câu chuyện của bạn</p>
       </div>
       <div className="mx-auto w-full max-w-md">
-        <p className="text-xs font-bold uppercase tracking-[.17em] text-[#b65338]">Tạo tài khoản</p>
-        <h1 className="font-display mt-2 text-3xl font-bold tracking-[-.045em] text-[#2f2925] sm:text-5xl">Mở căn bếp riêng</h1>
-        <p className="mt-1 text-xs leading-5 text-[#746a62] sm:text-sm sm:leading-6">Chỉ mất một phút để bắt đầu lưu và chia sẻ những món ngon.</p>
+        <p className="text-xs font-bold uppercase tracking-[.17em] text-accent">Tạo tài khoản</p>
+        <h1 className="font-display mt-2 text-3xl font-bold tracking-[-.045em] text-foreground sm:text-5xl">Mở căn bếp riêng</h1>
+        <p className="mt-1 text-xs leading-5 text-muted-foreground sm:text-sm sm:leading-6">Chỉ mất một phút để bắt đầu lưu và chia sẻ những món ngon.</p>
         <form onSubmit={handleSubmit} className="mt-4 space-y-2 sm:mt-5 sm:space-y-3">
           <Field icon={UserRound} label="Họ và tên"><input name="fullName" required minLength={2} maxLength={100} className="h-10 w-full bg-transparent text-sm outline-none sm:h-11" /></Field>
           <Field icon={AtSign} label="Tên đăng nhập"><input name="userName" required pattern="[A-Za-z0-9_.-]+" title="Chỉ dùng chữ, số và các ký tự _ . -" className="h-10 w-full bg-transparent text-sm outline-none sm:h-11" /></Field>
           <Field icon={Mail} label="Email"><input name="email" type="email" required className="h-10 w-full bg-transparent text-sm outline-none sm:h-11" /></Field>
           <Field icon={LockKeyhole} label="Mật khẩu">
             <input name="password" type={showPassword ? "text" : "password"} required minLength={8} className="h-10 w-full bg-transparent text-sm outline-none sm:h-11" />
-            <button type="button" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}><Eye className="size-4 text-[#776d65]" /></button>
+            <button type="button" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}><Eye className="size-4 text-muted-foreground" /></button>
           </Field>
           <Field icon={LockKeyhole} label="Xác nhận mật khẩu"><input name="confirmPassword" type={showPassword ? "text" : "password"} required minLength={8} className="h-10 w-full bg-transparent text-sm outline-none sm:h-11" /></Field>
-          <p className="text-xs leading-4 text-[#847971]">Mật khẩu cần ít nhất 8 ký tự, gồm chữ hoa, chữ thường, số và ký tự đặc biệt.</p>
-          {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
+          <p className="text-xs leading-4 text-muted-foreground">Mật khẩu cần ít nhất 8 ký tự, gồm chữ hoa, chữ thường, số và ký tự đặc biệt.</p>
+          {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
           <Button type="submit" className="h-11 w-full" disabled={isSubmitting}>{isSubmitting ? "Đang tạo tài khoản..." : "Đăng ký"}<ArrowRight /></Button>
         </form>
-        <p className="mt-6 text-center text-sm text-[#746a62]">Đã có tài khoản? <Link href="/login" onClick={(event) => { event.preventDefault(); router.push(`/login?callbackUrl=${encodeURIComponent(getCallbackUrl(callbackFallback))}`); }} className="font-bold text-[#1f4b3f]">Đăng nhập</Link></p>
+        <p className="mt-6 text-center text-sm text-muted-foreground">Đã có tài khoản? <Link href="/login" onClick={(event) => { event.preventDefault(); router.push(`/login?callbackUrl=${encodeURIComponent(getCallbackUrl(callbackFallback))}`); }} className="font-bold text-primary">Đăng nhập</Link></p>
       </div>
     </section>
   );
@@ -102,5 +102,5 @@ function getCallbackUrl(fallback: string): string {
 }
 
 function Field({ icon: Icon, label, children }: { icon: typeof UserRound; label: string; children: ReactNode }) {
-  return <label className="block"><span className="mb-1 block text-xs font-bold text-[#48413b] sm:mb-2 sm:text-sm">{label}</span><span className="flex items-center gap-3 rounded-xl border border-[#d9cdbf] bg-white px-4"><Icon className="size-4 shrink-0 text-[#998e84]" />{children}</span></label>;
+  return <label className="block"><span className="mb-1 block text-xs font-bold text-foreground sm:mb-2 sm:text-sm">{label}</span><span className="flex items-center gap-3 rounded-xl border border-border bg-card px-4"><Icon className="size-4 shrink-0 text-muted-foreground" />{children}</span></label>;
 }

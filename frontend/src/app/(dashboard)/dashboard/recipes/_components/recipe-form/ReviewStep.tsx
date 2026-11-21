@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Save } from "lucide-react";
 import { RecipeDifficultyBadge } from "@/components/recipes/RecipeDifficultyBadge";
@@ -49,17 +49,15 @@ export function ReviewStep({ categories, isSubmitting, onSubmit, serverErrors }:
     mode: "onTouched",
   });
   const { errors } = form.formState;
+  const values = useWatch({ control: form.control });
   // Backend báo lỗi chung "nutrition" → hiện ở ô đầu tiên; "nutrition.x" → ô x.
   useServerErrors(form.setError, serverErrors, 3, (path) =>
     path === "nutrition" ? "calories" : path.replace(/^nutrition\./, ""),
   );
 
   useEffect(() => {
-    const subscription = form.watch((values) =>
-      setNutrition({ ...useRecipeFormStore.getState().draft.nutrition, ...values } as NutritionDraft),
-    );
-    return () => subscription.unsubscribe();
-  }, [form, setNutrition]);
+    setNutrition({ ...useRecipeFormStore.getState().draft.nutrition, ...values } as NutritionDraft);
+  }, [setNutrition, values]);
 
   const { basic, ingredients, steps } = draft;
   const category = categories.find((item) => item.id === basic.categoryId);
@@ -104,8 +102,8 @@ export function ReviewStep({ categories, isSubmitting, onSubmit, serverErrors }:
         </CardHeader>
         <CardContent className="space-y-5 text-sm">
           <div className="space-y-1">
-            <p className="text-xs font-medium tracking-wide text-emerald-700 uppercase">{category?.name ?? "Chưa chọn danh mục"}</p>
-            <h2 className="font-heading text-xl font-semibold">{basic.title || "(Chưa có tiêu đề)"}</h2>
+            <p className="text-xs font-medium tracking-wide text-primary uppercase">{category?.name ?? "Chưa chọn danh mục"}</p>
+            <h2 className="text-lg font-bold">{basic.title || "(Chưa có tiêu đề)"}</h2>
             <p className="text-muted-foreground">{basic.description}</p>
             <div className="flex flex-wrap items-center gap-3 pt-1 text-muted-foreground">
               <span>Chuẩn bị {formatMinutes(basic.prepTimeMinutes)}</span>
@@ -145,7 +143,7 @@ export function ReviewStep({ categories, isSubmitting, onSubmit, serverErrors }:
             </ol>
           </div>
 
-          <details className="rounded-lg border bg-muted/40 p-3">
+          <details className="rounded-xl border bg-muted/40 p-3">
             <summary className="cursor-pointer font-medium">
               Dữ liệu sẽ gửi ({mode === "create" ? "POST /api/v1/recipes" : "PUT /api/v1/recipes/{id}"})
             </summary>

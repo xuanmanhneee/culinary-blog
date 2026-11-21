@@ -12,6 +12,7 @@ import {
   getRecipeById,
   listCategories,
   listMyRecipes,
+  restoreRecipe,
   updateRecipe,
   type MyRecipesQuery,
   type RecipeStatusAction,
@@ -32,6 +33,7 @@ export const recipeKeys = {
   mine: () => [...recipeKeys.all, "mine"] as const,
   mineList: (query: MyRecipesQuery) => [...recipeKeys.mine(), "list", query] as const,
   mineCount: (status: RecipeStatus | "all") => [...recipeKeys.mine(), "count", status] as const,
+  deleted: () => [...recipeKeys.all, "deleted"] as const,
   detail: (id: string) => [...recipeKeys.all, "detail", id] as const,
   categories: ["categories"] as const,
 };
@@ -107,6 +109,15 @@ export function useDeleteRecipe() {
       queryClient.removeQueries({ queryKey: recipeKeys.detail(id) });
       void queryClient.invalidateQueries({ queryKey: recipeKeys.mine() });
     },
+  });
+}
+
+export function useRestoreRecipe() {
+  const { token } = useAccessToken();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => restoreRecipe(id, token),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: recipeKeys.all }),
   });
 }
 

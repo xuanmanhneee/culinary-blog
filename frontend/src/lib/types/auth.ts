@@ -8,9 +8,12 @@ import type { IsoDateTime } from "./api";
 export const Roles = {
   Admin: "Admin",
   Author: "Author",
-  Reader: "Reader",
 } as const;
 export type Role = (typeof Roles)[keyof typeof Roles];
+
+export function canUseDashboard(roles?: readonly Role[]): boolean {
+  return roles?.some((role) => role === Roles.Author || role === Roles.Admin) ?? false;
+}
 
 /** Thông tin user trả kèm token (FR-AUTH-001). `id` là id Identity dạng chuỗi, không phải Guid. */
 export interface AuthUserDto {
@@ -67,7 +70,7 @@ export interface RegisterRequest {
   password: string;
 }
 
-/** POST /api/v1/auth/login. Sai 5 lần → khóa 15 phút (423). */
+/** POST /api/v1/auth/login. Sai 5 lần → khóa 15 phút (403 ACCOUNT_LOCKED khi mật khẩu đúng). */
 export interface LoginRequest {
   email: string;
   password: string;

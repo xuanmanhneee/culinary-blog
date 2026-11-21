@@ -1,9 +1,7 @@
 using CulinaryBlog.Application.Common.Exceptions;
-using CulinaryBlog.Application.Common.Helpers;
 using CulinaryBlog.Application.Recipes.Models;
 using CulinaryBlog.Application.Recipes.Services;
 using CulinaryBlog.Domain.Common;
-using CulinaryBlog.Domain.Common.Exceptions;
 using CulinaryBlog.Domain.Modules.Categories;
 using CulinaryBlog.Domain.Modules.Recipes;
 using MediatR;
@@ -42,9 +40,7 @@ internal sealed class CreateRecipeCommandHandler
             throw new ValidationException("categoryId", "Category không hợp lệ.");
 
         var title = request.Title.Trim();
-        var slug = SlugHelper.Generate(title);
-        if (await _recipes.SlugExistsAsync(slug, ct))
-            throw new ConflictException(ErrorCodes.RecipeSlugExists, $"Slug '{slug}' đã tồn tại.");
+        var slug = await RecipeUseCaseSupport.GenerateUniqueSlugAsync(title, _recipes, ct);
 
         var recipe = Recipe.Create(title, slug, request.Description.Trim(), request.Instructions?.Trim() ?? string.Empty,
             request.CategoryId, authorId, request.PrepTimeMinutes, request.CookTimeMinutes, request.Servings, request.Difficulty);
