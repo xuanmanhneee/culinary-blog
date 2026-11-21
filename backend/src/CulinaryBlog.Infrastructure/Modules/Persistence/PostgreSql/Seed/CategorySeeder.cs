@@ -1,90 +1,77 @@
+using CulinaryBlog.Application.Common.Helpers;
 using CulinaryBlog.Domain.Modules.Categories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace CulinaryBlog.Infrastructure.Modules.Persistence.PostgreSql.Seed;
 
-/// <summary>
-/// Sinh dữ liệu mẫu cho module Categories.
-/// Dùng danh sách tên cố định (thay vì Bogus random) vì tên danh mục món ăn
-/// cần có nghĩa thực tế, không thể sinh ngẫu nhiên hợp lý được.
-/// Yêu cầu Lab 2: tối thiểu 20 categories.
-/// </summary>
-public class CategorySeeder
+public class CategorySeeder(CulinaryBlogDbContext context, ILogger<CategorySeeder> logger)
 {
-    private static readonly string[] Names =
+    private static readonly (string Name, string Description)[] Categories =
+    [
+        ("Món chính", "Các món mặn dùng cùng cơm, từ món kho đến món xào và áp chảo."),
+        ("Món canh", "Canh rau, canh củ và canh chua cho bữa cơm hằng ngày."),
+        ("Món chay", "Món làm từ rau củ, đậu hũ và nấm."),
+        ("Mì - Phở", "Các món mì, bún và phở dùng làm bữa chính."),
+        ("Salad", "Rau trộn và gỏi có vị chua ngọt."),
+        ("Tráng miệng", "Chè và các món ngọt để dùng sau bữa ăn."),
+        ("Món kho - rim", "Các món kho, rim đậm đà ăn cùng cơm nóng."),
+        ("Hải sản", "Cá, tôm, mực chế biến nhanh gọn và giữ vị tươi."),
+        ("Cơm - Cháo", "Cơm chiên, cơm tấm và cháo cho bữa sáng hoặc bữa trưa nhanh."),
+        ("Bánh - Ăn vặt", "Bánh mặn, bánh ngọt và món ăn vặt dễ làm tại nhà.")
+    ];
+
+    public async Task<IReadOnlyDictionary<string, Category>> SeedAsync()
     {
-        "Món khai vị", "Món chính", "Tráng miệng", "Đồ uống", "Món chay",
-        "Món nướng", "Súp", "Salad", "Bánh mì", "Mì - Phở",
-        "Hải sản", "Món Âu", "Món Á", "Ăn vặt", "Đồ ăn sáng",
-        "Nước sốt & Gia vị", "Bánh ngọt", "Lẩu", "Món hấp", "Món kho",
-        "Món chiên", "Đồ ăn nhanh", "Món cho bé", "Món giảm cân"
-    };
+        var existing = await context.Categories.IgnoreQueryFilters().ToListAsync();
+        var bySlug = existing.ToDictionary(category => category.Slug);
+        var byName = existing.ToDictionary(category => category.Name);
+        var result = new Dictionary<string, Category>();
+        var added = 0;
 
-    private readonly CulinaryBlogDbContext _context;
-    private readonly ILogger<CategorySeeder> _logger;
-
-    public CategorySeeder(CulinaryBlogDbContext context, ILogger<CategorySeeder> logger)
-    {
-        _context = context;
-        _logger = logger;
-    }
-
-    public async Task<List<Category>> SeedAsync()
-    {
-        var existingBySlug = await _context.Categories
-            .IgnoreQueryFilters()
-            .ToDictionaryAsync(category => category.Slug);
-        var categories = new List<Category>(Names.Length);
-        var addedCount = 0;
-        var orderIndex = 0;
-
-        foreach (var name in Names)
+        for (var index = 0; index < Categories.Length; index++)
         {
-            var slug = ToSlug(name);
-            if (existingBySlug.TryGetValue(slug, out var existing))
+            var (name, description) = Categories[index];
+            var slug = SlugHelper.Generate(name, maxLength: 120);
+            if (!bySlug.TryGetValue(slug, out var category) && !byName.TryGetValue(name, out category))
             {
-                categories.Add(existing);
-                orderIndex++;
-                continue;
+                category = Category.Create(name, slug, description, index);
+                context.Categories.Add(category);
+                added++;
             }
 
-            var category = Category.Create(name, slug, $"Các công thức thuộc danh mục {name}.", orderIndex++);
-            categories.Add(category);
-            _context.Categories.Add(category);
-            addedCount++;
+            if (!category.IsDeleted)
+                result.Add(slug, category);
         }
 
-        if (addedCount > 0)
-            await _context.SaveChangesAsync();
+        if (added > 0)
+            await context.SaveChangesAsync();
 
-        _logger.LogInformation(
-            "Category seed: {TotalCount} category sẵn sàng, tạo mới {AddedCount}.",
-            categories.Count,
-            addedCount);
-        return categories;
+        logger.LogInformation("Category seed: thêm {Count} danh mục.", added);
+        return result;
     }
 
-    public static string ToSlug(string input)
+    /// <summary>Danh mục chưa có ảnh dùng ảnh chính của một công thức thuộc danh mục đó (chạy sau khi seed công thức).</summary>
+    public async Task AssignImagesFromRecipesAsync()
     {
-        var normalized = input.Trim().ToLowerInvariant();
-        var noAccent = RemoveDiacritics(normalized);
-        noAccent = noAccent.Replace(" - ", "-").Replace(" & ", "-");
-        var slug = System.Text.RegularExpressions.Regex.Replace(noAccent, @"[^a-z0-9\s-]", "");
-        slug = System.Text.RegularExpressions.Regex.Replace(slug, @"\s+", "-").Trim('-');
-        return slug;
-    }
-
-    private static string RemoveDiacritics(string text)
-    {
-        var normalized = text.Normalize(System.Text.NormalizationForm.FormD);
-        var sb = new System.Text.StringBuilder();
-        foreach (var c in normalized)
+        var categories = await context.Categories.Where(category => category.ImageUrl == null).ToListAsync();
+        var assigned = 0;
+        foreach (var category in categories)
         {
-            var category = System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c);
-            if (category != System.Globalization.UnicodeCategory.NonSpacingMark)
-                sb.Append(c);
+            var imageUrl = await context.RecipeImages
+                .Where(image => image.IsPrimary && image.Recipe!.CategoryId == category.Id)
+                .OrderBy(image => image.Recipe!.Title)
+                .Select(image => image.OriginalUrl)
+                .FirstOrDefaultAsync();
+            if (imageUrl is null) continue;
+
+            category.Update(category.Name, category.Description, imageUrl, category.OrderIndex);
+            assigned++;
         }
-        return sb.ToString().Normalize(System.Text.NormalizationForm.FormC).Replace('đ', 'd').Replace('Đ', 'D');
+
+        if (assigned > 0)
+            await context.SaveChangesAsync();
+
+        logger.LogInformation("Category seed: gán ảnh cho {Count} danh mục.", assigned);
     }
 }

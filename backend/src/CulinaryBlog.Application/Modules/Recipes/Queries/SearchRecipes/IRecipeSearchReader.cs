@@ -15,6 +15,7 @@ public interface IRecipeSearchReader
         RecipeDifficulty? difficulty = null,
         int? maxCookTime = null,
         int? minServings = null,
+        string? sort = null,
         CancellationToken cancellationToken = default);
 }
 

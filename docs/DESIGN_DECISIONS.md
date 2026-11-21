@@ -15,8 +15,8 @@
 
 | # | Chủ đề | Quyết định | Trạng thái |
 |---|---|---|---|
-| 1 | Mã HTTP cho validation | **422** | 🔶 |
-| 2 | Mã HTTP cho concurrency conflict | **409** | 🔶 |
+| 1 | Mã HTTP cho validation | **422** | ✅ |
+| 2 | Mã HTTP cho concurrency conflict | **409** | ✅ |
 | 3 | Xóa recipe | **Soft delete** | ✅ |
 | 4 | Điều kiện publish | **≥ 1 Step** | ✅ |
 | 5 | Slug recipe trùng | **Tự thêm hậu tố** | ✅ |
@@ -34,9 +34,9 @@
 | 17 | Phiên bản Next.js | **15** (App Router) | ✅ |
 | 18 | Lưu refresh token phía client | Chỉ trong request body | ✅ |
 | 19 | Ping sitemap Google | **Bỏ** | ✅ |
-| 20 | CQRS/MediatR vs Service pattern | **Giữ Service pattern** | ✅ |
+| 20 | CQRS/MediatR vs Service pattern | **Dùng CQRS + MediatR** | ✅ |
 | 21 | Tên thuộc tính thời gian | Entity `PrepTime/CookTime`, DTO `*Minutes` | ✅ |
-| 22 | Phân quyền dashboard | Tạo: Author/Admin · Sửa: Owner/Admin | ✅ |
+| 22 | Phân quyền dashboard | Tạo: Author/Admin · Sửa: Owner · Publish/Draft/Xóa: Owner/Admin | ✅ |
 
 ---
 
@@ -145,13 +145,9 @@
 - **Quyết định:** **bỏ bước ping**. Job vẫn sinh `sitemap.xml` hằng ngày 02:00 UTC và `robots.txt` khai báo URL sitemap; việc gửi sitemap thực hiện thủ công qua Google Search Console.
 
 ### 20. CQRS/MediatR vs Service pattern ✅
-- **Mâu thuẫn:** CONS-002, CONS-008, NFR-MAINT-004 yêu cầu CQRS + MediatR + pipeline behaviors; code hiện tại dùng `ICategoryService`, `IRecipeService`, `IRecipeIngredientService`.
-- **Quyết định:** **giữ Service pattern** trong tầng Application; không đưa MediatR vào.
-- **Hệ quả cho các yêu cầu liên quan:**
-  - Validation (CONS-008): đặt trong validators được gọi ở tầng service, không trong endpoint handler.
-  - Logging/performance/caching/invalidation: thực hiện qua decorator hoặc middleware thay cho pipeline behaviors.
-  - Vẫn tách rõ phương thức đọc (query) và ghi (command) trong từng service; mutation đi qua `IUnitOfWork`.
-- **Cần làm:** ghi lại thành ADR và đề nghị CR cho CONS-002 khi cập nhật SRS.
+- **Mâu thuẫn:** CONS-002, CONS-008, NFR-MAINT-004 yêu cầu CQRS + MediatR + pipeline behaviors; giai đoạn đầu code dùng `ICategoryService`, `IRecipeService`, `IRecipeIngredientService`.
+- **Quyết định:** **dùng CQRS + MediatR** theo SRS. Các nghiệp vụ Auth, Categories, Recipes, Users được chuyển từ Service pattern sang command/query/handler (commit `129456c` và `788144a`, 30/10/2026); mã được chia theo mô đun nghiệp vụ trong từng tầng.
+- **Hệ quả:** validation chạy trong `ValidationBehavior`; audit và xóa cache trong `RecipeAuditBehavior`; truy vấn tìm kiếm dùng bộ đọc riêng.
 
 ### 21. Tên thuộc tính thời gian ✅
 - **Mâu thuẫn:** `PrepTime/CookTime` (entity) vs `prepTimeMinutes/cookTimeMinutes` (DTO/FR).

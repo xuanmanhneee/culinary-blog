@@ -1,9 +1,13 @@
-import NextAuth from "next-auth";
+import NextAuth, { CredentialsSignin } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 
 import { API_V1 } from "@/lib/config/env";
 import type { AuthResponseDto, Role } from "@/lib/types/auth";
+
+class AccountLockedError extends CredentialsSignin {
+  code = "account_locked";
+}
 
 /** Các field của backend được gửi kèm trong JWT session của Auth.js. */
 interface BackendSessionToken {
@@ -86,8 +90,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           cache: "no-store",
         });
 
-        // 401 (sai thông tin) và 423 (khóa tạm thời do lockout) đều coi là đăng nhập thất bại.
         if (!response.ok) {
+          const problem = await response.json().catch(() => null) as { type?: string } | null;
+          if (problem?.type === "ACCOUNT_LOCKED") throw new AccountLockedError();
           return null;
         }
 
@@ -175,6 +180,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
 
       const backend = token as typeof token & Partial<BackendSessionToken>;
+      if (backend.error === "RefreshAccessTokenError") return token;
       if (!backend.accessTokenExpiresAt || Date.now() < backend.accessTokenExpiresAt - 30_000) return token;
       return refreshAccessToken(backend);
     },

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -38,15 +38,13 @@ export function BasicInfoStep({
     mode: "onTouched",
   });
   const { errors } = form.formState;
+  const values = useWatch({ control: form.control });
   useServerErrors(form.setError, serverErrors, 0);
 
   // Tự lưu vào store khi gõ để chuyển bước/tải lại trang không mất dữ liệu.
   useEffect(() => {
-    const subscription = form.watch((values) =>
-      setBasic({ ...useRecipeFormStore.getState().draft.basic, ...values } as BasicInfoValues),
-    );
-    return () => subscription.unsubscribe();
-  }, [form, setBasic]);
+    setBasic({ ...useRecipeFormStore.getState().draft.basic, ...values } as BasicInfoValues);
+  }, [setBasic, values]);
 
   return (
     <form
@@ -91,7 +89,7 @@ export function BasicInfoStep({
                   onChange={field.onChange}
                   onBlur={field.onBlur}
                   aria-invalid={!!errors.categoryId}
-                  className="h-9 w-full rounded-md border bg-transparent px-3 text-sm"
+                  className="h-9 w-full rounded-xl border bg-transparent px-3 text-sm"
                 >
                   <option value="">Chọn danh mục</option>
                   {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
@@ -107,7 +105,7 @@ export function BasicInfoStep({
               control={form.control}
               name="difficulty"
               render={({ field }) => (
-                <select id="difficulty" className="h-9 w-full rounded-md border bg-transparent px-3 text-sm" value={String(field.value)} onChange={(event) => field.onChange(Number(event.target.value))}>
+                <select id="difficulty" className="h-9 w-full rounded-xl border bg-transparent px-3 text-sm" value={String(field.value)} onChange={(event) => field.onChange(Number(event.target.value))}>
                   {difficulties.map((value) => <option key={value} value={String(value)}>{RECIPE_DIFFICULTY_LABELS[value]}</option>)}
                 </select>
               )}

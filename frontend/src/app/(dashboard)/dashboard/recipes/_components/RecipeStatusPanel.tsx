@@ -71,7 +71,7 @@ export function RecipeStatusPanel({ recipe, onStatusChanged }: RecipeStatusPanel
   }
 
   return (
-    <section aria-label="Trạng thái công thức" className="rounded-xl border bg-background p-4 sm:p-5">
+    <section aria-label="Trạng thái công thức" className="rounded-xl border bg-card p-4 sm:p-5">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="space-y-1">
           <div className="flex items-center gap-2 text-sm font-medium">
@@ -117,8 +117,8 @@ export function RecipeStatusPanel({ recipe, onStatusChanged }: RecipeStatusPanel
           role={message.tone === "error" ? "alert" : "status"}
           className={
             message.tone === "error"
-              ? "mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
-              : "mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800"
+              ? "mt-4 rounded-xl border border-destructive/10 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+              : "mt-4 rounded-xl border border-primary-soft bg-primary-soft px-4 py-3 text-sm text-primary"
           }
         >
           {message.text}

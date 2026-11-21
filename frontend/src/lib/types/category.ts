@@ -3,6 +3,8 @@
  * CulinaryBlog.Application.Categories.Models.
  */
 import type { Guid } from "./api";
+import type { PagedResult } from "./api";
+import type { RecipeListItemDto } from "./recipe";
 
 /** CategoryDto — dùng cho GET /api/v1/categories và GET /api/v1/categories/{slug}. */
 export interface CategoryDto {
@@ -16,12 +18,17 @@ export interface CategoryDto {
   recipeCount: number;
 }
 
+export interface CategoryDetailDto {
+  category: CategoryDto;
+  recipes: PagedResult<RecipeListItemDto>;
+}
+
 /** POST /api/v1/categories (FR-CAT-003) — chỉ Admin; trùng tên/slug trả 409. */
 export interface CreateCategoryRequest {
   /** 2–100 ký tự, backend tự trim. */
   name: string;
-  /** URL-friendly, backend tự lowercase; trùng thì 409 CATEGORY_SLUG_EXISTS. */
-  slug: string;
+  /** Bỏ trống để backend tạo từ tên. */
+  slug?: string;
   description?: string | null;
   orderIndex?: number;
   imageUrl?: string | null;

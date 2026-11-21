@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
+import { useSession } from "next-auth/react";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { ErrorState } from "@/components/common/ErrorState";
 import { RecipeStatusBadge } from "@/components/recipes/RecipeStatusBadge";
@@ -18,6 +19,7 @@ import { useCategories, useCreateRecipe, useRecipeForEdit, useSaveRecipeEdit } f
 import { useAccessToken } from "@/lib/hooks/useAccessToken";
 import { RECIPE_FORM_STEPS, toCreateRecipeRequest, useRecipeFormStore, type StepDraft } from "@/lib/stores/recipe-form-store";
 import type { RecipeCategoryDto, RecipeDetailDto, RecipeStepDto } from "@/lib/types/recipe";
+import { Roles } from "@/lib/types/auth";
 import { RecipeImagesPanel } from "../RecipeImagesPanel";
 import { RecipeStatusPanel } from "../RecipeStatusPanel";
 import type { SelectedRecipeImage } from "./RecipeImageFilePicker";
@@ -32,11 +34,10 @@ type RecipeFormWizardProps =
   | { mode: "create"; recipeId?: undefined; initialNotice?: undefined }
   | { mode: "edit"; recipeId: string; initialNotice?: string };
 
-/** Lỗi backend → lỗi theo field (400 validation, 409 trùng slug); null nếu không gắn được vào field nào. */
+/** Lỗi backend → lỗi theo field (422 validation); null nếu không gắn được vào field nào. */
 function toServerErrors(error: unknown): ServerErrors | null {
   if (!(error instanceof ApiError)) return null;
   if (error.problem.errors) return error.problem.errors;
-  if (error.code === "RECIPE_SLUG_EXISTS") return { title: [getRecipeErrorMessage(error)] };
   return null;
 }
 
@@ -275,12 +276,12 @@ export function RecipeFormWizard({ mode, recipeId, initialNotice }: RecipeFormWi
   const stepLabel = RECIPE_FORM_STEPS[currentStep]?.label;
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto w-full max-w-6xl space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="space-y-1">
           <BackLink />
           <div className="flex flex-wrap items-center gap-3">
-            <h1 className="font-heading text-2xl font-semibold">
+            <h1 className="text-3xl font-bold tracking-tight">
               {mode === "create" ? "Tạo công thức" : recipe ? `Sửa: ${recipe.title}` : "Sửa công thức"}
             </h1>
             {recipe && <RecipeStatusBadge status={recipe.status} />}
@@ -303,8 +304,8 @@ export function RecipeFormWizard({ mode, recipeId, initialNotice }: RecipeFormWi
           role={notice?.tone === "error" ? "alert" : "status"}
           className={
             notice?.tone === "error"
-              ? "rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
-              : "rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800"
+              ? "rounded-xl border border-destructive/10 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+              : "rounded-xl border border-primary-soft bg-primary-soft px-4 py-3 text-sm text-primary"
           }
         >
           {notice?.text ?? initialNotice}
@@ -320,7 +321,7 @@ export function RecipeFormWizard({ mode, recipeId, initialNotice }: RecipeFormWi
 
       <StepIndicator currentStep={currentStep} completedSteps={completedSteps} onSelect={goToStep} />
 
-      <div className="rounded-xl border bg-background p-4 sm:p-6">
+      <div className="rounded-2xl border border-border bg-card p-5 sm:p-7">
         {!isReady ? (
           <div className="space-y-4" aria-busy="true">
             <Skeleton className="h-9 w-full" />
@@ -405,13 +406,15 @@ async function uploadStepImages(
 }
 
 function BackLink() {
+  const { data: session } = useSession();
+  const label = session?.user.roles?.includes(Roles.Admin) ? "Quản lý công thức" : "Công thức của tôi";
   return (
     <Link
       href="/dashboard/recipes"
       className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
     >
       <ArrowLeft className="size-4" aria-hidden />
-      Công thức của tôi
+      {label}
     </Link>
   );
 }

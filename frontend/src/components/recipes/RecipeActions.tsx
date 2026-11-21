@@ -1,96 +1,132 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
-import { Heart, Loader2, Printer, Share2 } from "lucide-react";
+import { Heart, Printer, Share2, Star } from "lucide-react";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { getRecipeFavoriteStatus, toggleFavoriteRecipe } from "@/lib/api/recipe-management";
+import { getEngagementSummary, rateRecipe, saveRecipe, unsaveRecipe } from "@/lib/api/engagement";
+import type { EngagementSummary } from "@/lib/types/engagement";
+import { Roles } from "@/lib/types/auth";
 
-interface RecipeActionsProps {
-  recipeId: string;
-  title: string;
-}
-
-export function RecipeActions({ recipeId, title }: RecipeActionsProps) {
+export function RecipeActions({ recipeId, slug, title }: { recipeId: string; slug: string; title: string }) {
   const { data: session, status } = useSession();
-  const [isFavorite, setIsFavorite] = useState(false);
-  const [isPending, startTransition] = useTransition();
+  const router = useRouter();
+  const token = session?.accessToken;
+  const isAdmin = session?.user.roles?.includes(Roles.Admin) ?? false;
+  const [summary, setSummary] = useState<EngagementSummary | null>(null);
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (status === "authenticated" && session?.accessToken) {
-      getRecipeFavoriteStatus(recipeId, session.accessToken)
-        .then((res) => setIsFavorite(res.isFavorite))
-        .catch(() => {});
-    }
-  }, [recipeId, session?.accessToken, status]);
+    if (isAdmin) return;
+    const controller = new AbortController();
+    void getEngagementSummary(recipeId, token, controller.signal)
+      .then(setSummary)
+      .catch((error: unknown) => { if (!(error instanceof DOMException && error.name === "AbortError")) setSummary(null); });
+    return () => controller.abort();
+  }, [isAdmin, recipeId, token]);
 
-  async function handleToggleFavorite() {
-    if (status !== "authenticated" || !session?.accessToken) {
-      toast.info("Vui lòng đăng nhập để lưu công thức vào bộ sưu tập!");
+  function requireToken(): string | null {
+    if (token) return token;
+    if (status !== "loading") router.push(`/login?callbackUrl=${encodeURIComponent(window.location.pathname)}`);
+    return null;
+  }
+
+  async function refreshSummary(accessToken: string) {
+    try {
+      setSummary(await getEngagementSummary(recipeId, accessToken));
+    } catch {
+      // Giữ trạng thái hiện tại: lưu/chấm điểm đã thành công, chỉ chưa làm mới được số liệu.
+    }
+  }
+
+  async function toggleSaved() {
+    const accessToken = requireToken();
+    if (!accessToken || busy) return;
+    const previous = summary;
+    const wasSaved = previous?.isSaved ?? false;
+    setBusy(true);
+    if (previous) setSummary({ ...previous, isSaved: !wasSaved });
+    try {
+      if (wasSaved) await unsaveRecipe(recipeId, accessToken);
+      else await saveRecipe(recipeId, slug, accessToken);
+    } catch {
+      setSummary(previous);
+      toast.error("Không thể cập nhật món đã lưu. Vui lòng thử lại.");
+      setBusy(false);
       return;
     }
+    toast.success(wasSaved ? "Đã bỏ lưu công thức." : "Đã lưu vào Món đã lưu.");
+    await refreshSummary(accessToken);
+    setBusy(false);
+  }
 
-    const previousState = isFavorite;
-    setIsFavorite(!previousState);
-
-    startTransition(async () => {
-      try {
-        const res = await toggleFavoriteRecipe(recipeId, session.accessToken);
-        setIsFavorite(res.isFavorite);
-        if (res.isFavorite) {
-          toast.success("Đã lưu công thức vào 'Món đã lưu'!");
-        } else {
-          toast.info("Đã bỏ lưu công thức.");
-        }
-      } catch {
-        setIsFavorite(previousState);
-        toast.error("Không thể cập nhật trạng thái lưu món. Vui lòng thử lại!");
-      }
-    });
+  async function setRating(score: number) {
+    const accessToken = requireToken();
+    if (!accessToken || busy) return;
+    const previous = summary;
+    setBusy(true);
+    if (previous) setSummary({ ...previous, myRating: score });
+    try {
+      await rateRecipe(recipeId, slug, score, accessToken);
+    } catch {
+      setSummary(previous);
+      toast.error("Không thể gửi đánh giá. Vui lòng thử lại.");
+      setBusy(false);
+      return;
+    }
+    toast.success("Cảm ơn bạn đã đánh giá!");
+    await refreshSummary(accessToken);
+    setBusy(false);
   }
 
   async function shareRecipe() {
+    const url = window.location.href;
     if (navigator.share) {
       try {
-        await navigator.share({ title, url: window.location.href });
+        await navigator.share({ title, url });
         return;
-      } catch {
-        // Người dùng hủy chia sẻ
+      } catch (error) {
+        // Người dùng đóng hộp chia sẻ thì không cần làm gì thêm.
+        if (error instanceof DOMException && error.name === "AbortError") return;
       }
     }
 
-    await navigator.clipboard.writeText(window.location.href);
-    toast.success("Đã sao chép liên kết vào bộ nhớ tạm!");
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success("Đã sao chép liên kết.");
+    } catch {
+      toast.error("Không thể sao chép liên kết.");
+    }
   }
 
+  if (isAdmin) return null;
+
   return (
-    <div className="absolute right-5 bottom-5 flex gap-2">
+    <div className="mx-auto mt-4 flex max-w-4xl flex-wrap items-center justify-center gap-2">
+      {summary && <><div className="flex items-center rounded-full bg-card px-2 shadow" aria-label={`Đánh giá trung bình ${summary.averageRating} trên 5`}>
+        {[1, 2, 3, 4, 5].map((score) => (
+          <button key={score} type="button" disabled={busy} onClick={() => void setRating(score)} aria-label={`Đánh giá ${score} sao`} className="grid size-8 place-items-center text-accent disabled:opacity-50">
+            <Star className={`size-4 ${score <= (summary?.myRating ?? 0) ? "fill-current" : ""}`} />
+          </button>
+        ))}
+        <span className="pr-2 text-xs font-bold text-foreground">{summary.ratingCount ? `${summary.averageRating}/5 · ${summary.ratingCount} lượt đánh giá` : "Chưa có đánh giá"}</span>
+      </div>
       <button
         type="button"
-        onClick={() => void handleToggleFavorite()}
-        disabled={isPending}
-        aria-label={isFavorite ? "Bỏ lưu công thức" : "Lưu công thức"}
-        title={isFavorite ? "Bỏ lưu công thức" : "Lưu vào Món đã lưu"}
-        className="grid size-11 place-items-center rounded-full bg-white/90 text-[#3d3732] shadow transition hover:bg-white active:scale-95 disabled:opacity-70"
+        disabled={busy}
+        onClick={() => void toggleSaved()}
+        aria-label={summary?.isSaved ? "Bỏ lưu công thức" : "Lưu công thức"}
+        className="grid size-11 place-items-center rounded-full bg-card text-accent shadow disabled:opacity-50"
       >
-        {isPending ? (
-          <Loader2 className="size-4 animate-spin text-[#b65338]" />
-        ) : (
-          <Heart
-            className={`size-4 transition-colors ${
-              isFavorite
-                ? "fill-[#b65338] text-[#b65338]"
-                : "text-[#3d3732] hover:text-[#b65338]"
-            }`}
-          />
-        )}
+        <Heart className={`size-4 ${summary?.isSaved ? "fill-current" : ""}`} />
       </button>
+      </>}
       <button
         type="button"
         onClick={() => window.print()}
         aria-label="In công thức"
-        title="In công thức"
-        className="grid size-11 place-items-center rounded-full bg-white/90 text-[#3d3732] shadow transition hover:bg-white active:scale-95"
+        className="grid size-11 place-items-center rounded-full bg-card text-foreground shadow"
       >
         <Printer className="size-4" />
       </button>
@@ -98,8 +134,7 @@ export function RecipeActions({ recipeId, title }: RecipeActionsProps) {
         type="button"
         onClick={() => void shareRecipe()}
         aria-label="Chia sẻ công thức"
-        title="Chia sẻ liên kết"
-        className="grid size-11 place-items-center rounded-full bg-white/90 text-[#3d3732] shadow transition hover:bg-white active:scale-95"
+        className="grid size-11 place-items-center rounded-full bg-card text-foreground shadow"
       >
         <Share2 className="size-4" />
       </button>

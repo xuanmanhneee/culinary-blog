@@ -33,20 +33,15 @@ internal sealed class LoginCommandHandler : IRequestHandler<LoginCommand, AuthRe
             throw InvalidCredentials();
         }
 
+        if (!await _users.CheckPasswordAsync(user, request.Password))
+        {
+            if (!await _users.IsLockedOutAsync(user)) await _users.AccessFailedAsync(user);
+            throw InvalidCredentials();
+        }
+
         if (await _users.IsLockedOutAsync(user))
         {
             throw await AuthUseCaseSupport.CreateLockedExceptionAsync(user, _users);
-        }
-
-        if (!await _users.CheckPasswordAsync(user, request.Password))
-        {
-            await _users.AccessFailedAsync(user);
-            if (await _users.IsLockedOutAsync(user))
-            {
-                throw await AuthUseCaseSupport.CreateLockedExceptionAsync(user, _users);
-            }
-
-            throw InvalidCredentials();
         }
 
         await _users.ResetAccessFailedCountAsync(user);

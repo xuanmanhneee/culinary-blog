@@ -5,6 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
+    <NoWarn>$(NoWarn);NU1902</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
@@ -19,7 +20,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\CulinaryBlog.API\CulinaryBlog.API.csproj" />
     <ProjectReference Include="..\..\CulinaryBlog.Application\CulinaryBlog.Application.csproj" />
+    <ProjectReference Include="..\..\CulinaryBlog.Infrastructure\CulinaryBlog.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\..\..\services\CulinaryBlog.Engagement\CulinaryBlog.Engagement.csproj" />
   </ItemGroup>
 
 </Project>

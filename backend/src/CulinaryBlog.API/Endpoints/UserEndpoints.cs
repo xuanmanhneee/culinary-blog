@@ -58,6 +58,8 @@ public static class UserEndpoints
                     return Results.NoContent();
                 }
 
+                await EnsureCanDisableAdministratorAsync(users, user, httpContext.User.GetUserId(), role != Roles.Admin);
+
                 var removed = await users.RemoveFromRolesAsync(user, existingRoles);
                 if (!removed.Succeeded)
                 {
@@ -89,7 +91,7 @@ public static class UserEndpoints
             .WithName("UpdateUserRole")
             .WithSummary("Thay đổi vai trò người dùng")
             .Produces(StatusCodes.Status204NoContent)
-            .ProducesValidationProblem()
+            .ProducesValidationProblem(StatusCodes.Status422UnprocessableEntity)
             .ProducesNotFoundProblem();
 
         group.MapPatch("/{id}/status", async (
@@ -112,6 +114,8 @@ public static class UserEndpoints
                 var user = await users.FindByIdAsync(id)
                     ?? throw new NotFoundException(ErrorCodes.UserNotFound, $"User '{id}' was not found.");
 
+                await EnsureCanDisableAdministratorAsync(users, user, httpContext.User.GetUserId(), isLocked);
+
                 EnsureSucceeded(await users.SetLockoutEnabledAsync(user, true), "update lockout setting");
                 EnsureSucceeded(
                     await users.SetLockoutEndDateAsync(
@@ -133,7 +137,7 @@ public static class UserEndpoints
             .WithName("UpdateUserStatus")
             .WithSummary("Khóa hoặc mở khóa tài khoản người dùng")
             .Produces(StatusCodes.Status204NoContent)
-            .ProducesValidationProblem()
+            .ProducesValidationProblem(StatusCodes.Status422UnprocessableEntity)
             .ProducesNotFoundProblem();
 
         group.MapDelete("/{id}", async (
@@ -145,6 +149,7 @@ public static class UserEndpoints
                 var logger = loggerFactory.CreateLogger("CulinaryBlog.API.Endpoints.UserEndpoints");
                 var user = await users.FindByIdAsync(id)
                     ?? throw new NotFoundException(ErrorCodes.UserNotFound, $"User '{id}' was not found.");
+                await EnsureCanDisableAdministratorAsync(users, user, httpContext.User.GetUserId(), true);
                 EnsureSucceeded(await users.DeleteAsync(user), "delete user");
 
                 logger.LogInformation(
@@ -167,9 +172,9 @@ public static class UserEndpoints
                 Results.Ok(await sender.Send(new GetUsersQuery(page, pageSize, role, search), ct)))
             .WithName("GetUsers")
             .WithSummary("Danh sách người dùng dành cho quản trị viên")
-            .WithDescription("Phân trang, tìm theo tên/email/tên đăng nhập và lọc theo vai trò Admin, Author hoặc Reader.")
+            .WithDescription("Phân trang, tìm theo tên/email/tên đăng nhập và lọc theo vai trò Admin hoặc Author.")
             .Produces<PagedResult<UserListItemDto>>()
-            .ProducesValidationProblem();
+            .ProducesValidationProblem(StatusCodes.Status422UnprocessableEntity);
 
         return app;
     }
@@ -181,6 +186,22 @@ public static class UserEndpoints
             throw new InvalidOperationException(
                 $"Unable to {operation}: {FormatIdentityErrors(result)}");
         }
+    }
+
+    private static async Task EnsureCanDisableAdministratorAsync(
+        UserManager<ApplicationUser> users,
+        ApplicationUser target,
+        string? administratorId,
+        bool removesAccess)
+    {
+        if (!removesAccess) return;
+        var targetIsAdmin = await users.IsInRoleAsync(target, Roles.Admin);
+        var administratorCount = targetIsAdmin ? (await users.GetUsersInRoleAsync(Roles.Admin)).Count : 0;
+        if (!UserAdministrationRules.CanRemoveAccess(
+                target.Id, administratorId, targetIsAdmin, administratorCount, removesAccess))
+            throw new ConflictException(
+                ErrorCodes.UserAdminProtected,
+                "Không thể tự vô hiệu hóa tài khoản quản trị hoặc làm mất quản trị viên cuối cùng.");
     }
 
     private static string FormatIdentityErrors(IdentityResult result) =>

@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { auth } from "@/auth";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
-import { Roles } from "@/lib/types/auth";
+import { canUseDashboard, Roles } from "@/lib/types/auth";
 
 export const metadata: Metadata = {
   // Khu vực quản trị, không cho công cụ tìm kiếm index.
@@ -20,14 +20,14 @@ export default async function DashboardLayout({ children }: { children: ReactNod
 
   if (!session?.user) {
     const requestHeaders = await headers();
-    const returnTo = requestHeaders.get("next-url") || "/dashboard/recipes";
+    const returnTo = requestHeaders.get("next-url") || "/dashboard";
     redirect(`/login?callbackUrl=${encodeURIComponent(returnTo)}`);
   }
 
   const roles = session.user.roles ?? [];
-  if (!roles.some((role) => role === Roles.Author || role === Roles.Admin)) {
+  if (!canUseDashboard(roles)) {
     redirect("/");
   }
 
-  return <DashboardShell>{children}</DashboardShell>;
+  return <DashboardShell isAdmin={roles.includes(Roles.Admin)}>{children}</DashboardShell>;
 }

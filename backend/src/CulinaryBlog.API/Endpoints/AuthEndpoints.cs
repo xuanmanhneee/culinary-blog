@@ -38,7 +38,7 @@ public static class AuthEndpoints
         .WithName("Register")
         .WithSummary("Đăng ký tài khoản")
         .Produces<AuthResponseDto>(StatusCodes.Status201Created)
-        .ProducesValidationProblem()
+        .ProducesValidationProblem(StatusCodes.Status422UnprocessableEntity)
         .ProducesProblem(StatusCodes.Status409Conflict);
 
         group.MapGet("/confirm-email", async (
@@ -77,8 +77,9 @@ public static class AuthEndpoints
         .WithName("Login")
         .WithSummary("Đăng nhập bằng email và mật khẩu")
         .Produces<AuthResponseDto>()
-        .ProducesValidationProblem()
-        .ProducesProblem(StatusCodes.Status401Unauthorized);
+        .ProducesValidationProblem(StatusCodes.Status422UnprocessableEntity)
+        .ProducesProblem(StatusCodes.Status401Unauthorized)
+        .ProducesProblem(StatusCodes.Status403Forbidden);
 
         // FR-AUTH-003: xác minh Google ID token, tạo/liên kết tài khoản và phát JWT nội bộ.
         group.MapPost("/google", async (
@@ -97,7 +98,7 @@ public static class AuthEndpoints
         .WithName("GoogleLogin")
         .WithSummary("Đăng nhập hoặc đăng ký bằng Google")
         .Produces<AuthResponseDto>()
-        .ProducesValidationProblem()
+        .ProducesValidationProblem(StatusCodes.Status422UnprocessableEntity)
         .ProducesProblem(StatusCodes.Status401Unauthorized)
         .ProducesProblem(StatusCodes.Status409Conflict);
 
@@ -115,7 +116,7 @@ public static class AuthEndpoints
         .WithName("RefreshAccessToken")
         .WithSummary("Đổi refresh token lấy access token mới")
         .Produces<AuthResponseDto>()
-        .ProducesValidationProblem()
+        .ProducesValidationProblem(StatusCodes.Status422UnprocessableEntity)
         .ProducesProblem(StatusCodes.Status401Unauthorized);
 
         // FR-AUTH-005: thu hồi refresh token hiện tại.
@@ -181,7 +182,7 @@ public static class AuthEndpoints
         .WithName("UpdateCurrentUser")
         .WithSummary("Cập nhật hồ sơ người dùng hiện tại")
         .Produces<UserProfileDto>()
-        .ProducesValidationProblem()
+        .ProducesValidationProblem(StatusCodes.Status422UnprocessableEntity)
         .ProducesAuthProblems();
 
         return app;

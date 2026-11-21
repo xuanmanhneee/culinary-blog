@@ -32,6 +32,10 @@ builder.Host.UseSerilog((context, services, loggerConfiguration) =>
             retainedFileCountLimit: 14,
             shared: true,
             outputTemplate: outputTemplate);
+
+    var seqServerUrl = context.Configuration["Seq:ServerUrl"];
+    if (!string.IsNullOrWhiteSpace(seqServerUrl))
+        loggerConfiguration.WriteTo.Seq(seqServerUrl);
 });
 
 // Không gọi builder.Services.AddOpenApi(): AddApiVersioning().AddOpenApi() đã đăng ký dịch vụ
@@ -43,6 +47,11 @@ builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.Configure<CulinaryBlog.Application.Auth.Models.GoogleAuthOptions>(
     builder.Configuration.GetSection(CulinaryBlog.Application.Auth.Models.GoogleAuthOptions.SectionName));
 builder.Services.AddHttpClient("media");
+builder.Services.AddHttpClient("engagement", client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["Services:Engagement:BaseUrl"] ?? "http://localhost:5100");
+    client.Timeout = TimeSpan.FromSeconds(5);
+});
 
 var telemetryEndpoint = builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"];
 var telemetryBuilder = builder.Services.AddOpenTelemetry()
@@ -58,7 +67,8 @@ var telemetryBuilder = builder.Services.AddOpenTelemetry()
     {
         metrics.AddAspNetCoreInstrumentation()
             .AddHttpClientInstrumentation()
-            .AddRuntimeInstrumentation();
+            .AddRuntimeInstrumentation()
+            .AddMeter("CulinaryBlog.Recipes");
         if (!string.IsNullOrWhiteSpace(telemetryEndpoint)) metrics.AddOtlpExporter();
     });
 
@@ -82,7 +92,11 @@ builder.Services.AddProblemDetails(options =>
 
 var app = builder.Build();
 
-
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHsts();
+    app.UseHttpsRedirection();
+}
 
 if (await app.InitializePersistenceAsync(args))
 {
@@ -140,5 +154,9 @@ app.MapCategoriesEndpoints();
 app.MapUserEndpoints();
 
 app.MapHealthEndpoints();
+
+app.MapEngagementProxyEndpoints();
+
+app.MapSubscriptionEndpoints();
 
 app.Run();

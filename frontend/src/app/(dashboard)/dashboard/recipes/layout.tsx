@@ -13,5 +13,5 @@ export const metadata: Metadata = {
  * nằm ở app/(dashboard)/dashboard/layout.tsx; layout này chỉ đặt title chung.
  */
 export default function RecipeDashboardLayout({ children }: { children: ReactNode }) {
-  return <div className="mx-auto w-full max-w-6xl">{children}</div>;
+  return children;
 }

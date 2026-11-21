@@ -71,7 +71,7 @@ public sealed class JwtService : IJwtService
     public RefreshTokenResult GenerateRefreshToken()
     {
         var raw = Base64Url.EncodeToString(
-            RandomNumberGenerator.GetBytes(32));
+            RandomNumberGenerator.GetBytes(64));
 
         var expires = DateTimeOffset.UtcNow
             .AddDays(_options.RefreshTokenDays);

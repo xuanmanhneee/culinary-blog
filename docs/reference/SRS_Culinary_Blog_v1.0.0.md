@@ -29,13 +29,13 @@ Out of scope: GraphQL, native mobile applications, real-time chat, payments, and
 |---|---|
 | Guest | View published recipes, categories, and search results. Cannot modify content. |
 | Author | Create, edit, publish, archive, and delete owned recipes; manage their images, ingredients, and steps. |
-| Admin | All author permissions, plus manage any recipe, manage categories, seed data, access Hangfire dashboard, and inspect operational logs. |
+| Admin | Author permissions on owned recipes, plus view any recipe, publish or return any recipe to Draft, delete any recipe, manage categories, seed data, access Hangfire dashboard, and inspect operational logs. |
 
 Authorization uses three layers:
 
 1. Role-based authorization: Guest, Author, Admin.
 2. Resource-based authorization: authors can modify only their own recipes.
-3. Policy-based authorization: verified authors require confirmed email; admins bypass ownership checks.
+3. Policy-based authorization: verified authors require confirmed email; admins bypass ownership checks only when viewing recipes, changing Published/Draft status, or deleting recipes.
 
 ## 3. Functional requirements
 
@@ -51,7 +51,7 @@ Authorization uses three layers:
 | FR-AUTH-006 | View current profile without sensitive fields | S | `GET /api/v1/auth/me` |
 | FR-AUTH-007 | Partially update full name and avatar URL | S | `PATCH /api/v1/auth/me` |
 
-Security requirements include PBKDF2 password hashing, 15-minute access tokens, 7-day refresh tokens, refresh-token reuse detection, generic invalid-login messages, and lockout after five failed attempts for 15 minutes.
+Security requirements include PBKDF2 password hashing, 15-minute access tokens, 7-day refresh tokens, refresh-token reuse detection, generic invalid-login messages, and lockout after five failed attempts for 15 minutes. A locked-account message is returned only after the submitted password is valid, preventing account-state disclosure from incorrect credentials.
 
 ### 3.2 Category management (FR-CAT)
 
@@ -75,12 +75,13 @@ Create, update, and delete operations require the Admin role. Category names and
 | FR-RCP-004 | Update an owned recipe using optimistic concurrency | M | `PUT /api/v1/recipes/{id}` |
 | FR-RCP-005 | Publish and unpublish a recipe | M | `PATCH /api/v1/recipes/{id}/publish`, `/unpublish` |
 | FR-RCP-006 | Archive a recipe | M | `PATCH /api/v1/recipes/{id}/archive` |
-| FR-RCP-007 | Soft-delete an owned recipe | M | `DELETE /api/v1/recipes/{id}` |
+| FR-RCP-007 | Soft-delete an owned recipe; Admin may delete any recipe | M | `DELETE /api/v1/recipes/{id}` |
 | FR-RCP-008 | Upload, update metadata, set primary, and delete recipe images | M | `/api/v1/recipes/{id}/images` |
 | FR-RCP-009 | CRUD recipe ingredients | M | `/api/v1/recipes/{id}/ingredients` |
 | FR-RCP-010 | CRUD recipe steps and keep step numbers contiguous | M | `/api/v1/recipes/{id}/steps` |
+| FR-RCP-011 | List and restore soft-deleted recipes; Author accesses owned recipes, Admin accesses all recipes | M | `GET /api/v1/recipes/deleted`, `PATCH /api/v1/recipes/{id}/restore` |
 
-Recipes support Draft, Published, and Archived states. Published content is public; Draft content is visible only to its owner and Admin. Updates use an `If-Match`/row-version mechanism to prevent lost updates.
+Recipes support Draft, Published, and Archived states. Published content is public; Draft content is visible only to its owner and Admin. Soft-deleted recipes and their files are retained for restoration. Updates use an `If-Match`/row-version mechanism to prevent lost updates.
 
 ### 3.4 Search and pagination (FR-SRCH)
 
@@ -133,7 +134,7 @@ Jobs use retry policies, structured logging, and persistent Hangfire storage in 
 - Errors: RFC 7807 `application/problem+json`.
 - Validation errors include field-level messages.
 - Paginated responses contain data plus pagination metadata.
-- Standard statuses include `200`, `201`, `204`, `400`, `401`, `403`, `404`, `409`, `422`, `423`, `429`, `500`, and `503` where applicable.
+- Standard statuses include `200`, `201`, `204`, `400`, `401`, `403`, `404`, `409`, `422`, `429`, `500`, and `503` where applicable.
 
 ## 5. Non-functional requirements
 

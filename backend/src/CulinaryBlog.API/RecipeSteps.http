@@ -8,14 +8,14 @@
 @recipeId = 00000000-0000-0000-0000-000000000000
 @stepId = 00000000-0000-0000-0000-000000000000
 
-### 0. Đăng nhập lấy access token (seed: author1 = Admin, author2..6 = Author, mật khẩu Author@123)
+### 0. Đăng nhập lấy access token (seed: author1 = Admin, author2 = Author, mật khẩu Author@123)
 ###    Các request sửa dữ liệu chỉ thành công với chủ recipe hoặc Admin, người khác nhận 403 RECIPE_FORBIDDEN.
 # @name login
 POST {{baseUrl}}/api/v1/auth/login
 Content-Type: application/json
 
 {
-  "email": "author2@culinaryblog.local",
+  "email": "author1@culinaryblog.nhom10",
   "password": "Author@123"
 }
 
@@ -58,7 +58,7 @@ Authorization: Bearer {{login.response.body.accessToken}}
 DELETE {{baseUrl}}/api/v1/recipes/{{recipeId}}/steps/00000000-0000-0000-0000-000000000001
 Authorization: Bearer {{login.response.body.accessToken}}
 
-### 6. Dữ liệu không hợp lệ – 400 VALIDATION_ERROR
+### 6. Dữ liệu không hợp lệ – 422 VALIDATION_ERROR
 POST {{baseUrl}}/api/v1/recipes/{{recipeId}}/steps
 Authorization: Bearer {{login.response.body.accessToken}}
 Content-Type: application/json

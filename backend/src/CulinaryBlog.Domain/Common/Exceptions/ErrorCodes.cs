@@ -21,14 +21,13 @@ public static class ErrorCodes
     public const string AuthInvalidCredentials = "AUTH_INVALID_CREDENTIALS";
     public const string AuthUnauthorized = "AUTH_UNAUTHORIZED";
     public const string UserNotFound = "USER_NOT_FOUND";
+    public const string UserAdminProtected = "USER_ADMIN_PROTECTED";
     
     public const string IngredientNotFound = "INGREDIENT_NOT_FOUND";
     public const string IngredientNameRequired = "INGREDIENT_NAME_REQUIRED";
     public const string IngredientQuantityInvalid = "INGREDIENT_QUANTITY_INVALID";
     public const string IngredientOrderIndexInvalid = "INGREDIENT_ORDER_INDEX_INVALID";
     
-    public const string RecipeSlugExists = "RECIPE_SLUG_EXISTS";
-
     public const string ImageNotFound = "IMAGE_NOT_FOUND";
 
     public const string StepNotFound = "STEP_NOT_FOUND";

@@ -262,4 +262,10 @@ public class Recipe : BaseEntity
         IsDeleted = true;
         UpdatedAt = DateTimeOffset.UtcNow;
     }
+
+    public void Restore()
+    {
+        IsDeleted = false;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
 }

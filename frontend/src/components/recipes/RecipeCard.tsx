@@ -1,11 +1,11 @@
-import { ArrowUpRight, ChefHat, Clock3 } from "lucide-react";
+import { ArrowUpRight, ChefHat, Clock3, Star } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { RECIPE_DIFFICULTY_LABELS, type RecipeListItemDto } from "@/lib/types/recipe";
 import { cn, formatMinutes } from "@/lib/utils";
 
-export function RecipeCard({ recipe, priority = false, featured = false }: { recipe: RecipeListItemDto; priority?: boolean; featured?: boolean }) {
+export function RecipeCard({ recipe, rating, priority = false, featured = false }: { recipe: RecipeListItemDto; rating?: { average: number; count: number }; priority?: boolean; featured?: boolean }) {
   const image = recipe.primaryImageUrl;
   const category = recipe.category?.name ?? "Công thức";
   const time = recipe.prepTimeMinutes + recipe.cookTimeMinutes;
@@ -14,28 +14,33 @@ export function RecipeCard({ recipe, priority = false, featured = false }: { rec
   const author = recipe.author?.displayName;
 
   return (
-    <article className={cn("recipe-card group", featured && "grid h-[26rem] overflow-hidden rounded-[1.75rem] bg-white/75 p-4 shadow-[0_18px_50px_rgba(75,57,41,.10)] md:grid-cols-[1.08fr_.92fr] md:gap-8")}>
-      <Link href={`/recipes/${recipe.slug}`} className={cn("block overflow-hidden rounded-[1.35rem]", featured && "h-full")} aria-label={`Xem công thức ${recipe.title}`}>
-        <div className={cn("relative aspect-[4/3] overflow-hidden bg-[#e8dfd4]", featured && "h-full aspect-auto")}>
+    <article className={cn("recipe-card group", featured && "grid overflow-hidden rounded-3xl bg-card/75 p-4 shadow-md md:grid-cols-[1.08fr_.92fr] md:gap-8")}>
+      <Link href={`/recipes/${recipe.slug}`} className={cn("block overflow-hidden rounded-2xl", featured && "h-full")} aria-label={`Xem công thức ${recipe.title}`}>
+        <div className={cn("relative aspect-[4/3] overflow-hidden bg-border", featured && "h-full min-h-72 aspect-auto")}>
           {image ? (
             <Image src={image} alt={recipe.title} fill priority={priority} unoptimized sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" className="object-cover transition duration-700 group-hover:scale-105" />
           ) : (
-            <span className="grid size-full place-items-center text-[#9b8c7c]"><ChefHat className="size-14" aria-hidden /></span>
+            <span className="grid size-full place-items-center text-muted-foreground"><ChefHat className="size-14" aria-hidden /></span>
           )}
-          <Badge className="absolute top-4 left-4 bg-[#fbf8f2]/92 backdrop-blur-sm" variant="outline">{category}</Badge>
-          <span className="absolute right-4 bottom-4 grid size-10 translate-y-2 place-items-center rounded-full bg-[#fbf8f2] text-[#1f4b3f] opacity-0 shadow-lg transition-all group-hover:translate-y-0 group-hover:opacity-100"><ArrowUpRight className="size-4" /></span>
+          <Badge className="absolute top-4 left-4 bg-muted/90 backdrop-blur-sm" variant="outline">{category}</Badge>
+          <span className="absolute right-4 bottom-4 grid size-10 translate-y-2 place-items-center rounded-full bg-muted text-primary opacity-0 shadow-lg transition-all group-hover:translate-y-0 group-hover:opacity-100"><ArrowUpRight className="size-4" /></span>
         </div>
       </Link>
       <div className={cn("px-1 pt-5", featured && "flex min-h-0 flex-col justify-center px-4 py-5 md:px-2 md:py-0")}>
-        <div className="flex items-center gap-4 text-xs font-semibold text-[#796f67]">
-          <span className="inline-flex items-center gap-1.5"><Clock3 className="size-3.5 text-[#b65338]" />{formatMinutes(time)}</span>
+        <div className="flex items-center gap-4 text-xs font-semibold text-muted-foreground">
+          <span className="inline-flex items-center gap-1.5"><Clock3 className="size-3.5 text-accent" />{formatMinutes(time)}</span>
           <span>{difficulty}</span>
+          {rating && rating.count > 0 && (
+            <span className="inline-flex items-center gap-1" aria-label={`${rating.average.toFixed(1)} trên 5 sao, ${rating.count} đánh giá`}>
+              <Star className="size-3.5 fill-accent text-accent" aria-hidden />{rating.average.toFixed(1)}<span className="font-normal">({rating.count})</span>
+            </span>
+          )}
         </div>
-        <h3 className={cn("font-display mt-3 text-[1.55rem] leading-[1.18] font-bold tracking-[-0.025em] text-[#2e2925]", featured && "line-clamp-3 text-3xl sm:text-4xl")}>
-          <Link href={`/recipes/${recipe.slug}`} className="transition-colors hover:text-[#b65338]">{recipe.title}</Link>
+        <h3 className={cn("font-display mt-3 text-[1.55rem] leading-[1.18] font-bold tracking-[-0.025em] text-foreground", featured && "line-clamp-3 text-3xl sm:text-4xl")}>
+          <Link href={`/recipes/${recipe.slug}`} className="transition-colors hover:text-accent">{recipe.title}</Link>
         </h3>
-        <p className={cn("mt-2 line-clamp-2 text-sm leading-6 text-[#70675f]", featured && "text-justify text-base leading-7")}>{excerpt}</p>
-        {author && <p className="mt-4 text-xs font-bold uppercase tracking-[0.12em] text-[#1f4b3f]">Bởi {author}</p>}
+        <p className={cn("mt-2 line-clamp-2 text-sm leading-6 text-muted-foreground", featured && "text-base leading-7")}>{excerpt}</p>
+        {author && <p className="mt-4 text-xs font-bold uppercase tracking-[0.12em] text-primary">Bởi {author}</p>}
       </div>
     </article>
   );

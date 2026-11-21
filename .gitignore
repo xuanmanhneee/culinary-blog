@@ -1,9 +1,12 @@
 # .NET
 backend/**/bin/
 backend/**/obj/
+services/**/bin/
+services/**/obj/
 *.user
 
 # Node / Next.js
+/node_modules/
 /pnpm-lock.yaml
 frontend/node_modules/
 frontend/.next/
@@ -20,3 +23,11 @@ frontend/.pnpm-store/
 .DS_Store
 
 .clinerules/
+
+# Generated artifacts
+/.codex-artifacts/
+backend/src/CulinaryBlog.API/logs/
+~$*.docx
+
+# TLS certs cho nginx (không commit private key)
+nginx/certs/

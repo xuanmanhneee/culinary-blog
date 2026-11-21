@@ -12,7 +12,6 @@ import { getErrorMessage } from "@/lib/errors";
 const codeMessages: Record<string, string> = {
   RECIPE_NOT_FOUND: "Không tìm thấy công thức, có thể đã bị xóa.",
   RECIPE_FORBIDDEN: "Bạn không có quyền thao tác trên công thức này.",
-  RECIPE_SLUG_EXISTS: "Đã có công thức trùng tiêu đề. Hãy đổi tiêu đề khác.",
   RECIPE_PUBLISH_INCOMPLETE: "Công thức cần ít nhất 1 bước thực hiện trước khi xuất bản.",
   RECIPE_CONCURRENCY_CONFLICT: "Công thức vừa được sửa ở nơi khác. Hãy tải lại trang để lấy bản mới nhất.",
   INGREDIENT_NOT_FOUND: "Nguyên liệu không còn tồn tại.",

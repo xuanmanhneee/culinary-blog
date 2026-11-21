@@ -31,6 +31,7 @@ internal static class DependencyInjection
         services.AddScoped<FileDeletionJob>();
         services.AddScoped<ThumbnailJob>();
         services.AddScoped<SitemapJob>();
+        services.AddScoped<NewsletterDigestJob>();
         services.AddScoped<IWelcomeEmailScheduler, WelcomeEmailScheduler>();
         services.AddScoped<IFileDeletionScheduler, FileDeletionScheduler>();
         services.AddScoped<IThumbnailScheduler, ThumbnailScheduler>();

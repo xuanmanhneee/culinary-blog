@@ -15,13 +15,13 @@ export function ErrorState({
   return (
     <section
       role="alert"
-      className="mx-auto flex max-w-lg flex-col items-center rounded-[1.5rem] border border-[#e1d5c7] bg-white/65 px-6 py-12 text-center"
+      className="mx-auto flex max-w-lg flex-col items-center rounded-2xl border border-border bg-card px-6 py-12 text-center"
     >
-      <span className="grid size-12 place-items-center rounded-full bg-[#f3dfcf] text-[#a94731]">
+      <span className="grid size-12 place-items-center rounded-full bg-accent-soft text-accent">
         <CircleAlert />
       </span>
-      <h2 className="font-display mt-5 text-2xl font-bold text-[#2e2925]">{title}</h2>
-      <p className="mt-2 text-sm leading-6 text-[#70675f]">{message}</p>
+      <h2 className="mt-5 text-2xl font-bold text-foreground">{title}</h2>
+      <p className="mt-2 text-sm leading-6 text-muted-foreground">{message}</p>
       {onRetry && (
         <Button onClick={onRetry} className="mt-6">
           Thử lại

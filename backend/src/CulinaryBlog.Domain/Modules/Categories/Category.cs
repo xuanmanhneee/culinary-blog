@@ -35,10 +35,9 @@ public class Category : BaseEntity
         };
     }
 
-    public void Update(string name, string slug, string? description, string? imageUrl, int orderIndex)
+    public void Update(string name, string? description, string? imageUrl, int orderIndex)
     {
         Name = name;
-        Slug = slug;
         Description = description;
         ImageUrl = imageUrl;
         OrderIndex = orderIndex;

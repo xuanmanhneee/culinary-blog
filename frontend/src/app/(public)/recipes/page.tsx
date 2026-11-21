@@ -1,48 +1,69 @@
 import type { Metadata } from "next";
-import { SlidersHorizontal } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
+import { ChevronDown, SlidersHorizontal } from "lucide-react";
+import { PageHeader } from "@/components/common/PageHeader";
 import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/common/ErrorState";
 import { Pagination } from "@/components/common/Pagination";
 import { RecipeCard } from "@/components/recipes/RecipeCard";
 import { getPublicCategories, getPublicRecipes } from "@/lib/api/recipes";
+import { getRatingSummaries } from "@/lib/api/engagement";
 import { getErrorMessage } from "@/lib/errors";
-import { RECIPE_DIFFICULTY_LABELS, type RecipeDifficulty } from "@/lib/types/recipe";
+import { RECIPE_DIFFICULTY_LABELS, RecipeDifficulty, type RecipeQuery, type RecipeSort } from "@/lib/types/recipe";
 
 export const metadata: Metadata = {
   title: "Khám phá công thức",
   description: "Tìm công thức nấu ăn phù hợp với khẩu vị và thời gian của bạn.",
+  alternates: { canonical: "/recipes" },
 };
 
-interface RecipeSearchParams {
-  page?: string;
-  categoryId?: string;
-  difficulty?: string;
-  maxCookTime?: string;
-}
+const sortOptions = {
+  "-createdAt": "Mới nhất",
+  createdAt: "Cũ nhất",
+  title: "Tên A–Z",
+  "-title": "Tên Z–A",
+  cookTime: "Nấu nhanh nhất",
+  "-cookTime": "Nấu lâu nhất",
+} satisfies Partial<Record<RecipeSort, string>>;
 
-function positiveNumber(value: string | undefined): number | undefined {
+const numericFilters = [
+  { name: "minPrepTime", label: "Chuẩn bị tối thiểu (phút)" },
+  { name: "maxCookTime", label: "Nấu tối đa (phút)" },
+  { name: "minServings", label: "Số khẩu phần tối thiểu" },
+] as const;
+
+const controlClass = "mt-1.5 h-10 w-full min-w-0 rounded-xl border border-input bg-card px-3 text-sm font-normal outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15";
+
+function positiveNumber(value: string | string[] | undefined): number | undefined {
+  if (typeof value !== "string") return undefined;
   const parsed = Number(value);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+  return Number.isInteger(parsed) && parsed > 0 && parsed <= 2_147_483_647 ? parsed : undefined;
 }
 
-function recipeUrl(params: RecipeSearchParams, page?: number): string {
-  const query = new URLSearchParams();
-  if (page && page > 1) query.set("page", String(page));
-  if (params.categoryId) query.set("categoryId", params.categoryId);
-  if (params.difficulty) query.set("difficulty", params.difficulty);
-  if (params.maxCookTime) query.set("maxCookTime", params.maxCookTime);
+function recipeUrl(filters: RecipeQuery, page: number): string {
+  const query = new URLSearchParams(Object.entries(filters)
+    .filter(([, value]) => value !== undefined)
+    .map(([key, value]) => [key, String(value)]));
+  if (page > 1) query.set("page", String(page));
   const text = query.toString();
   return text ? `/recipes?${text}` : "/recipes";
 }
 
-export default async function RecipesPage({ searchParams }: { searchParams: Promise<RecipeSearchParams> }) {
+export default async function RecipesPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const params = await searchParams;
   const page = positiveNumber(params.page) ?? 1;
-  const difficulty = positiveNumber(params.difficulty) as RecipeDifficulty | undefined;
-  const maxCookTime = positiveNumber(params.maxCookTime);
+  const difficulty = Object.values(RecipeDifficulty).find((value) => value === positiveNumber(params.difficulty));
+  const sort = (Object.keys(sortOptions) as RecipeSort[]).find((value) => value === params.sort);
+  const filters = {
+    categoryId: typeof params.categoryId === "string" && params.categoryId ? params.categoryId : undefined,
+    difficulty,
+    minPrepTime: positiveNumber(params.minPrepTime),
+    maxCookTime: positiveNumber(params.maxCookTime),
+    minServings: positiveNumber(params.minServings),
+    sort,
+  };
   const [recipesResult, categoriesResult] = await Promise.allSettled([
-    getPublicRecipes({ page, pageSize: 12, categoryId: params.categoryId, difficulty, maxCookTime }),
+    getPublicRecipes({ ...filters, page }),
     getPublicCategories(),
   ]);
 
@@ -56,26 +77,53 @@ export default async function RecipesPage({ searchParams }: { searchParams: Prom
   }
 
   const recipes = recipesResult.value;
+  const ratings = await getRatingSummaries(recipes.items.map((recipe) => recipe.id));
   const categories = categoriesResult.value;
+  const activeFilters = Object.values(filters).filter((value) => value !== undefined).length;
 
   return (
-    <main className="site-container py-14 sm:py-20">
-      <header className="mx-auto max-w-3xl text-center">
-        <Badge variant="warm">Kho công thức</Badge>
-        <h1 className="font-display mt-5 text-5xl font-bold tracking-[-.05em] text-[#2e2925] sm:text-6xl">Món ngon cho mọi ngày</h1>
-        <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-[#746a62]">Lọc theo loại món, độ khó và thời gian để tìm cảm hứng vào bếp hôm nay.</p>
-      </header>
+    <section className="site-container py-8 sm:py-12">
+      <PageHeader eyebrow="Kho công thức" title="Món ngon cho mọi ngày" description="Lọc theo loại món, độ khó và thời gian để tìm cảm hứng vào bếp hôm nay." />
 
-      <form method="get" className="mx-auto mt-10 grid max-w-5xl gap-3 rounded-[1.35rem] border border-[#ddd1c3] bg-white/70 p-4 shadow-[0_14px_40px_rgba(80,57,38,.06)] sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_auto] lg:items-end">
-        <label className="text-sm font-semibold text-[#5d554e]">Danh mục<select name="categoryId" defaultValue={params.categoryId ?? ""} className="mt-2 h-11 w-full rounded-xl border border-[#ddd1c3] bg-white px-3 text-sm font-normal outline-none"><option value="">Tất cả danh mục</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label>
-        <label className="text-sm font-semibold text-[#5d554e]">Độ khó<select name="difficulty" defaultValue={params.difficulty ?? ""} className="mt-2 h-11 w-full rounded-xl border border-[#ddd1c3] bg-white px-3 text-sm font-normal outline-none"><option value="">Mọi độ khó</option>{Object.entries(RECIPE_DIFFICULTY_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
-        <label className="text-sm font-semibold text-[#5d554e]">Thời gian<select name="maxCookTime" defaultValue={params.maxCookTime ?? ""} className="mt-2 h-11 w-full rounded-xl border border-[#ddd1c3] bg-white px-3 text-sm font-normal outline-none"><option value="">Không giới hạn</option><option value="30">Tối đa 30 phút</option><option value="60">Tối đa 60 phút</option><option value="90">Tối đa 90 phút</option></select></label>
-        <Button type="submit"><SlidersHorizontal />Lọc công thức</Button>
+      <details open={activeFilters > 0} className="group mt-8">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-4 border-b border-border pb-4 [&::-webkit-details-marker]:hidden">
+          <div className="flex items-baseline gap-3"><h2 className="font-display text-2xl font-bold text-foreground">Kết quả</h2><p className="text-sm text-muted-foreground">{recipes.totalCount} công thức</p></div>
+          <span className="inline-flex h-10 items-center gap-2 rounded-full border border-border bg-card px-4 text-sm font-semibold text-foreground transition-colors hover:border-primary group-open:border-primary">
+            <SlidersHorizontal className="size-4" aria-hidden />Bộ lọc{activeFilters > 0 && <span className="grid size-5 place-items-center rounded-full bg-primary text-xs text-primary-foreground">{activeFilters}</span>}
+            <ChevronDown className="size-4 transition-transform group-open:rotate-180" aria-hidden />
+          </span>
+        </summary>
+      <form key={recipeUrl(filters, 1)} action="/recipes" method="get" aria-label="Lọc và sắp xếp công thức" className="mt-4 grid gap-4 rounded-2xl border border-border bg-card p-4 shadow-sm sm:grid-cols-2 lg:grid-cols-3">
+        <label className="text-sm font-semibold text-foreground">Danh mục
+          <select name="categoryId" defaultValue={filters.categoryId ?? ""} className={controlClass}>
+            <option value="">Tất cả danh mục</option>
+            {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
+          </select>
+        </label>
+        <label className="text-sm font-semibold text-foreground">Độ khó
+          <select name="difficulty" defaultValue={difficulty ?? ""} className={controlClass}>
+            <option value="">Mọi độ khó</option>
+            {Object.entries(RECIPE_DIFFICULTY_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+          </select>
+        </label>
+        <label className="text-sm font-semibold text-foreground">Sắp xếp
+          <select name="sort" defaultValue={sort ?? "-createdAt"} className={controlClass}>
+            {Object.entries(sortOptions).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+          </select>
+        </label>
+        {numericFilters.map(({ name, label }) => (
+          <label key={name} className="text-sm font-semibold text-foreground">{label}
+            <input name={name} type="number" min={1} max={2_147_483_647} defaultValue={filters[name]} placeholder="Không giới hạn" className={controlClass} />
+          </label>
+        ))}
+        <div className="flex flex-wrap gap-2 sm:col-span-full sm:justify-end">
+          <Button asChild variant="ghost"><Link href="/recipes">Xóa bộ lọc</Link></Button>
+          <Button type="submit"><SlidersHorizontal />Áp dụng</Button>
+        </div>
       </form>
-
-      <div className="mt-14 flex items-end justify-between gap-4 border-b border-[#ddd2c5] pb-5"><div><p className="text-xs font-bold uppercase tracking-[.15em] text-[#a84f37]">Gợi ý cho bạn</p><h2 className="font-display mt-2 text-3xl font-bold text-[#302a26]">Công thức mới nhất</h2></div><p className="hidden text-sm text-[#80766d] sm:block">{recipes.totalCount} công thức</p></div>
-      {recipes.items.length ? <div className="mt-9 grid gap-x-7 gap-y-12 md:grid-cols-2 lg:grid-cols-3">{recipes.items.map((recipe) => <RecipeCard key={recipe.id} recipe={recipe} />)}</div> : <p className="mt-10 rounded-2xl border border-dashed border-[#d9cdbd] bg-white/70 p-10 text-center text-sm text-[#70675f]">Không tìm thấy công thức phù hợp với bộ lọc.</p>}
-      <div className="mt-16"><Pagination currentPage={recipes.page} totalPages={recipes.totalPages} hrefForPage={(nextPage) => recipeUrl(params, nextPage)} /></div>
-    </main>
+      </details>
+      {recipes.items.length ? <div className="mt-8 grid gap-x-7 gap-y-12 md:grid-cols-2 lg:grid-cols-3">{recipes.items.map((recipe) => <RecipeCard key={recipe.id} recipe={recipe} rating={ratings[recipe.id]} />)}</div> : <p className="mt-8 rounded-2xl border border-dashed border-border bg-card p-10 text-center text-sm text-muted-foreground">Không tìm thấy công thức phù hợp với bộ lọc.</p>}
+      <div className="mt-16"><Pagination currentPage={recipes.page} totalPages={recipes.totalPages} hrefForPage={(nextPage) => recipeUrl(filters, nextPage)} /></div>
+    </section>
   );
 }
