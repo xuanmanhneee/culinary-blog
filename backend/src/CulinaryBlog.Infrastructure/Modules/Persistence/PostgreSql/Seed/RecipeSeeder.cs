@@ -61,9 +61,10 @@ public class RecipeSeeder(
                 string? stepImageUrl = null;
                 if (stepIndex < stepImages.Length && SeedImages.Open(stepImages[stepIndex]) is { } stepStream)
                 {
+                    var (stepContentType, stepExtension) = SeedImages.TypeOf(stepImages[stepIndex]);
                     await using (stepStream)
                         stepImageUrl = await storage.UploadAsync(
-                            recipe.Id, stepStream, "image/jpeg", ".jpg", CancellationToken.None);
+                            recipe.Id, stepStream, stepContentType, stepExtension, CancellationToken.None);
                 }
 
                 recipe.AddStep(stepTitle, stepDescription, null, stepImageUrl);
@@ -95,8 +96,9 @@ public class RecipeSeeder(
     {
         if (title is not null && SeedImages.For(title)?.Main is { } mainPath && SeedImages.Open(mainPath) is { } local)
         {
+            var (localContentType, localExtension) = SeedImages.TypeOf(mainPath);
             await using (local)
-                return await storage.UploadAsync(recipeId, local, "image/jpeg", ".jpg", CancellationToken.None);
+                return await storage.UploadAsync(recipeId, local, localContentType, localExtension, CancellationToken.None);
         }
 
         var sourceUrl = RecipeSeedData.ImageUrls[imageIndex % RecipeSeedData.ImageUrls.Length];
@@ -121,6 +123,15 @@ internal static class SeedImages
     private static readonly Lazy<Dictionary<string, Entry>> Manifest = new(Load);
 
     internal static Entry? For(string title) => Manifest.Value.GetValueOrDefault(title);
+
+    /// <summary>Suy ra content-type và đuôi file từ tên ảnh (.jpg/.jpeg/.png/.webp), mặc định JPEG.</summary>
+    internal static (string ContentType, string Extension) TypeOf(string relativePath) =>
+        Path.GetExtension(relativePath).ToLowerInvariant() switch
+        {
+            ".png" => ("image/png", ".png"),
+            ".webp" => ("image/webp", ".webp"),
+            _ => ("image/jpeg", ".jpg")
+        };
 
     internal static Stream? Open(string? relativePath)
     {
