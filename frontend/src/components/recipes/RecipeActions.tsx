@@ -4,6 +4,7 @@ import { Heart, Printer, Share2, Star } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { getEngagementSummary, rateRecipe, saveRecipe, unsaveRecipe } from "@/lib/api/engagement";
 import type { EngagementSummary } from "@/lib/types/engagement";
 import { Roles } from "@/lib/types/auth";
@@ -31,41 +32,72 @@ export function RecipeActions({ recipeId, slug, title }: { recipeId: string; slu
     return null;
   }
 
+  async function refreshSummary(accessToken: string) {
+    try {
+      setSummary(await getEngagementSummary(recipeId, accessToken));
+    } catch {
+      // Giữ trạng thái hiện tại: lưu/chấm điểm đã thành công, chỉ chưa làm mới được số liệu.
+    }
+  }
+
   async function toggleSaved() {
     const accessToken = requireToken();
     if (!accessToken || busy) return;
+    const previous = summary;
+    const wasSaved = previous?.isSaved ?? false;
     setBusy(true);
+    if (previous) setSummary({ ...previous, isSaved: !wasSaved });
     try {
-      if (summary?.isSaved) await unsaveRecipe(recipeId, accessToken);
+      if (wasSaved) await unsaveRecipe(recipeId, accessToken);
       else await saveRecipe(recipeId, slug, accessToken);
-      setSummary(await getEngagementSummary(recipeId, accessToken));
     } catch {
-      setSummary(null);
-    } finally {
+      setSummary(previous);
+      toast.error("Không thể cập nhật món đã lưu. Vui lòng thử lại.");
       setBusy(false);
+      return;
     }
+    toast.success(wasSaved ? "Đã bỏ lưu công thức." : "Đã lưu vào Món đã lưu.");
+    await refreshSummary(accessToken);
+    setBusy(false);
   }
 
   async function setRating(score: number) {
     const accessToken = requireToken();
     if (!accessToken || busy) return;
+    const previous = summary;
     setBusy(true);
+    if (previous) setSummary({ ...previous, myRating: score });
     try {
       await rateRecipe(recipeId, slug, score, accessToken);
-      setSummary(await getEngagementSummary(recipeId, accessToken));
     } catch {
-      setSummary(null);
-    } finally {
+      setSummary(previous);
+      toast.error("Không thể gửi đánh giá. Vui lòng thử lại.");
       setBusy(false);
-    }
-  }
-  async function shareRecipe() {
-    if (navigator.share) {
-      await navigator.share({ title, url: window.location.href });
       return;
     }
+    toast.success("Cảm ơn bạn đã đánh giá!");
+    await refreshSummary(accessToken);
+    setBusy(false);
+  }
 
-    await navigator.clipboard.writeText(window.location.href);
+  async function shareRecipe() {
+    const url = window.location.href;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title, url });
+        return;
+      } catch (error) {
+        // Người dùng đóng hộp chia sẻ thì không cần làm gì thêm.
+        if (error instanceof DOMException && error.name === "AbortError") return;
+      }
+    }
+
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success("Đã sao chép liên kết.");
+    } catch {
+      toast.error("Không thể sao chép liên kết.");
+    }
   }
 
   if (isAdmin) return null;
