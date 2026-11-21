@@ -140,6 +140,14 @@ docker compose exec api dotnet CulinaryBlog.API.dll --seed
 
 > Lệnh seed chỉ chạy trong môi trường `Development` và có thể chạy lại an toàn. Thêm `--reset` (`... --seed --reset`) để xóa sạch công thức, danh mục và tài khoản cũ rồi seed lại 10 danh mục, 55 công thức, 1 admin và 5 author.
 
+Để có số sao đánh giá mẫu trên các thẻ món (Engagement có cơ sở dữ liệu riêng), chạy thêm sau khi đã seed ở trên:
+
+```powershell
+docker compose exec engagement dotnet CulinaryBlog.Engagement.dll --seed
+```
+
+> Lệnh này chạy lại an toàn: chỉ thay thế đánh giá của các user giả `seed-user-*`, không đụng tới đánh giá của người dùng thật. Nếu bỏ qua bước này, thẻ món chỉ ẩn số sao.
+
 Mở <https://localhost> để dùng ứng dụng. Lần đầu trình duyệt sẽ cảnh báo vì chứng chỉ local là self-signed; chọn tiếp tục truy cập.
 
 | Thành phần | Địa chỉ |

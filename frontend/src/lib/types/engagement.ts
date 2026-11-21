@@ -8,6 +8,12 @@ export interface EngagementSummary {
   myRating: number | null;
 }
 
+export interface RatingSummary {
+  recipeId: Guid;
+  averageRating: number;
+  ratingCount: number;
+}
+
 export interface SavedRecipeDto {
   recipeId: Guid;
   slug: string;

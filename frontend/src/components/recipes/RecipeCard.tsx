@@ -1,11 +1,11 @@
-import { ArrowUpRight, ChefHat, Clock3 } from "lucide-react";
+import { ArrowUpRight, ChefHat, Clock3, Star } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { RECIPE_DIFFICULTY_LABELS, type RecipeListItemDto } from "@/lib/types/recipe";
 import { cn, formatMinutes } from "@/lib/utils";
 
-export function RecipeCard({ recipe, priority = false, featured = false }: { recipe: RecipeListItemDto; priority?: boolean; featured?: boolean }) {
+export function RecipeCard({ recipe, rating, priority = false, featured = false }: { recipe: RecipeListItemDto; rating?: { average: number; count: number }; priority?: boolean; featured?: boolean }) {
   const image = recipe.primaryImageUrl;
   const category = recipe.category?.name ?? "Công thức";
   const time = recipe.prepTimeMinutes + recipe.cookTimeMinutes;
@@ -30,6 +30,11 @@ export function RecipeCard({ recipe, priority = false, featured = false }: { rec
         <div className="flex items-center gap-4 text-xs font-semibold text-muted-foreground">
           <span className="inline-flex items-center gap-1.5"><Clock3 className="size-3.5 text-accent" />{formatMinutes(time)}</span>
           <span>{difficulty}</span>
+          {rating && rating.count > 0 && (
+            <span className="inline-flex items-center gap-1" aria-label={`${rating.average.toFixed(1)} trên 5 sao, ${rating.count} đánh giá`}>
+              <Star className="size-3.5 fill-accent text-accent" aria-hidden />{rating.average.toFixed(1)}<span className="font-normal">({rating.count})</span>
+            </span>
+          )}
         </div>
         <h3 className={cn("font-display mt-3 text-[1.55rem] leading-[1.18] font-bold tracking-[-0.025em] text-foreground", featured && "line-clamp-3 text-3xl sm:text-4xl")}>
           <Link href={`/recipes/${recipe.slug}`} className="transition-colors hover:text-accent">{recipe.title}</Link>

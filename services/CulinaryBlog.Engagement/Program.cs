@@ -46,6 +46,18 @@ app.UseAuthorization();
 await using (var scope = app.Services.CreateAsyncScope())
     await scope.ServiceProvider.GetRequiredService<EngagementDbContext>().Database.MigrateAsync();
 
+if (args.Contains("--seed"))
+{
+    if (!app.Environment.IsDevelopment())
+        throw new InvalidOperationException("--seed chỉ chạy trong môi trường Development.");
+    await using var seedScope = app.Services.CreateAsyncScope();
+    await RatingSeeder.SeedAsync(
+        seedScope.ServiceProvider.GetRequiredService<EngagementDbContext>(),
+        seedScope.ServiceProvider.GetRequiredService<RecipeClient>(),
+        seedScope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("RatingSeeder"));
+    return;
+}
+
 app.MapHealthChecks("/health");
 
 var saved = app.MapGroup("/api/v1/saved-recipes").RequireAuthorization();
@@ -122,6 +134,26 @@ ratings.MapGet("/top", async (int? limit, EngagementDbContext db, CancellationTo
         .ToListAsync(ct);
     var items = aggregates.Select(item => new TopRatedRecipe(item.RecipeId, item.AverageRating, item.RatingCount));
     return Results.Ok(items);
+}).AllowAnonymous();
+ratings.MapGet("/summaries", async (string? ids, EngagementDbContext db, CancellationToken ct) =>
+{
+    var recipeIds = (ids ?? string.Empty)
+        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        .Select(value => Guid.TryParse(value, out var id) ? id : (Guid?)null)
+        .Where(id => id is not null)
+        .Select(id => id!.Value)
+        .Distinct()
+        .Take(100)
+        .ToList();
+    if (recipeIds.Count == 0)
+        return Results.Ok(Array.Empty<RatingSummary>());
+
+    var aggregates = await db.Ratings.AsNoTracking()
+        .Where(rating => recipeIds.Contains(rating.RecipeId))
+        .GroupBy(rating => rating.RecipeId)
+        .Select(group => new { RecipeId = group.Key, Average = group.Average(rating => rating.Score), Count = group.Count() })
+        .ToListAsync(ct);
+    return Results.Ok(aggregates.Select(item => new RatingSummary(item.RecipeId, Math.Round(item.Average, 1), item.Count)));
 }).AllowAnonymous();
 ratings.MapGet("/{recipeId:guid}", async (Guid recipeId, ClaimsPrincipal user, EngagementDbContext db, CancellationToken ct) =>
 {

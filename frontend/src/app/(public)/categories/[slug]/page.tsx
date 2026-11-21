@@ -9,6 +9,7 @@ import { Pagination } from "@/components/common/Pagination";
 import { RecipeCard } from "@/components/recipes/RecipeCard";
 import { ApiError } from "@/lib/api/client";
 import { getPublicCategory } from "@/lib/api/recipes";
+import { getRatingSummaries } from "@/lib/api/engagement";
 import { getErrorMessage } from "@/lib/errors";
 
 type Props = {
@@ -48,6 +49,7 @@ export default async function CategoryPage({ params, searchParams }: Props) {
   }
 
   const { category, recipes } = result;
+  const ratings = await getRatingSummaries(recipes.items.map((recipe) => recipe.id));
   return (
       <section className="site-container py-14 sm:py-20">
         <Button asChild variant="ghost" size="sm">
@@ -57,7 +59,7 @@ export default async function CategoryPage({ params, searchParams }: Props) {
 
         {recipes.items.length ? (
           <div className="mt-12 grid gap-x-7 gap-y-12 md:grid-cols-2 lg:grid-cols-3">
-            {recipes.items.map((recipe) => <RecipeCard key={recipe.id} recipe={recipe} />)}
+            {recipes.items.map((recipe) => <RecipeCard key={recipe.id} recipe={recipe} rating={ratings[recipe.id]} />)}
           </div>
         ) : (
           <p className="mt-8 rounded-2xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">Danh mục này chưa có công thức đã xuất bản.</p>
