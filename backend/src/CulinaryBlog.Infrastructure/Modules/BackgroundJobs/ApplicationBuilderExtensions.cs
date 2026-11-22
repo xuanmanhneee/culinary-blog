@@ -1,4 +1,6 @@
 using Hangfire;
+using Hangfire.Storage;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Builder;
 using CulinaryBlog.Infrastructure.Modules.BackgroundJobs.Jobs;
 
@@ -13,17 +15,17 @@ public static class ApplicationBuilderExtensions
             Authorization = [new AdminDashboardAuthorizationFilter(app.Configuration)]
         });
 
-        RecurringJob.AddOrUpdate<SitemapJob>(
-            "sitemap-generation",
-            job => job.GenerateAsync(CancellationToken.None),
-            Cron.Daily(2),
-            new RecurringJobOptions { TimeZone = TimeZoneInfo.Utc });
-
-        RecurringJob.AddOrUpdate<NewsletterDigestJob>(
-            "weekly-newsletter",
-            job => job.DispatchAsync(CancellationToken.None),
-            Cron.Weekly(DayOfWeek.Monday, 0),
-            new RecurringJobOptions { TimeZone = TimeZoneInfo.Utc });
+        // Chỉ đăng ký lịch mặc định khi tác vụ chưa tồn tại, để lịch quản trị viên đã đặt không bị ghi đè khi khởi động lại.
+        var manager = app.Services.GetRequiredService<IRecurringJobManager>();
+        using (var connection = JobStorage.Current.GetConnection())
+        {
+            var existing = connection.GetRecurringJobs().Select(job => job.Id).ToHashSet();
+            foreach (var job in JobCatalog.All.Where(job => !existing.Contains(job.Id)))
+            {
+                var defaults = job.Defaults;
+                job.Register(manager, JobScheduleMath.BuildCron(job.IsWeekly, defaults.DayOfWeek, defaults.Hour, defaults.Minute), JobScheduleMath.Vietnam);
+            }
+        }
 
         return app;
     }
