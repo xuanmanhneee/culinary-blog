@@ -21,14 +21,25 @@ public sealed class WelcomeEmailJob
             client.EnableSsl = true;
         }
 
-        var confirmationUrl = $"{_options.PublicApiUrl.TrimEnd('/')}/api/v1/auth/confirm-email?userId={Uri.EscapeDataString(userId)}&token={Uri.EscapeDataString(confirmationToken)}";
+        var confirmationUrl = $"{_options.PublicWebUrl.TrimEnd('/')}/confirm-email?userId={Uri.EscapeDataString(userId)}&token={Uri.EscapeDataString(confirmationToken)}";
+        var webUrl = _options.PublicWebUrl.TrimEnd('/');
+        var body =
+            EmailTemplate.Paragraph($"Xin chào <strong>{EmailTemplate.Encode(fullName)}</strong>, chào mừng bạn đến với Bếp Nhà — nơi chia sẻ và khám phá những công thức nấu ăn ngon.") +
+            EmailTemplate.Paragraph("Chỉ còn một bước nữa: hãy xác nhận địa chỉ email để hoàn tất tài khoản.") +
+            EmailTemplate.Button("Xác nhận email", confirmationUrl) +
+            EmailTemplate.FallbackLink(confirmationUrl);
+
         using var message = new MailMessage(_options.From, email)
         {
-            Subject = "Chào mừng bạn đến với Culinary Blog",
-            Body = $"<p>Xin chào {WebUtility.HtmlEncode(fullName)},</p><p>Chào mừng bạn đến với Culinary Blog.</p>",
+            Subject = "Chào mừng bạn đến với Bếp Nhà — xác nhận email của bạn",
+            Body = EmailTemplate.Layout(
+                "Chào mừng bạn vào bếp!",
+                "Xác nhận email để bắt đầu lưu món yêu thích và chia sẻ công thức.",
+                body,
+                "Bạn nhận email này vì vừa đăng ký tài khoản tại Bếp Nhà.<br>Nếu không phải bạn, hãy bỏ qua email này.",
+                webUrl),
             IsBodyHtml = true
         };
-        message.Body += $"<p><a href=\"{WebUtility.HtmlEncode(confirmationUrl)}\">Confirm email</a></p>";
 
         cancellationToken.ThrowIfCancellationRequested();
         await client.SendMailAsync(message);

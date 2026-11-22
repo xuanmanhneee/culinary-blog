@@ -25,6 +25,7 @@ export default function LoginPage() {
       const result = await signIn("credentials", {
         email: String(form.get("email") ?? ""),
         password: String(form.get("password") ?? ""),
+        remember: form.get("remember") === "on" ? "true" : "false",
         redirect: false,
       });
 
@@ -64,7 +65,7 @@ export default function LoginPage() {
         <form onSubmit={handleSubmit} className="mt-8 space-y-5">
           <label className="block"><span className="mb-2 block text-sm font-bold text-foreground">Email</span><span className="flex items-center gap-3 rounded-xl border border-border bg-card px-4"><Mail className="size-4 text-muted-foreground" /><input name="email" type="email" required className="h-12 w-full bg-transparent text-sm outline-none" /></span></label>
           <label className="block"><span className="mb-2 block text-sm font-bold text-foreground">Mật khẩu</span><span className="flex items-center gap-3 rounded-xl border border-border bg-card px-4"><LockKeyhole className="size-4 text-muted-foreground" /><input name="password" type={showPassword ? "text" : "password"} required className="h-12 w-full bg-transparent text-sm outline-none" /><button type="button" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}><Eye className="size-4 text-muted-foreground" /></button></span></label>
-          <div className="flex items-center justify-between text-xs"><label className="flex items-center gap-2 text-muted-foreground"><input type="checkbox" className="accent-primary" />Ghi nhớ tôi</label><span className="font-bold text-muted-foreground">Quên mật khẩu?</span></div>
+          <div className="flex items-center justify-between text-xs"><label className="flex items-center gap-2 text-muted-foreground"><input type="checkbox" name="remember" className="accent-primary" />Ghi nhớ tôi</label><Link href="/forgot-password" className="font-bold text-primary hover:underline">Quên mật khẩu?</Link></div>
           {error && <p role="alert" className="text-sm text-destructive">{error}</p>}<Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>{isSubmitting ? "Đang đăng nhập..." : "Đăng nhập"} <ArrowRight /></Button>
         </form>
         <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground"><span className="h-px flex-1 bg-muted" /><span>HOẶC</span><span className="h-px flex-1 bg-muted" /></div>

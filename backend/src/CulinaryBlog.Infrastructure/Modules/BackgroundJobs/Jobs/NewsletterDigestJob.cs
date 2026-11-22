@@ -1,7 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Net.Mail;
-using System.Text;
 using CulinaryBlog.Domain.Modules.Recipes;
 using CulinaryBlog.Infrastructure.Modules.Persistence.PostgreSql;
 using Hangfire;
@@ -47,22 +46,36 @@ public sealed class NewsletterDigestJob
 
         var recipeById = recipes.ToDictionary(recipe => recipe.Id);
         var items = topRatings.Where(rating => recipeById.ContainsKey(rating.RecipeId)).ToList();
-        var body = new StringBuilder("<h2>Top món ngon tuần này</h2>");
+        var webUrl = _smtp.PublicWebUrl.TrimEnd('/');
+        string content;
         if (items.Count == 0)
         {
-            body.Append("<p>Chưa có món nào nhận được đánh giá. Hãy ghé Bếp Nhà và là người đầu tiên chấm điểm nhé.</p>");
+            content =
+                EmailTemplate.Paragraph("Tuần này chưa có món nào nhận được đánh giá. Hãy ghé Bếp Nhà, nấu thử một món và là người đầu tiên chấm điểm nhé!") +
+                EmailTemplate.Button("Khám phá công thức", $"{webUrl}/recipes");
         }
         else
         {
-            body.Append("<ol>");
-            foreach (var rating in items)
+            var rows = items.Select((rating, index) =>
             {
                 var recipe = recipeById[rating.RecipeId];
-                var url = $"{_smtp.PublicApiUrl.TrimEnd('/')}/recipes/{Uri.EscapeDataString(recipe.Slug)}";
-                body.Append($"<li><a href=\"{WebUtility.HtmlEncode(url)}\">{WebUtility.HtmlEncode(recipe.Title)}</a> — {rating.AverageRating:0.0}/5 ({rating.RatingCount} lượt)</li>");
-            }
-            body.Append("</ol>");
+                return EmailTemplate.RankedItem(
+                    index + 1, recipe.Title, $"{webUrl}/recipes/{Uri.EscapeDataString(recipe.Slug)}",
+                    rating.AverageRating, rating.RatingCount);
+            });
+            content =
+                EmailTemplate.Paragraph("Đây là những món được cộng đồng Bếp Nhà chấm điểm cao nhất. Chọn một món và vào bếp thôi!") +
+                EmailTemplate.RankedList(rows) +
+                EmailTemplate.Button("Xem tất cả công thức", $"{webUrl}/recipes");
         }
+
+        var manageUrl = $"{webUrl}/account#settings";
+        var body = EmailTemplate.Layout(
+            "Món ngon nổi bật tuần này",
+            "Top món được chấm điểm cao nhất từ Bếp Nhà.",
+            content,
+            $"Bạn nhận email này vì đã đăng ký bản tin Bếp Nhà.<br><a href=\"{EmailTemplate.Encode(manageUrl)}\" style=\"color:#b65338;\">Quản lý nhận thư</a> trong Tài khoản → Cài đặt.",
+            webUrl);
 
         using var client = new SmtpClient(_smtp.Host, _smtp.Port);
         if (!string.IsNullOrWhiteSpace(_smtp.Username))
@@ -73,7 +86,7 @@ public sealed class NewsletterDigestJob
         using var message = new MailMessage(_smtp.From, email)
         {
             Subject = "Món ngon nổi bật tuần này từ Bếp Nhà",
-            Body = body.ToString(),
+            Body = body,
             IsBodyHtml = true
         };
         await client.SendMailAsync(message, cancellationToken);

@@ -52,6 +52,7 @@ export default function RegisterPage() {
     const result = await signIn("credentials", {
       email: registration.email,
       password,
+      remember: "true",
       redirect: false,
     });
     setIsSubmitting(false);
