@@ -10,6 +10,8 @@ public sealed class CreateCategoryCommandValidator : AbstractValidator<CreateCat
         RuleFor(command => command.Request.Name)
             .Cascade(CascadeMode.Stop)
             .NotEmpty().WithMessage("Tên danh mục là bắt buộc.")
+            .Must(value => string.IsNullOrWhiteSpace(value) || value.Trim().Length >= 2)
+            .WithMessage("Tên danh mục phải có ít nhất 2 ký tự.")
             .Must(value => string.IsNullOrWhiteSpace(value) || value.Trim().Length <= 100)
             .WithMessage("Tên danh mục tối đa 100 ký tự.")
             .Must((command, name) => !string.IsNullOrWhiteSpace(command.Request.Slug) || SlugHelper.Generate(name).Length > 0)
