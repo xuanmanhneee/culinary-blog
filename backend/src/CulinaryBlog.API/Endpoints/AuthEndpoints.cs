@@ -2,9 +2,11 @@ using CulinaryBlog.API.Extensions;
 using CulinaryBlog.Application.Auth.Commands.Login;
 using CulinaryBlog.Application.Auth.Commands.GoogleLogin;
 using CulinaryBlog.Application.Auth.Commands.Logout;
+using CulinaryBlog.Application.Auth.Commands.Password;
 using CulinaryBlog.Application.Auth.Commands.RefreshToken;
 using CulinaryBlog.Application.Auth.Commands.Register;
 using CulinaryBlog.Application.Auth.Commands.UpdateCurrentUser;
+using CulinaryBlog.Application.Auth.Commands.UploadAvatar;
 using CulinaryBlog.Application.Auth.Models;
 using CulinaryBlog.Application.Auth.Queries.GetCurrentUser;
 using CulinaryBlog.Domain.Modules.Identity;
@@ -101,6 +103,63 @@ public static class AuthEndpoints
         .ProducesValidationProblem(StatusCodes.Status422UnprocessableEntity)
         .ProducesProblem(StatusCodes.Status401Unauthorized)
         .ProducesProblem(StatusCodes.Status409Conflict);
+
+        group.MapPost("/me/avatar", async (
+            [Microsoft.AspNetCore.Mvc.FromForm(Name = "file")] IFormFile file,
+            ISender sender,
+            HttpContext http,
+            CancellationToken ct) =>
+        {
+            var userId = http.User.GetUserId();
+            if (userId is null) return Results.Unauthorized();
+
+            return Results.Ok(await sender.Send(new UploadAvatarCommand(userId, file), ct));
+        })
+        .RequireAuthorization()
+        .WithName("UploadAvatar")
+        .WithSummary("Tải ảnh đại diện")
+        .Accepts<IFormFile>("multipart/form-data")
+        .Produces<UserProfileDto>()
+        .ProducesValidationProblem(StatusCodes.Status422UnprocessableEntity)
+        .ProducesAuthProblems()
+        .DisableAntiforgery();
+
+        group.MapPost("/forgot-password", async (ForgotPasswordRequest request, ISender sender, CancellationToken ct) =>
+        {
+            await sender.Send(new ForgotPasswordCommand(request), ct);
+            return Results.NoContent();
+        })
+        .AllowAnonymous()
+        .WithName("ForgotPassword")
+        .WithSummary("Gửi email đặt lại mật khẩu (luôn trả 204)")
+        .Produces(StatusCodes.Status204NoContent)
+        .ProducesValidationProblem(StatusCodes.Status422UnprocessableEntity);
+
+        group.MapPost("/reset-password", async (ResetPasswordRequest request, ISender sender, CancellationToken ct) =>
+        {
+            await sender.Send(new ResetPasswordCommand(request), ct);
+            return Results.NoContent();
+        })
+        .AllowAnonymous()
+        .WithName("ResetPassword")
+        .WithSummary("Đặt lại mật khẩu bằng token trong email")
+        .Produces(StatusCodes.Status204NoContent)
+        .ProducesValidationProblem(StatusCodes.Status422UnprocessableEntity);
+
+        group.MapPost("/change-password", async (ChangePasswordRequest request, ISender sender, HttpContext http, CancellationToken ct) =>
+        {
+            var userId = http.User.GetUserId();
+            if (userId is null) return Results.Unauthorized();
+
+            await sender.Send(new ChangePasswordCommand(userId, request), ct);
+            return Results.NoContent();
+        })
+        .RequireAuthorization()
+        .WithName("ChangePassword")
+        .WithSummary("Đổi mật khẩu; thu hồi mọi refresh token")
+        .Produces(StatusCodes.Status204NoContent)
+        .ProducesValidationProblem(StatusCodes.Status422UnprocessableEntity)
+        .ProducesAuthProblems();
 
         // FR-AUTH-004: luân chuyển refresh token.
         group.MapPost("/refresh", async (

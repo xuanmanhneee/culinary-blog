@@ -31,3 +31,13 @@ backend/src/CulinaryBlog.API/logs/
 
 # TLS certs cho nginx (không commit private key)
 nginx/certs/
+
+# IDE
+.idea/
+
+# Playwright
+frontend/test-results/
+frontend/playwright-report/
+
+# Playwright auth state
+frontend/e2e/.auth/

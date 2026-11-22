@@ -25,7 +25,7 @@ Backend hiện đủ điều kiện để nhóm chuyển trọng tâm sang front
 - tìm kiếm, upload và quản lý vòng đời ảnh.
 
 Những chức năng **không thuộc backend core hiện tại**: rating, saved recipes, Google OAuth,
-quên mật khẩu, bình luận, notification và cache phân tán. Frontend không nên dựng luồng phụ thuộc vào các chức năng này
+bình luận, notification và cache phân tán. Frontend không nên dựng luồng phụ thuộc vào các chức năng này
 trước khi có API contract mới.
 
 ## 2. Kiến trúc và ranh giới module
@@ -190,6 +190,10 @@ Tổng cộng **28 OpenAPI operations**, tất cả có `operationId` duy nhất
 | POST | `/auth/logout` | Bearer | `Logout` | `{ refreshToken }` → `204` |
 | GET | `/auth/me` | Bearer | `GetCurrentUser` | `UserProfileDto` |
 | PATCH | `/auth/me` | Bearer | `UpdateCurrentUser` | `{ fullName?, avatarUrl? }` |
+| POST | `/auth/forgot-password` | Public | `ForgotPassword` | `{ email }` → `204` (luôn 204, không lộ email có tồn tại); gửi mail link `{web}/reset-password?email&token` |
+| POST | `/auth/reset-password` | Public | `ResetPassword` | `{ email, token, newPassword }` → `204`; `422` nếu token sai/hết hạn hoặc mật khẩu yếu; thu hồi mọi refresh token |
+| POST | `/auth/change-password` | Bearer | `ChangePassword` | `{ currentPassword, newPassword }` → `204`; `422` nếu sai mật khẩu hiện tại; thu hồi mọi refresh token |
+| GET | `/auth/confirm-email` | Public | `ConfirmEmail` | `?userId&token` → `200`; link trong mail trỏ về trang `{web}/confirm-email` của frontend |
 
 ```json
 // RegisterRequest

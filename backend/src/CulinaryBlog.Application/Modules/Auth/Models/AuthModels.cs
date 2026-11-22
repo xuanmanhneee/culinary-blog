@@ -18,6 +18,10 @@ public record LogoutRequest(string RefreshToken);
 
 public record ChangePasswordRequest(string CurrentPassword, string NewPassword);
 
+public record ForgotPasswordRequest(string Email);
+
+public record ResetPasswordRequest(string Email, string Token, string NewPassword);
+
 /// <summary>
 /// PATCH: field nào null thì giữ nguyên. AvatarUrl = "" nghĩa là xóa avatar.
 /// </summary>

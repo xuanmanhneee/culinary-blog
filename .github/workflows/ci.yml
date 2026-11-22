@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  backend:
+    name: Backend (build + test)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Build (cảnh báo là lỗi)
+        run: dotnet build backend/CulinaryBlog.slnx --nologo -warnaserror
+      # Test tích hợp dùng Testcontainers: runner ubuntu có sẵn Docker để dựng PostgreSQL tạm thời.
+      - name: Test
+        run: dotnet test backend/src/tests/CulinaryBlog.Tests/CulinaryBlog.Tests.csproj --no-build --nologo --logger "trx;LogFileName=test-results.trx"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-test-results
+          path: "**/test-results.trx"
+
+  frontend:
+    name: Frontend (type-check + lint + build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      # Phiên bản pnpm lấy từ trường packageManager trong package.json.
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      # Sinh các kiểu toàn cục của Next.js (LayoutProps, PageProps...) trước khi type-check trên checkout sạch.
+      - run: pnpm exec next typegen
+      - run: pnpm exec tsc --noEmit
+      - run: pnpm lint
+      - run: pnpm build
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost
+          NEXT_PUBLIC_SITE_URL: http://localhost
+          AUTH_SECRET: ci-only-secret-0123456789-abcdefghij
+
+  # E2E cần cả hệ thống chạy (nginx, API, Postgres, Redis, MinIO, Mailhog) nên chỉ chạy khi bấm tay
+  # hoặc theo lịch, không chặn mỗi pull request.
+  e2e:
+    name: E2E (Playwright)
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker compose up -d --build --wait
+      # Phiên bản pnpm lấy từ trường packageManager trong package.json.
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: pnpm install --frozen-lockfile
+        working-directory: frontend
+      - run: pnpm exec playwright install --with-deps chromium
+        working-directory: frontend
+      - run: pnpm test:e2e
+        working-directory: frontend
+        env:
+          CI: "true"
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: frontend/playwright-report

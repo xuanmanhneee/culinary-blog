@@ -286,3 +286,20 @@ Hệ thống có 3 vai trò: **Guest**, **Author**, **Admin**, với 3 tầng ki
 ## 📄 Giấy phép
 
 _MIT License_
+
+---
+
+## ✅ Kiểm thử, CI và vận hành
+
+| Việc | Lệnh |
+|---|---|
+| Test backend (đơn vị + tích hợp, cần Docker cho PostgreSQL tạm) | `dotnet test backend/src/tests/CulinaryBlog.Tests/CulinaryBlog.Tests.csproj` |
+| Kiểm tra kiểu và lint frontend | `pnpm --dir frontend exec tsc --noEmit` và `pnpm --dir frontend lint` |
+| E2E 5 luồng cốt lõi (cần `docker compose up -d` đang chạy; lần đầu chạy `pnpm --dir frontend exec playwright install chromium`) | `pnpm --dir frontend test:e2e` |
+| Sao lưu PostgreSQL thủ công | `./scripts/backup-db.sh` |
+| Chạy production | `docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.production up -d --build` (xem `.env.production.example`) |
+
+- CI (GitHub Actions) build backend với `-warnaserror`, chạy test, type-check, lint và build frontend. Job E2E chạy khi bấm tay (`workflow_dispatch`).
+- Production có thêm dịch vụ `postgres-backup`: `pg_dump` lúc 03:00 hằng ngày, giữ 30 ngày.
+- Mọi response có `X-Correlation-ID`; mức giới hạn chung 100 request/phút/IP trả `X-RateLimit-*`; câu lệnh SQL chậm hơn 100 ms được cảnh báo trong log.
+- Lịch sử thay đổi: xem [CHANGELOG.md](CHANGELOG.md).

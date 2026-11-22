@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Threading.RateLimiting;
+using CulinaryBlog.API.Middleware;
 using Microsoft.AspNetCore.RateLimiting;
 
 namespace CulinaryBlog.API.Extensions;
@@ -21,10 +22,10 @@ public static class RateLimitPolicies
 public static class RateLimitingExtensions
 {
     private const int AuthPermitLimit = 10;
-    private const int GeneralPermitLimit = 100;
+    internal const int GeneralPermitLimit = 100;
     private const int UploadPermitLimit = 5;
 
-    private static readonly TimeSpan Window = TimeSpan.FromMinutes(1);
+    internal static readonly TimeSpan Window = TimeSpan.FromMinutes(1);
 
     /// <summary>Health check (probe của Docker/Nginx) không bị giới hạn để không làm sai readiness.</summary>
     private static bool IsUnlimited(string path) => path.StartsWith("/health", StringComparison.OrdinalIgnoreCase);
@@ -82,6 +83,7 @@ public static class RateLimitingExtensions
 
                 context.HttpContext.Response.Headers.RetryAfter =
                     retryAfterSeconds.ToString(CultureInfo.InvariantCulture);
+                RateLimitHeadersMiddleware.Apply(context.HttpContext, remaining: 0, retryAfterSeconds);
 
                 return ValueTask.CompletedTask;
             };

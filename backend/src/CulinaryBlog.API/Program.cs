@@ -118,6 +118,7 @@ app.UseStaticFiles();
 app.UseCors();
 
 app.UseRateLimiter();
+app.UseMiddleware<RateLimitHeadersMiddleware>();
 
 app.UseAuthentication();
 app.UseAuthorization();
@@ -159,4 +160,9 @@ app.MapEngagementProxyEndpoints();
 
 app.MapSubscriptionEndpoints();
 
+app.MapAdminJobsEndpoints();
+
 app.Run();
+
+// Để WebApplicationFactory (test tích hợp) tham chiếu được lớp Program do top-level statements sinh ra.
+public partial class Program;

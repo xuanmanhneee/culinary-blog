@@ -11,6 +11,11 @@ public sealed class UpdateCurrentUserCommandValidator : AbstractValidator<Update
             .WithMessage("Họ tên phải từ 2 đến 100 ký tự.")
             .OverridePropertyName("fullName");
 
+        RuleFor(command => command.Request.Bio)
+            .Must(bio => bio is null || bio.Trim().Length <= 500)
+            .WithMessage("Giới thiệu tối đa 500 ký tự.")
+            .OverridePropertyName("bio");
+
         RuleFor(command => command.Request.AvatarUrl)
             .Must(BeValidAvatarUrl)
             .WithMessage("Avatar phải là URL http/https hợp lệ.")
