@@ -1,0 +1,69 @@
+# Cấu hình production, chồng lên docker-compose.yml:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.production up -d --build
+# Bí mật (mật khẩu DB, khóa JWT, SMTP...) đọc từ .env.production (xem .env.production.example), không commit.
+services:
+  api:
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      Jwt__Key: ${JWT_KEY:?Đặt JWT_KEY (>= 32 ký tự) trong .env.production}
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=culinaryblog;Username=postgres;Password=${POSTGRES_PASSWORD:?Đặt POSTGRES_PASSWORD}
+      Smtp__Host: ${SMTP_HOST:?Đặt SMTP_HOST}
+      Smtp__Port: ${SMTP_PORT:-587}
+      Smtp__Username: ${SMTP_USERNAME:-}
+      Smtp__Password: ${SMTP_PASSWORD:-}
+      Smtp__From: ${SMTP_FROM:-noreply@culinaryblog.example}
+      Smtp__PublicApiUrl: ${PUBLIC_SITE_URL:?Đặt PUBLIC_SITE_URL}
+      Smtp__PublicWebUrl: ${PUBLIC_SITE_URL}
+      HangfireDashboard__Username: ${HANGFIRE_DASHBOARD_USERNAME:?Đặt tài khoản Hangfire Dashboard}
+      HangfireDashboard__Password: ${HANGFIRE_DASHBOARD_PASSWORD:?Đặt mật khẩu Hangfire Dashboard}
+      Seq__ServerUrl: ""
+    # Bỏ phụ thuộc vào mailhog/seq (chỉ có ở profile dev).
+    depends_on: !override
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_started
+
+  postgres:
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    # Không mở cổng DB ra ngoài host ở production.
+    ports: !reset []
+
+  engagement-postgres:
+    ports: !reset []
+
+  frontend:
+    environment:
+      AUTH_SECRET: ${AUTH_SECRET:?Đặt AUTH_SECRET trong .env.production}
+
+  # Công cụ dev: chỉ chạy khi bật profile "dev".
+  mailhog:
+    profiles: ["dev"]
+  seq:
+    profiles: ["dev"]
+
+  # NFR-REL: pg_dump lúc 03:00 hằng ngày, giữ 30 ngày, lưu trong volume riêng.
+  postgres-backup:
+    image: prodrigestivill/postgres-backup-local:16
+    container_name: culinaryblog-postgres-backup
+    restart: unless-stopped
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_DB: culinaryblog
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      SCHEDULE: "0 3 * * *"
+      BACKUP_KEEP_DAYS: "30"
+      BACKUP_KEEP_WEEKS: "0"
+      BACKUP_KEEP_MONTHS: "0"
+    volumes:
+      - culinaryblog-postgres-backups:/backups
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  culinaryblog-postgres-backups:
