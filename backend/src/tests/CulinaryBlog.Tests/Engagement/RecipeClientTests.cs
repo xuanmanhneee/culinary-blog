@@ -1,6 +1,7 @@
+extern alias EngagementAssembly;
 using System.Net;
 using System.Text;
-using CulinaryBlog.Engagement;
+using EngagementAssembly::CulinaryBlog.Engagement;
 
 namespace CulinaryBlog.Tests.Engagement;
 

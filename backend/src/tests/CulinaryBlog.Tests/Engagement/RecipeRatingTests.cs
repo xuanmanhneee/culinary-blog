@@ -1,4 +1,5 @@
-using CulinaryBlog.Engagement;
+extern alias EngagementAssembly;
+using EngagementAssembly::CulinaryBlog.Engagement;
 
 namespace CulinaryBlog.Tests.Engagement;
 
