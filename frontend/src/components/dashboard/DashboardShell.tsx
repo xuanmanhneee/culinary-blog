@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpenText, ClipboardList, FolderTree, Heart, LayoutDashboard, Trash2, UsersRound } from "lucide-react";
+import { BookOpenText, CalendarClock, ClipboardList, FolderTree, Heart, LayoutDashboard, Trash2, UsersRound } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import type { ReactNode } from "react";
@@ -19,6 +19,7 @@ const adminLinks = [
   { href: "/dashboard/recipes?tab=deleted", label: "Thùng rác", icon: Trash2, tab: "deleted" },
   { href: "/dashboard/categories", label: "Quản lý danh mục", icon: FolderTree },
   { href: "/dashboard/users", label: "Quản lý người dùng", icon: UsersRound },
+  { href: "/dashboard/automation", label: "Tác vụ tự động", icon: CalendarClock },
 ];
 
 export function DashboardShell({ children, isAdmin }: { children: ReactNode; isAdmin: boolean }) {

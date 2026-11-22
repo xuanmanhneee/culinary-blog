@@ -159,4 +159,6 @@ app.MapEngagementProxyEndpoints();
 
 app.MapSubscriptionEndpoints();
 
+app.MapAdminJobsEndpoints();
+
 app.Run();
