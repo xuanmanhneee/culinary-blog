@@ -37,6 +37,17 @@ internal static class AuthUseCaseSupport
         return BuildResponse(user, roles, access, refresh);
     }
 
+    /// <summary>Thu hồi mọi refresh token còn hiệu lực (sau khi đổi/đặt lại mật khẩu).</summary>
+    public static async Task RevokeAllAsync(
+        string userId,
+        IRefreshTokenRepository tokens,
+        IUnitOfWork unitOfWork,
+        CancellationToken ct)
+    {
+        foreach (var token in await tokens.GetActiveByUserAsync(userId, ct)) token.Revoke();
+        await unitOfWork.SaveChangesAsync(ct);
+    }
+
     public static AuthResponseDto BuildResponse(
         ApplicationUser user,
         IList<string> roles,

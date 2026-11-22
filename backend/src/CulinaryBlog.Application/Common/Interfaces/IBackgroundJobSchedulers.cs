@@ -5,6 +5,11 @@ public interface IWelcomeEmailScheduler
     void Schedule(string email, string fullName, string userId, string confirmationToken);
 }
 
+public interface IPasswordResetEmailScheduler
+{
+    void Schedule(string email, string fullName, string userId, string resetToken);
+}
+
 public interface IFileDeletionScheduler
 {
     void Schedule(string url);

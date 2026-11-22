@@ -14,6 +14,16 @@ internal sealed class WelcomeEmailScheduler : IWelcomeEmailScheduler
         _jobs.Enqueue<WelcomeEmailJob>(job => job.SendAsync(email, fullName, userId, confirmationToken, CancellationToken.None));
 }
 
+internal sealed class PasswordResetEmailScheduler : IPasswordResetEmailScheduler
+{
+    private readonly IBackgroundJobClient _jobs;
+
+    public PasswordResetEmailScheduler(IBackgroundJobClient jobs) => _jobs = jobs;
+
+    public void Schedule(string email, string fullName, string userId, string resetToken) =>
+        _jobs.Enqueue<PasswordResetEmailJob>(job => job.SendAsync(email, fullName, userId, resetToken, CancellationToken.None));
+}
+
 internal sealed class FileDeletionScheduler : IFileDeletionScheduler
 {
     private readonly IBackgroundJobClient _jobs;

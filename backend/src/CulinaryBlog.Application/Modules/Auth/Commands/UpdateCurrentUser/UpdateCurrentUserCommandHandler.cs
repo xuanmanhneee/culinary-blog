@@ -33,6 +33,13 @@ internal sealed class UpdateCurrentUserCommandHandler
             user.AvatarUrl = request.AvatarUrl.Length == 0 ? null : request.AvatarUrl;
         }
 
+        if (request.Bio is not null)
+        {
+            // Chuỗi rỗng mang nghĩa xóa phần giới thiệu.
+            var bio = request.Bio.Trim();
+            user.Bio = bio.Length == 0 ? null : bio;
+        }
+
         var result = await _users.UpdateAsync(user);
         if (!result.Succeeded)
         {

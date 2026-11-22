@@ -47,6 +47,7 @@ services:
       Smtp__Port: "1025"
       Smtp__From: noreply@culinaryblog.local
       Smtp__PublicApiUrl: https://localhost
+      Smtp__PublicWebUrl: https://localhost
       # Tin X-Forwarded-For/Proto từ nginx (IP thật cho rate limiting, scheme https).
       ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
       HangfireDashboard__Username: ${HANGFIRE_DASHBOARD_USERNAME:-}
