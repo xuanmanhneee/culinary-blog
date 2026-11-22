@@ -42,6 +42,8 @@ jobs:
           cache: pnpm
           cache-dependency-path: frontend/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
+      # Sinh các kiểu toàn cục của Next.js (LayoutProps, PageProps...) trước khi type-check trên checkout sạch.
+      - run: pnpm exec next typegen
       - run: pnpm exec tsc --noEmit
       - run: pnpm lint
       - run: pnpm build
