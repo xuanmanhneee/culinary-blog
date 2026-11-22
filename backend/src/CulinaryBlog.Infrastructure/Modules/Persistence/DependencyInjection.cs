@@ -10,6 +10,7 @@ using CulinaryBlog.Infrastructure.Modules.Health;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace CulinaryBlog.Infrastructure.Modules.Persistence;
@@ -38,7 +39,11 @@ internal static class DependencyInjection
         {
             options.UseNpgsql(connectionString, npgsql =>
                 npgsql.MigrationsAssembly(typeof(CulinaryBlogDbContext).Assembly.FullName));
-            options.AddInterceptors(provider.GetRequiredService<AuditInterceptor>());
+            options.AddInterceptors(
+                provider.GetRequiredService<AuditInterceptor>(),
+                new SlowQueryInterceptor(
+                    provider.GetRequiredService<ILogger<SlowQueryInterceptor>>(),
+                    configuration.GetValue("Database:SlowQueryThresholdMs", SlowQueryInterceptor.DefaultThresholdMs)));
         });
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
