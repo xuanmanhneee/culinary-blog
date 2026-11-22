@@ -34,9 +34,8 @@ jobs:
         working-directory: frontend
     steps:
       - uses: actions/checkout@v4
+      # Phiên bản pnpm lấy từ trường packageManager trong package.json.
       - uses: pnpm/action-setup@v4
-        with:
-          version: 11
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -60,9 +59,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: docker compose up -d --build --wait
+      # Phiên bản pnpm lấy từ trường packageManager trong package.json.
       - uses: pnpm/action-setup@v4
-        with:
-          version: 11
       - uses: actions/setup-node@v4
         with:
           node-version: 22
