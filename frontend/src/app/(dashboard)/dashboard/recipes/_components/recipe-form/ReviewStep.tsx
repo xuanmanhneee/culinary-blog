@@ -3,18 +3,14 @@
 import { useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Save } from "lucide-react";
+import { Save, Send } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { RecipeDifficultyBadge } from "@/components/recipes/RecipeDifficultyBadge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { formatMinutes, formatTotalTime } from "@/lib/recipe-format";
-import {
-  toCreateRecipeRequest,
-  toUpdateRecipeRequest,
-  useRecipeFormStore,
-  type NutritionDraft,
-} from "@/lib/stores/recipe-form-store";
+import { useRecipeFormStore, type NutritionDraft } from "@/lib/stores/recipe-form-store";
 import type { RecipeCategoryDto } from "@/lib/types/recipe";
 import { nutritionSchema, optionalNumber, type NutritionValues } from "./schemas";
 import { useServerErrors, type ServerErrors } from "./server-errors";
@@ -32,7 +28,8 @@ const nutritionFields: { name: keyof NutritionValues; label: string; unit: strin
 interface ReviewStepProps {
   categories: RecipeCategoryDto[];
   isSubmitting: boolean;
-  onSubmit: () => void;
+  /** `publish = true`: tạo xong xuất bản ngay (chỉ ở chế độ tạo mới). */
+  onSubmit: (publish?: boolean) => void;
   serverErrors?: ServerErrors | null;
 }
 
@@ -61,7 +58,6 @@ export function ReviewStep({ categories, isSubmitting, onSubmit, serverErrors }:
 
   const { basic, ingredients, steps } = draft;
   const category = categories.find((item) => item.id === basic.categoryId);
-  const requestPreview = mode === "create" ? toCreateRecipeRequest(draft) : toUpdateRecipeRequest(draft);
 
   return (
     <form
@@ -69,7 +65,7 @@ export function ReviewStep({ categories, isSubmitting, onSubmit, serverErrors }:
       className="space-y-6"
       onSubmit={form.handleSubmit((values) => {
         setNutrition(values);
-        onSubmit();
+        onSubmit(false);
       })}
     >
       <Card>
@@ -142,19 +138,27 @@ export function ReviewStep({ categories, isSubmitting, onSubmit, serverErrors }:
               ))}
             </ol>
           </div>
-
-          <details className="rounded-xl border bg-muted/40 p-3">
-            <summary className="cursor-pointer font-medium">
-              Dữ liệu sẽ gửi ({mode === "create" ? "POST /api/v1/recipes" : "PUT /api/v1/recipes/{id}"})
-            </summary>
-            <pre className="mt-3 max-h-80 overflow-auto text-xs">{JSON.stringify(requestPreview, null, 2)}</pre>
-          </details>
         </CardContent>
       </Card>
 
       <StepActions
         onBack={previousStep}
         isSubmitting={isSubmitting}
+        extraAction={
+          mode === "create" ? (
+            <Button
+              type="button"
+              disabled={isSubmitting}
+              onClick={form.handleSubmit((values) => {
+                setNutrition(values);
+                onSubmit(true);
+              })}
+            >
+              <Send />
+              Lưu và xuất bản
+            </Button>
+          ) : undefined
+        }
         submitLabel={
           <>
             <Save />
