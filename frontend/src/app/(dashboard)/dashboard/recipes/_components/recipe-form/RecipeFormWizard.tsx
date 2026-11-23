@@ -3,18 +3,19 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, RotateCcw } from "lucide-react";
+import { ArrowLeft, RotateCcw, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { useSession } from "next-auth/react";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { ErrorState } from "@/components/common/ErrorState";
+import { SAMPLE_RECIPES } from "@/lib/demo/sample-recipes";
 import { RecipeStatusBadge } from "@/components/recipes/RecipeStatusBadge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { refreshPublicRecipes } from "@/lib/actions/recipe-cache";
 import { ApiError } from "@/lib/api/client";
 import { getRecipeErrorMessage } from "@/lib/api/problem";
-import { updateStep, uploadRecipeImage, type RecipeWithEtag } from "@/lib/api/recipe-management";
+import { changeRecipeStatus, updateStep, uploadRecipeImage, type RecipeWithEtag } from "@/lib/api/recipe-management";
 import { useCategories, useCreateRecipe, useRecipeForEdit, useSaveRecipeEdit } from "@/lib/hooks/useRecipeManagement";
 import { useAccessToken } from "@/lib/hooks/useAccessToken";
 import { RECIPE_FORM_STEPS, toCreateRecipeRequest, useRecipeFormStore, type StepDraft } from "@/lib/stores/recipe-form-store";
@@ -171,7 +172,56 @@ export function RecipeFormWizard({ mode, recipeId, initialNotice }: RecipeFormWi
     setStepImages(next);
   }
 
-  async function handleSubmit() {
+  /** Demo: điền sẵn một món mẫu (kèm ảnh bìa + ảnh bước) để bấm "Tiếp tục" qua các bước. */
+  const sampleIndex = useRef(0);
+  async function fillSample() {
+    const sample = SAMPLE_RECIPES[sampleIndex.current % SAMPLE_RECIPES.length];
+    sampleIndex.current += 1;
+    const category =
+      categories.find((c) => sample.categoryHints.some((hint) => c.name.toLocaleLowerCase("vi").includes(hint))) ??
+      categories[0];
+    const uid = () => crypto.randomUUID();
+    const steps = sample.steps.map((s) => ({ key: uid(), title: s.title ?? "", description: s.description, timerMinutes: s.timerMinutes }));
+    const toFile = async (name: string) => {
+      const blob = await (await fetch(`/demo/${name}`)).blob();
+      return new File([blob], name, { type: "image/jpeg" });
+    };
+    try {
+      const cover = await toFile(sample.cover);
+      const stepFiles = await Promise.all(
+        Object.entries(sample.stepImages).map(async ([index, name]) => [Number(index), await toFile(name)] as const),
+      );
+      for (const key of Object.keys(stepImagesRef.current)) clearStepImage(key);
+      selectCoverImage(cover);
+      for (const [index, file] of stepFiles) if (steps[index]) selectStepImage(steps[index].key, file);
+    } catch {
+      toast.error("Không tải được ảnh mẫu; vẫn điền phần chữ.");
+    }
+    useRecipeFormStore.setState({
+      draft: {
+        basic: {
+          title: sample.title,
+          description: sample.description,
+          categoryId: category?.id ?? "",
+          prepTimeMinutes: sample.prepTimeMinutes,
+          cookTimeMinutes: sample.cookTimeMinutes,
+          servings: sample.servings,
+          difficulty: sample.difficulty,
+          instructions: sample.instructions,
+        },
+        ingredients: sample.ingredients.map((i) => ({ key: uid(), name: i.name, quantity: i.quantity, unit: i.unit, notes: i.notes ?? "" })),
+        steps,
+        nutrition: { ...sample.nutrition },
+      },
+      currentStep: 0,
+      completedSteps: [],
+    });
+    setServerErrors(null);
+    setFormVersion((version) => version + 1);
+    setNotice({ tone: "info", text: `Đã điền món mẫu "${sample.title}". Bấm "Tiếp tục" qua từng bước rồi lưu.` });
+  }
+
+  async function handleSubmit(publish = false) {
     setServerErrors(null);
     setNotice(null);
     const { draft } = useRecipeFormStore.getState();
@@ -203,6 +253,18 @@ export function RecipeFormWizard({ mode, recipeId, initialNotice }: RecipeFormWi
         useRecipeFormStore.getState().reset();
         router.push(`/dashboard/recipes/${created.id}/edit?notice=images-pending`);
         return;
+      }
+
+      if (publish) {
+        try {
+          await changeRecipeStatus(created.id, "publish", token);
+          toast.success("Đã xuất bản công thức.");
+        } catch (error) {
+          toast.error(`Công thức đã được lưu nháp nhưng xuất bản thất bại: ${getRecipeErrorMessage(error)}`);
+          useRecipeFormStore.getState().reset();
+          router.push(`/dashboard/recipes/${created.id}/edit`);
+          return;
+        }
       }
 
       try {
@@ -276,7 +338,7 @@ export function RecipeFormWizard({ mode, recipeId, initialNotice }: RecipeFormWi
   const stepLabel = RECIPE_FORM_STEPS[currentStep]?.label;
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-6">
+    <div className="w-full space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="space-y-1">
           <BackLink />
@@ -292,10 +354,16 @@ export function RecipeFormWizard({ mode, recipeId, initialNotice }: RecipeFormWi
           </p>
         </div>
         {mode === "create" && (
-          <Button type="button" variant="ghost" size="sm" onClick={() => setConfirmDiscard(true)}>
-            <RotateCcw />
-            Làm lại từ đầu
-          </Button>
+          <div className="flex gap-2">
+            <Button type="button" variant="outline" size="sm" disabled={!isReady || categories.length === 0} onClick={() => void fillSample()}>
+              <Wand2 />
+              Điền dữ liệu mẫu
+            </Button>
+            <Button type="button" variant="ghost" size="sm" onClick={() => setConfirmDiscard(true)}>
+              <RotateCcw />
+              Làm lại từ đầu
+            </Button>
+          </div>
         )}
       </div>
 
@@ -338,7 +406,7 @@ export function RecipeFormWizard({ mode, recipeId, initialNotice }: RecipeFormWi
               <ReviewStep
                 categories={categories}
                 isSubmitting={isSubmitting}
-                onSubmit={() => void handleSubmit()}
+                onSubmit={(publish) => void handleSubmit(publish)}
                 serverErrors={serverErrors}
               />
             )}

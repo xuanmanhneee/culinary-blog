@@ -7,10 +7,12 @@ interface StepActionsProps {
   /** Nút submit của form bước hiện tại; mặc định "Tiếp theo". */
   submitLabel?: ReactNode;
   isSubmitting?: boolean;
+  /** Nút phụ đặt cạnh nút submit (vd. "Lưu và xuất bản"). */
+  extraAction?: ReactNode;
 }
 
 /** Thanh nút cuối mỗi bước: "Quay lại" (không kiểm tra) và submit (kiểm tra rồi sang bước sau). */
-export function StepActions({ onBack, submitLabel, isSubmitting = false }: StepActionsProps) {
+export function StepActions({ onBack, submitLabel, isSubmitting = false, extraAction }: StepActionsProps) {
   return (
     <div className="flex items-center justify-between gap-3 border-t pt-4">
       {onBack ? (
@@ -21,14 +23,17 @@ export function StepActions({ onBack, submitLabel, isSubmitting = false }: StepA
       ) : (
         <span />
       )}
-      <Button type="submit" disabled={isSubmitting}>
-        {submitLabel ?? (
-          <>
-            Tiếp theo
-            <ArrowRight />
-          </>
-        )}
-      </Button>
+      <div className="flex items-center gap-3">
+        {extraAction}
+        <Button type="submit" disabled={isSubmitting}>
+          {submitLabel ?? (
+            <>
+              Tiếp theo
+              <ArrowRight />
+            </>
+          )}
+        </Button>
+      </div>
     </div>
   );
 }
