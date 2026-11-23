@@ -1,0 +1,17 @@
+{
+  "name": "culinary-blog-slides",
+  "private": true,
+  "scripts": {
+    "dev": "slidev slides.md --open",
+    "build": "slidev build slides.md",
+    "export": "slidev export slides.md --output CulinaryBlog_SLIDE.pdf"
+  },
+  "dependencies": {
+    "@vue/compiler-sfc": "3.5.46",
+    "vue": "^3.5.46"
+  },
+  "devDependencies": {
+    "@slidev/cli": "53.0.0",
+    "@slidev/theme-default": "^0.25.0"
+  }
+}
