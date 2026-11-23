@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpenText, CalendarClock, ClipboardList, FolderTree, Heart, LayoutDashboard, Trash2, UsersRound } from "lucide-react";
+import { BookOpenText, ClipboardList, Heart, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import type { ReactNode } from "react";
@@ -13,23 +13,15 @@ const workspaceLinks = [
   { href: "/dashboard/recipes?tab=deleted", label: "Thùng rác", icon: Trash2, tab: "deleted" },
 ];
 
-const adminLinks = [
-  { href: "/dashboard", label: "Tổng quan", icon: LayoutDashboard },
-  { href: "/dashboard/recipes", label: "Quản lý công thức", icon: BookOpenText },
-  { href: "/dashboard/recipes?tab=deleted", label: "Thùng rác", icon: Trash2, tab: "deleted" },
-  { href: "/dashboard/categories", label: "Quản lý danh mục", icon: FolderTree },
-  { href: "/dashboard/users", label: "Quản lý người dùng", icon: UsersRound },
-  { href: "/dashboard/automation", label: "Tác vụ tự động", icon: CalendarClock },
-];
-
 export function DashboardShell({ children, isAdmin }: { children: ReactNode; isAdmin: boolean }) {
   const pathname = usePathname();
   const currentTab = useSearchParams().get("tab");
-  const links = isAdmin ? adminLinks : workspaceLinks;
+  // Admin điều hướng bằng header chung (xem components/layout/Header.tsx), không lặp lại thanh tab ở đây.
+  const links = isAdmin ? [] : workspaceLinks;
   return (
     <main className="min-h-[calc(100vh-74px)] bg-muted/60 px-4 py-7 sm:px-6 md:px-8 lg:px-10 lg:py-9">
       <div className="mx-auto w-full max-w-[1440px]">
-        <nav aria-label={isAdmin ? "Điều hướng quản trị" : "Điều hướng Bếp của tôi"} className="mb-7 flex flex-wrap gap-1.5 rounded-2xl border border-border bg-card p-2">
+        {!isAdmin && <nav aria-label="Điều hướng Bếp của tôi" className="mb-7 flex flex-wrap gap-1.5 rounded-2xl border border-border bg-card p-2">
           {links.map(({ href, label, icon: Icon, tab }) => {
             const route = href.split("?")[0];
             const exact = pathname === route && (tab ? currentTab === tab : !currentTab);
@@ -43,7 +35,7 @@ export function DashboardShell({ children, isAdmin }: { children: ReactNode; isA
               </Button>
             );
           })}
-        </nav>
+        </nav>}
         {children}
       </div>
     </main>

@@ -38,7 +38,8 @@ services:
       Jwt__Key: culinary-blog-dev-secret-key-2026
       Storage__Provider: Minio
       Minio__Endpoint: http://minio:9000
-      Minio__PublicEndpoint: http://localhost:9000
+      # Ảnh phục vụ qua nginx cùng origin (location /culinary-blog/), không phải localhost:9000.
+      Minio__PublicEndpoint: ${PUBLIC_SITE_URL:-https://localhost}
       Minio__AccessKey: culinaryblog
       Minio__SecretKey: culinaryblog-secret
       Minio__BucketName: culinary-blog
@@ -103,9 +104,11 @@ services:
     restart: unless-stopped
     environment:
       TLS_COMMON_NAME: ${TLS_COMMON_NAME:-localhost}
+    # Cổng trong container (80/443) cố định. Chỉ đổi cổng phía máy host qua .env
+    # (NGINX_HTTP_PORT / NGINX_HTTPS_PORT) khi trùng cổng; tunnel trỏ tới cổng host này.
     ports:
-      - "80:80"
-      - "443:443"
+      - "${NGINX_HTTP_PORT:-80}:80"
+      - "${NGINX_HTTPS_PORT:-443}:443"
     volumes:
       # Prod: đặt tls.crt/tls.key vào ./nginx/certs. Để trống thì tự sinh self-signed.
       - ./nginx/certs:/etc/nginx/certs
@@ -172,6 +175,7 @@ services:
   mailhog:
     image: mailhog/mailhog
     container_name: culinaryblog-mailhog
+    restart: unless-stopped
     ports:
       - "8025:8025"
       - "1025:1025"

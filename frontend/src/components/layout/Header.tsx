@@ -2,22 +2,19 @@
 
 import {
   BookOpenText,
-  FolderTree,
   ChevronDown,
   CircleHelp,
-  LayoutDashboard,
   LogOut,
   Menu,
   Settings,
   UserRound,
-  UsersRound,
   X,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -46,12 +43,24 @@ const accountNavigation = [
   { href: "/account#help", label: "Trợ giúp", icon: CircleHelp },
 ] as const;
 
-const adminNavigation = [
-  { href: "/dashboard", label: "Tổng quan", icon: LayoutDashboard },
-  { href: "/dashboard/recipes", label: "Quản lý công thức", icon: BookOpenText },
-  { href: "/dashboard/users", label: "Quản lý người dùng", icon: UsersRound },
-  { href: "/dashboard/categories", label: "Quản lý danh mục", icon: FolderTree },
-] as const;
+interface NavItem {
+  href: string;
+  label: string;
+  /** Mục chỉ sáng khi đúng đường dẫn (tránh "/dashboard" sáng ở mọi trang con). */
+  exact?: boolean;
+  /** Mục nằm trên cùng đường dẫn nhưng phân biệt bằng ?tab=. */
+  tab?: string;
+}
+
+// Điều hướng quản trị gộp chung vào header (trước đây lặp lại ở thanh tab trong dashboard).
+const adminNavigation: NavItem[] = [
+  { href: "/dashboard", label: "Tổng quan", exact: true },
+  { href: "/dashboard/recipes", label: "Quản lý công thức" },
+  { href: "/dashboard/recipes?tab=deleted", label: "Thùng rác", tab: "deleted" },
+  { href: "/dashboard/users", label: "Quản lý người dùng" },
+  { href: "/dashboard/categories", label: "Quản lý danh mục" },
+  { href: "/dashboard/automation", label: "Tác vụ tự động" },
+];
 
 function getInitials(name: string, email: string): string {
   const source = name.trim() || email.split("@")[0] || "BN";
@@ -78,6 +87,51 @@ function isActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
+function isItemActive(pathname: string, item: NavItem, tab: string | null): boolean {
+  const route = item.href.split("?")[0];
+  if (item.tab) return pathname === route && tab === item.tab;
+  const base = item.exact ? pathname === route : isActive(pathname, route);
+  // Khi đang ở tab riêng của cùng đường dẫn (vd. thùng rác) thì mục gốc không sáng.
+  return base && !(pathname === route && tab === "deleted");
+}
+
+/**
+ * Danh sách link điều hướng. Tách riêng vì useSearchParams cần Suspense; fallback hiển thị
+ * cùng các link (chưa đánh dấu active) nên header vẫn có trong HTML render sẵn.
+ */
+function NavLinks({ items, variant, onNavigate }: { items: NavItem[]; variant: "desktop" | "mobile"; onNavigate?: () => void }) {
+  return (
+    <Suspense fallback={<NavLinkList items={items} variant={variant} tab={null} active={false} onNavigate={onNavigate} />}>
+      <NavLinksWithTab items={items} variant={variant} onNavigate={onNavigate} />
+    </Suspense>
+  );
+}
+
+function NavLinksWithTab({ items, variant, onNavigate }: { items: NavItem[]; variant: "desktop" | "mobile"; onNavigate?: () => void }) {
+  const tab = useSearchParams().get("tab");
+  return <NavLinkList items={items} variant={variant} tab={tab} active onNavigate={onNavigate} />;
+}
+
+function NavLinkList({ items, variant, tab, active, onNavigate }: { items: NavItem[]; variant: "desktop" | "mobile"; tab: string | null; active: boolean; onNavigate?: () => void }) {
+  const pathname = usePathname();
+  return items.map((item) => {
+    const current = active && isItemActive(pathname, item, tab);
+    return (
+      <Link
+        key={item.href}
+        href={item.href}
+        onClick={onNavigate}
+        aria-current={current ? "page" : undefined}
+        className={variant === "desktop"
+          ? cn("nav-link", current && "text-primary after:scale-x-100")
+          : cn("rounded-xl px-3 py-2.5 text-sm font-semibold text-foreground hover:bg-muted", current && "bg-primary-soft text-primary")}
+      >
+        {item.label}
+      </Link>
+    );
+  });
+}
+
 export function Header() {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
@@ -95,7 +149,7 @@ export function Header() {
     ? []
     : accountNavigation.filter((item) => item.href !== "/dashboard" || showWorkspace);
   const loginHref = `/login?callbackUrl=${encodeURIComponent(pathname || "/")}`;
-  const navigation = isAdmin
+  const navigation: NavItem[] = isAdmin
     ? adminNavigation
     : navigationItems.filter((item) => item.href !== "/dashboard" || showWorkspace);
 
@@ -107,12 +161,8 @@ export function Header() {
     <header className="sticky top-0 z-50 border-b border-border/80 bg-muted/90 backdrop-blur-xl">
       <div className="site-container flex h-[74px] items-center justify-between gap-5">
         <Logo href={isAdmin ? "/dashboard" : "/"} label={isAdmin ? "Bếp Nhà - Tổng quan quản trị" : "Bếp Nhà - Trang chủ"} />
-        <nav className="hidden items-center gap-7 lg:flex" aria-label="Điều hướng chính">
-          {navigation.map((item) => (
-            <Link key={item.href} href={item.href} aria-current={isActive(pathname, item.href) ? "page" : undefined} className={cn("nav-link", isActive(pathname, item.href) && "text-primary after:scale-x-100")}>
-              {item.label}
-            </Link>
-          ))}
+        <nav className={cn("hidden items-center lg:flex", isAdmin ? "gap-5 xl:gap-7" : "gap-7")} aria-label="Điều hướng chính">
+          <NavLinks items={navigation} variant="desktop" />
         </nav>
         <div className="hidden items-center gap-2 lg:flex">
           {user ? (
@@ -162,11 +212,7 @@ export function Header() {
       {isOpen && (
         <div id="mobile-navigation" className="border-t border-border bg-card px-5 py-4 lg:hidden">
           <nav className="mx-auto flex max-w-7xl flex-col gap-1" aria-label="Điều hướng di động">
-            {navigation.map((item) => (
-              <Link key={item.href} href={item.href} onClick={() => setIsOpen(false)} aria-current={isActive(pathname, item.href) ? "page" : undefined} className={cn("rounded-xl px-3 py-2.5 text-sm font-semibold text-foreground hover:bg-muted", isActive(pathname, item.href) && "bg-primary-soft text-primary")}>
-                {item.label}
-              </Link>
-            ))}
+            <NavLinks items={navigation} variant="mobile" onNavigate={() => setIsOpen(false)} />
             {!user && <Button variant="outline" className="mt-3" asChild><Link href={loginHref}><UserRound />Đăng nhập</Link></Button>}
             {user && (
               <div className="mt-4 rounded-xl border border-border p-2">
