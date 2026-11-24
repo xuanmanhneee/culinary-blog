@@ -103,9 +103,9 @@ Phần của nhóm gồm: tổng quan, thiết kế hệ thống, các luồng n
 
 <div class="kicker">01 · Tổng quan đề tài</div>
 
-# Phân công theo mô-đun
+# Phân công theo module
 
-<div class="grid cols-4 mt-2">
+<div class="grid cols-2 mt-2" style="gap:16px">
   <div class="card tint">
     <div class="tag">Kiến trúc · DevOps</div>
     <div class="title">Phan Lê Xuân Mạnh</div>
@@ -128,7 +128,7 @@ Phần của nhóm gồm: tổng quan, thiết kế hệ thống, các luồng n
   </div>
 </div>
 
-<div class="callout mt-3">Cả bốn mô-đun đều hoàn thành; mỗi người làm cả backend lẫn frontend cho phần của mình.</div>
+<div class="callout mt-3">Cả bốn module đều hoàn thành; mỗi người làm cả backend lẫn frontend cho phần của mình.</div>
 
 ---
 
@@ -192,23 +192,23 @@ Phần của nhóm gồm: tổng quan, thiết kế hệ thống, các luồng n
 
 # Modular monolith thay cho phân tầng thuần
 
-<p class="intro">Giữ <b>4 project</b> để trình biên dịch ép chiều phụ thuộc (API → Application → Domain; Infrastructure → Application/Domain), rồi chia mỗi tầng theo mô-đun: <b>Auth, Categories, Recipes, Users</b>.</p>
+<p class="intro">Giữ <b>4 project</b> để trình biên dịch ép chiều phụ thuộc (API → Application → Domain; Infrastructure → Application/Domain), rồi chia mỗi tầng theo module: <b>Auth, Categories, Recipes, Users</b>.</p>
 
 <table class="tbl mt-2">
   <thead><tr><th>Tiêu chí</th><th>Phân tầng thuần</th><th class="pick">Modular monolith (chọn)</th><th>Microservices toàn phần</th></tr></thead>
   <tbody>
     <tr><td>Tổ chức mã</td><td>Theo loại kỹ thuật, tính năng rải nhiều nơi</td><td class="pick">Theo nghiệp vụ trong từng tầng</td><td>Mỗi dịch vụ một project</td></tr>
-    <tr><td>Ranh giới</td><td>Không rõ, dễ phụ thuộc chéo</td><td class="pick">Rõ theo thư mục mô-đun</td><td>Rõ, ép bằng mạng</td></tr>
+    <tr><td>Ranh giới</td><td>Không rõ, dễ phụ thuộc chéo</td><td class="pick">Rõ theo thư mục module</td><td>Rõ, ép bằng mạng</td></tr>
     <tr><td>Giao dịch dữ liệu</td><td>Một CSDL, đơn giản</td><td class="pick">Một CSDL, đơn giản</td><td>Nhiều CSDL, nhất quán cuối cùng</td></tr>
     <tr><td>Vận hành, quy mô</td><td>Một ứng dụng; khó mở rộng</td><td class="pick">Một ứng dụng; phù hợp nhóm 4 người</td><td>Nhiều dịch vụ; quá nặng</td></tr>
   </tbody>
 </table>
 
-<div class="callout mt-2">Công thức + nguyên liệu + bước + ảnh là <b>một aggregate</b> cần giao dịch và kiểm soát đồng thời chung, nên không tách microservices. <span class="muted">Giới hạn hiện tại: ranh giới mô-đun ở mức thư mục, chưa ép bằng compiler (xem hướng phát triển).</span></div>
+<div class="callout mt-2">Công thức + nguyên liệu + bước + ảnh là <b>một aggregate</b> cần giao dịch và kiểm soát đồng thời chung, nên không tách microservices. <span class="muted">Giới hạn hiện tại: ranh giới module ở mức thư mục, chưa ép bằng compiler (xem hướng phát triển).</span></div>
 
 <!--
 Chủ động nói giới hạn: đây là modular monolith ở mức tổ chức mã. Vẫn dùng chung một DbContext và Recipe tham chiếu trực tiếp Category, ApplicationUser.
-Nếu bị hỏi: hướng phát triển là tách project theo mô-đun hoặc thêm kiểm tra kiến trúc tự động.
+Nếu bị hỏi: hướng phát triển là tách project theo module hoặc thêm kiểm tra kiến trúc tự động.
 -->
 
 ---
@@ -226,11 +226,10 @@ Nếu bị hỏi: hướng phát triển là tách project theo mô-đun hoặc 
       <div class="card step"><div class="num">3</div><p>Ngừng hoạt động <b>không làm hỏng chức năng cốt lõi</b>.</p></div>
     </div>
     <h2 class="mt-2">Luồng lưu món / chấm sao</h2>
-    <div class="small" style="line-height:1.9">
+    <div class="small" style="display:flex; align-items:center; gap:6px; flex-wrap:nowrap; white-space:nowrap">
       <span class="chip fill">PUT /saved-recipes/{id}</span>→
       <span class="chip">API chính (proxy)</span>→
-      <span class="chip">xác nhận Published qua HTTP</span>→
-      <span class="chip green">upsert (UserId, RecipeId)</span>
+      <span class="chip green">upsert</span>
     </div>
   </div>
   <div>
@@ -238,12 +237,11 @@ Nếu bị hỏi: hướng phát triển là tách project theo mô-đun hoặc 
       <thead><tr><th>Quyết định</th><th>Được</th><th>Mất</th></tr></thead>
       <tbody>
         <tr><td>CSDL riêng</td><td>Thay đổi độc lập</td><td>Không join; dùng bản chụp</td></tr>
-        <tr><td>Dùng chung JWT</td><td>Không cần dịch vụ xác thực thứ hai</td><td>Phải cấu hình cùng khóa, issuer</td></tr>
         <tr><td>Xác nhận Published qua HTTP</td><td>Không lộ công thức chưa công khai</td><td>Phụ thuộc mạng: 503/504</td></tr>
         <tr><td>Bản chụp công thức</td><td>Danh sách đã lưu không gọi API từng món</td><td>Có thể cũ đến lần làm mới</td></tr>
       </tbody>
     </table>
-    <div class="callout mt-2"><b>Chức năng cốt lõi không phụ thuộc Engagement:</b> API chính chỉ định tuyến (proxy) tới nó. Engagement ngừng thì vẫn đọc và tìm công thức bình thường; chỉ phần lưu món và số sao tạm ẩn.</div>
+    <div class="callout mt-2"><b>Engagement ngừng thì</b> vẫn đọc và tìm công thức bình thường; chỉ phần lưu món và số sao tạm ẩn.</div>
   </div>
 </div>
 
@@ -413,7 +411,7 @@ Nên chụp lại sau khi chạy seed mới (commit “ảnh riêng cho từng m
   <div class="card tint">
     <div class="title">Đã đạt được</div>
     <ul>
-      <li><b>Modular monolith</b>: bốn tầng ép chiều phụ thuộc, chia mã theo mô-đun nghiệp vụ</li>
+      <li><b>Modular monolith</b>: bốn tầng ép chiều phụ thuộc, chia mã theo module nghiệp vụ</li>
       <li><b>Engagement</b> tách riêng; chức năng cốt lõi không phụ thuộc vào nó</li>
       <li>Cơ chế cụ thể cho phân quyền tài nguyên, sửa đồng thời, refresh token quay vòng, tìm kiếm không dấu, kiểm tra ảnh</li>
       <li>Test tích hợp, E2E và CI; triển khai bằng Docker Compose với Nginx + TLS</li>
@@ -422,7 +420,7 @@ Nên chụp lại sau khi chạy seed mới (commit “ảnh riêng cho từng m
   <div class="card">
     <div class="title">Hướng phát triển</div>
     <ul>
-      <li>Củng cố ranh giới mô-đun: tách project hoặc kiểm tra kiến trúc tự động</li>
+      <li>Củng cố ranh giới module: tách project hoặc kiểm tra kiến trúc tự động</li>
       <li>Engagement đọc trạng thái theo lô hoặc qua sự kiện; retry và circuit breaker</li>
       <li>Khóa JWT bất đối xứng thay cho khóa dùng chung</li>
       <li>Lưu trữ ảnh và tìm kiếm: ứng viên tách dịch vụ tiếp theo</li>
