@@ -54,6 +54,9 @@ services:
       HangfireDashboard__Username: ${HANGFIRE_DASHBOARD_USERNAME:-}
       HangfireDashboard__Password: ${HANGFIRE_DASHBOARD_PASSWORD:-}
       Seq__ServerUrl: http://seq:80
+      # Gửi trace sang Jaeger (UI: http://localhost:16686). Bỏ dòng này để tắt xuất trace.
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4317
+      OTEL_EXPORTER_OTLP_PROTOCOL: grpc
       Services__Engagement__BaseUrl: http://engagement:8080
       Cors__AllowedOrigins__0: http://localhost:3000
       Cors__AllowedOrigins__1: https://localhost
@@ -70,6 +73,8 @@ services:
       mailhog:
         condition: service_started
       seq:
+        condition: service_started
+      jaeger:
         condition: service_started
 
   frontend:
@@ -209,6 +214,15 @@ services:
       - "5341:80"
     volumes:
       - culinaryblog-seq-data:/data
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.62.0
+    container_name: culinaryblog-jaeger
+    restart: unless-stopped
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    ports:
+      - "16686:16686"
 
 volumes:
   culinaryblog-postgres-data:

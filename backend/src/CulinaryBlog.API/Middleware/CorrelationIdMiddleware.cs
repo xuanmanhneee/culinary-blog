@@ -31,7 +31,11 @@ public sealed class CorrelationIdMiddleware
             var userId = context.User.FindFirstValue("sub")
                 ?? context.User.FindFirstValue(ClaimTypes.NameIdentifier)
                 ?? "anonymous";
-            _logger.LogInformation("HTTP {Method} {Path} completed with {StatusCode} in {ElapsedMs} ms for user {UserId}",
+            // Probe định kỳ (nginx/Docker) chỉ ghi Debug khi thành công; lỗi vẫn hiện ở Information để dễ thấy.
+            var isHealthProbe = context.Request.Path.StartsWithSegments("/health")
+                && context.Response.StatusCode < 400;
+            _logger.Log(isHealthProbe ? LogLevel.Debug : LogLevel.Information,
+                "HTTP {Method} {Path} completed with {StatusCode} in {ElapsedMs} ms for user {UserId}",
                 context.Request.Method, context.Request.Path, context.Response.StatusCode,
                 stopwatch.ElapsedMilliseconds, userId);
         }

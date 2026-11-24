@@ -17,7 +17,8 @@ services:
       HangfireDashboard__Username: ${HANGFIRE_DASHBOARD_USERNAME:?Đặt tài khoản Hangfire Dashboard}
       HangfireDashboard__Password: ${HANGFIRE_DASHBOARD_PASSWORD:?Đặt mật khẩu Hangfire Dashboard}
       Seq__ServerUrl: ""
-    # Bỏ phụ thuộc vào mailhog/seq (chỉ có ở profile dev).
+      OTEL_EXPORTER_OTLP_ENDPOINT: ""
+    # Bỏ phụ thuộc vào mailhog/seq/jaeger (chỉ có ở profile dev).
     depends_on: !override
       postgres:
         condition: service_healthy
@@ -43,6 +44,8 @@ services:
   mailhog:
     profiles: ["dev"]
   seq:
+    profiles: ["dev"]
+  jaeger:
     profiles: ["dev"]
 
   # NFR-REL: pg_dump lúc 03:00 hằng ngày, giữ 30 ngày, lưu trong volume riêng.
