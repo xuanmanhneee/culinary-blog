@@ -116,23 +116,22 @@ export function RecipeImagesPanel({ recipeId, title, images }: RecipeImagesPanel
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     const altText = String(form.get("altText") ?? "").trim();
-    const orderIndex = Number(form.get("orderIndex"));
 
     void run(`metadata-${image.id}`, async () => {
       await updateImageMetadata(recipeId, image.id, {
         altText: altText || null,
-        orderIndex: Number.isInteger(orderIndex) && orderIndex >= 0 ? orderIndex : image.orderIndex,
+        orderIndex: image.orderIndex,
       }, token);
-      return "Đã cập nhật mô tả và thứ tự ảnh.";
+      return "Đã cập nhật mô tả ảnh.";
     });
   }
 
   return (
     <section aria-label="Ảnh công thức" className="rounded-xl border bg-card p-4 sm:p-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-col items-center gap-3 text-center">
         <div>
-          <h2 className="text-sm font-medium">Ảnh công thức</h2>
-          <p className="text-sm text-muted-foreground">
+          <h2 className="font-display text-xl font-semibold">Ảnh công thức</h2>
+          <p className="mx-auto mt-1 max-w-xl text-sm text-muted-foreground">
             Ảnh chính hiển thị đầu tiên trên trang công khai. JPEG, PNG, WebP hoặc AVIF, tối đa 5 MB mỗi ảnh.
           </p>
         </div>
@@ -153,16 +152,16 @@ export function RecipeImagesPanel({ recipeId, title, images }: RecipeImagesPanel
 
       {pendingFiles.length > 0 && (
         <div className="mt-4 rounded-xl border border-dashed p-3">
-          <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-col items-center gap-2 text-center">
             <p className="text-sm font-medium">Xem trước {pendingFiles.length} ảnh đang chờ tải lên</p>
             <Button type="button" size="sm" disabled={busy !== null || !token} onClick={uploadPendingFiles}>
               {busy === "upload" ? <Loader2 className="animate-spin" /> : <Upload />}
               Tải ảnh lên
             </Button>
           </div>
-          <ul className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          <ul className="mt-3 flex flex-wrap justify-center gap-4">
             {pendingFiles.map((selection) => (
-              <li key={selection.previewUrl} className="overflow-hidden rounded-xl border bg-card">
+              <li key={selection.previewUrl} className="w-full overflow-hidden rounded-xl border bg-card sm:w-60">
                 <div className="relative aspect-[4/3] bg-muted">
                   <Image src={selection.previewUrl} alt={`Xem trước ${selection.file.name}`} fill unoptimized className="object-cover" />
                 </div>
@@ -191,9 +190,9 @@ export function RecipeImagesPanel({ recipeId, title, images }: RecipeImagesPanel
           Công thức chưa có ảnh nào.
         </p>
       ) : (
-        <ul className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        <ul className="mt-5 flex flex-wrap justify-center gap-4">
           {sorted.map((image, index) => (
-            <li key={image.id} className="overflow-hidden rounded-xl border">
+            <li key={image.id} className="w-full overflow-hidden rounded-xl border bg-card shadow-sm sm:w-64">
               <div className="relative aspect-[4/3] bg-muted">
                 <Image
                   src={image.url}
@@ -240,28 +239,16 @@ export function RecipeImagesPanel({ recipeId, title, images }: RecipeImagesPanel
               </div>
               <form className="space-y-2 border-t p-2" onSubmit={(event) => handleMetadata(event, image)}>
                 <Label htmlFor={`alt-${image.id}`} className="text-xs">Mô tả ảnh</Label>
-                <Input
-                  id={`alt-${image.id}`}
-                  name="altText"
-                  defaultValue={image.altText ?? ""}
-                  maxLength={300}
-                  placeholder="Ví dụ: Tô phở bò hoàn chỉnh"
-                  disabled={busy !== null}
-                />
-                <div className="flex items-end gap-2">
-                  <div className="min-w-0 flex-1">
-                    <Label htmlFor={`order-${image.id}`} className="mb-1 text-xs">Thứ tự</Label>
-                    <Input
-                      id={`order-${image.id}`}
-                      name="orderIndex"
-                      type="number"
-                      min={0}
-                      step={1}
-                      defaultValue={image.orderIndex}
-                      disabled={busy !== null}
-                    />
-                  </div>
-                  <Button type="submit" size="sm" variant="outline" disabled={busy !== null} aria-label={`Lưu thông tin ảnh ${index + 1}`}>
+                <div className="flex items-center gap-2">
+                  <Input
+                    id={`alt-${image.id}`}
+                    name="altText"
+                    defaultValue={image.altText ?? ""}
+                    maxLength={300}
+                    placeholder="Ví dụ: Tô phở bò hoàn chỉnh"
+                    disabled={busy !== null}
+                  />
+                  <Button type="submit" size="sm" variant="outline" disabled={busy !== null} aria-label={`Lưu mô tả ảnh ${index + 1}`}>
                     {busy === `metadata-${image.id}` ? <Loader2 className="animate-spin" /> : <Save />}
                     Lưu
                   </Button>

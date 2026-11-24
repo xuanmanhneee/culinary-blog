@@ -58,6 +58,8 @@ export interface StepDraft {
   title: string;
   description: string;
   timerMinutes: number | null;
+  /** Ảnh đã có trên server của bước (chỉ khi đang sửa). */
+  imageUrl?: string | null;
 }
 
 export type NutritionDraft = Required<{ [K in keyof NutritionRequest]: number | null }>;
@@ -322,6 +324,7 @@ export function draftFromRecipe(recipe: RecipeDetailDto): RecipeFormDraft {
         title: item.title === `Bước ${item.stepNumber}` ? "" : item.title,
         description: item.description,
         timerMinutes: item.timerMinutes,
+        imageUrl: item.imageUrl,
       })),
     nutrition: { ...recipe.nutrition },
   };

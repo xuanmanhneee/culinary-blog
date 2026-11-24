@@ -15,10 +15,14 @@ interface RecipeImageFilePickerProps {
   id: string;
   label: string;
   selection: SelectedRecipeImage | null;
+  /** Ảnh đã lưu trên server, hiện khi chưa chọn ảnh mới. */
+  existingUrl?: string | null;
+  /** Xóa ảnh đã lưu trên server (áp dụng khi lưu form). */
+  onRemoveExisting?: () => void;
   onFileChange: (file: File | null) => void;
 }
 
-export function RecipeImageFilePicker({ id, label, selection, onFileChange }: RecipeImageFilePickerProps) {
+export function RecipeImageFilePicker({ id, label, selection, existingUrl, onRemoveExisting, onFileChange }: RecipeImageFilePickerProps) {
   const [error, setError] = useState<string | null>(null);
 
   function handleChange(event: ChangeEvent<HTMLInputElement>) {
@@ -45,6 +49,13 @@ export function RecipeImageFilePicker({ id, label, selection, onFileChange }: Re
           <span className="relative block aspect-[4/3] w-full max-w-sm overflow-hidden rounded-xl bg-muted">
             <Image src={selection.previewUrl} alt={`Xem trước ${label.toLocaleLowerCase("vi")}`} fill unoptimized className="object-cover" />
           </span>
+        ) : existingUrl ? (
+          <>
+            <span className="relative block aspect-[4/3] w-full max-w-sm overflow-hidden rounded-xl bg-muted">
+              <Image src={existingUrl} alt={`Ảnh hiện tại: ${label.toLocaleLowerCase("vi")}`} fill unoptimized className="object-cover" />
+            </span>
+            <span className="text-xs font-medium text-primary">Ảnh hiện tại · bấm để thay ảnh khác</span>
+          </>
         ) : (
           <span className="flex items-center gap-2 text-sm font-medium"><ImagePlus /> Chọn {label.toLocaleLowerCase("vi")}</span>
         )}
@@ -55,6 +66,11 @@ export function RecipeImageFilePicker({ id, label, selection, onFileChange }: Re
       {selection && (
         <Button type="button" size="sm" variant="ghost" onClick={() => { setError(null); onFileChange(null); }}>
           <X /> Bỏ ảnh đã chọn
+        </Button>
+      )}
+      {!selection && existingUrl && onRemoveExisting && (
+        <Button type="button" size="sm" variant="ghost" className="text-destructive" onClick={onRemoveExisting}>
+          <X /> Xóa ảnh này
         </Button>
       )}
       {error && <p role="alert" className="text-sm text-destructive">{error}</p>}

@@ -47,6 +47,7 @@ export const stepSchema = z.object({
   title: z.string().trim().max(200, "Tiêu đề bước tối đa 200 ký tự."),
   description: z.string().trim().min(1, "Mô tả bước là bắt buộc.").max(2000, "Mô tả bước tối đa 2000 ký tự."),
   timerMinutes: optionalPositive("Thời gian của bước"),
+  imageUrl: z.string().nullable().optional(),
 });
 
 /** Publish cần ít nhất 1 bước (FR-RCP-005) nên form yêu cầu luôn ở đây. */

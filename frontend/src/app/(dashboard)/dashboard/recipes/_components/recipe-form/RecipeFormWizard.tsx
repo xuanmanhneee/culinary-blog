@@ -383,7 +383,12 @@ export function RecipeFormWizard({ mode, recipeId, initialNotice }: RecipeFormWi
       {mode === "edit" && recipe && (
         <>
           <RecipeStatusPanel recipe={recipe} onStatusChanged={handleStatusChanged} />
-          <RecipeImagesPanel recipeId={recipe.id} title={recipe.title} images={recipe.images} />
+          <RecipeImagesPanel
+            recipeId={recipe.id}
+            title={recipe.title}
+            // Ảnh minh họa bước nằm ở từng bước (bước 3), không lặp lại trong thư viện ảnh công thức.
+            images={recipe.images.filter((image) => !recipe.steps.some((step) => step.imageUrl === image.url))}
+          />
         </>
       )}
 

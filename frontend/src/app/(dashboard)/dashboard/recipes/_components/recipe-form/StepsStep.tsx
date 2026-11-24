@@ -118,6 +118,8 @@ export function StepsStep({
                     id={`step-${index}-image`}
                     label={`ảnh minh họa bước ${index + 1}`}
                     selection={selectedImages[field.key] ?? null}
+                    existingUrl={steps?.[index]?.imageUrl ?? null}
+                    onRemoveExisting={() => form.setValue(`steps.${index}.imageUrl`, null, { shouldDirty: true })}
                     onFileChange={(file) => onImageSelected?.(field.key, file)}
                   />
                   <div className="flex justify-end gap-1">

@@ -83,13 +83,15 @@ async function syncSteps(original: RecipeDetailDto, draft: RecipeFormDraft, toke
     };
     const target = existing[index];
     if (!target) {
-      await addStep(recipeId, body, token);
+      await addStep(recipeId, { ...body, imageUrl: item.imageUrl ?? null }, token);
       continue;
     }
     // Title trống → backend giữ title hiện tại; mặc định "Bước n" theo vị trí mới.
     const title = body.title ?? `Bước ${index + 1}`;
-    if (target.description !== body.description || target.title !== title || target.timerMinutes !== body.timerMinutes) {
-      await updateStep(recipeId, target.id, { ...body, title }, token);
+    // Ảnh đi theo bước trên form; draft cũ không có imageUrl thì giữ ảnh hiện tại.
+    const imageUrl = item.imageUrl === undefined ? target.imageUrl : item.imageUrl;
+    if (target.description !== body.description || target.title !== title || target.timerMinutes !== body.timerMinutes || target.imageUrl !== imageUrl) {
+      await updateStep(recipeId, target.id, { ...body, title, imageUrl }, token);
     }
   }
 }
