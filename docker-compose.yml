@@ -47,8 +47,9 @@ services:
       Smtp__Host: mailhog
       Smtp__Port: "1025"
       Smtp__From: noreply@culinaryblog.local
-      Smtp__PublicApiUrl: https://localhost
-      Smtp__PublicWebUrl: https://localhost
+      # Link trong email (xác nhận, reset mật khẩu, newsletter) trỏ về URL công khai (tunnel nếu có).
+      Smtp__PublicApiUrl: ${PUBLIC_SITE_URL:-https://localhost}
+      Smtp__PublicWebUrl: ${PUBLIC_SITE_URL:-https://localhost}
       # Tin X-Forwarded-For/Proto từ nginx (IP thật cho rate limiting, scheme https).
       ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
       HangfireDashboard__Username: ${HANGFIRE_DASHBOARD_USERNAME:-}
@@ -60,6 +61,9 @@ services:
       Services__Engagement__BaseUrl: http://engagement:8080
       Cors__AllowedOrigins__0: http://localhost:3000
       Cors__AllowedOrigins__1: https://localhost
+      # Truy cập qua cổng host tùy chỉnh (NGINX_HTTPS_PORT) trong khi frontend gọi API bằng PUBLIC_SITE_URL.
+      Cors__AllowedOrigins__2: https://localhost:${NGINX_HTTPS_PORT:-443}
+      Cors__AllowedOrigins__3: ${PUBLIC_SITE_URL:-https://localhost}
       Google__ClientId: ${GOOGLE_CLIENT_ID:-}
     ports:
       - "5000:8080"
